@@ -487,34 +487,53 @@ text. Parse the code, not the log string.
 
 ## 12. Measured overhead
 
-Every figure below comes from executing the real compiled program in LiteSVM, not from
-estimation. Reproduce with `bash scripts/test.sh --test benchmarks -- --nocapture`.
+Every figure below comes from executing the real compiled program, not from estimation.
+Reproduce with `bash scripts/test.sh --test benchmarks -- --nocapture`.
+
+The structural numbers are exact and deterministic. The compute-unit figures are **not**:
+they vary from run to run on both the cluster and the in-process harness, so they are given as
+a range, and the top of the range is what to budget against.
 
 | | Business action alone | With the guard | Delta |
 | --- | --- | --- | --- |
-| Compute units | 4,067 | 13,904 | **+9,837** |
-| Transaction size (legacy) | 273 bytes | 677 bytes | **+404 bytes** |
-| Accounts | 3 | 7 | **+4** |
+| Transaction size (legacy) — exact | 273 bytes | 677 bytes | **+404 bytes** |
+| Accounts — exact | 3 | 7 | **+4** |
+| Compute units — observed range | 4,067 – 10,067 | 12,404 – 22,904 | **+8,337 – +12,837** |
 
-| Operation | Compute units |
-| --- | --- |
-| `claim` alone | 7,783 |
-| `claim` + business action | 13,904 |
-| Duplicate blocked (rebuilt retry) | 9,553 |
-| `close_receipt` (cleanup) | 2,701 |
+| Operation | Compute units (range) | Median |
+| --- | --- | --- |
+| `claim` alone | 7,783 – 12,283 | 9,283 |
+| `claim` + business action | 12,404 – 22,904 | 15,404 |
+| Duplicate blocked (rebuilt retry) | 8,053 – 11,053 | 8,053 |
+| `close_receipt` (cleanup) | 2,701 – 2,701 | 2,701 |
 
-| Receipt account | |
+| Receipt account — exact | |
 | --- | --- |
 | Data length | 202 bytes |
 | Rent deposit | 1,676,400 lamports (0.0016764 SOL) |
 | `claim` instruction data | 144 bytes |
 | `claim` accounts | 4 |
 
+**The same operation on devnet**, from the recorded demo run:
+
+| Operation | Compute units reported by the cluster |
+| --- | --- |
+| `claim` (succeeded) | 14,669 |
+| `claim` (blocked a duplicate) | 13,977 |
+| Business increment | 4,067 and 7,067 in the same run |
+
 **Provenance of each number, stated precisely.**
 
-- **Measured**: all compute-unit figures, the receipt data length, the deposit, and the `claim`
-  instruction size and account count. These are read from the LiteSVM execution result or the
-  account store.
+- **Measured, exact**: the receipt data length, the deposit, and the `claim` instruction size
+  and account count. These are read from the account store or the instruction itself and are
+  identical on every run, so the benchmark asserts them exactly.
+- **Measured, non-deterministic**: all compute-unit figures. LiteSVM's compute accounting is not
+  reproducible run to run — the same unmodified test binary running the same byte-identical
+  `.so` reported a bare counter increment at 5,567, 7,067 and 19,067 CU across three
+  consecutive runs. The figures above are a min/median/max over 9 independent environments, and
+  the cluster's own figures are given separately because they differ from the harness's.
+  Quoting a single compute-unit value would be fabricated precision that a reader could not
+  reproduce.
 - **Computed**: transaction wire size. LiteSVM does not report serialized size, so it is
   computed from the legacy message wire format by `legacy_wire_size()` in
   `programs/commit-once/tests/benchmarks.rs`. The formula is written out in full so it can be
@@ -523,9 +542,13 @@ estimation. Reproduce with `bash scripts/test.sh --test benchmarks -- --nocaptur
 
 **Context that keeps the numbers honest.**
 
-- The baseline is a trivial counter increment. On a real business action the *relative* cost is
-  much lower: 9,837 CU is roughly 5% of a 200,000 CU budget, and the relative cost falls as the
-  guarded action grows.
+- **The structural numbers carry the claim; the compute numbers do not.** +404 bytes and +4
+  accounts are exact. The compute-unit range is wide, and the range is the honest presentation.
+- Budget against the top of the range: ~23,000 CU for a guarded transaction, about 11% of the
+  200,000 CU default budget and well under the 400,000 CU limit the demo transactions were
+  granted on devnet.
+- The baseline is a trivial counter increment, so on a real business action the *relative* cost
+  is much lower, and it falls as the guarded action grows.
 - The +4 accounts are the receipt PDA, the Instructions sysvar, the System program and the
   CommitOnce program id. In a typical transaction the System program is already present, so it
   is usually **+3**.

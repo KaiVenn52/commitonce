@@ -102,7 +102,7 @@ instructions, and both are asserted by tests rather than described in prose:
 | Demo counter program (devnet) | `EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5`, slot `501814798` |
 | Rust test suite | **40 passing, exit 0**, executing the real compiled SBF artifact through LiteSVM |
 | SDK test suite | **48 passing**, golden vectors cross-checked by an independent implementation |
-| Measured overhead | **+9,837 compute units, +404 bytes, +4 accounts** (usually +3 in practice) |
+| Measured overhead | **+404 bytes, +4 accounts** (usually +3 in practice); `claim` consumed 14,669 CU on devnet |
 | Receipt account | 202 bytes, 1,676,400 lamports rent (0.0016764 SOL), fully refundable on cleanup |
 | Mainnet | **not deployed** |
 | Audit | **not audited** |

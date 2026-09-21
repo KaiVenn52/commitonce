@@ -43,7 +43,7 @@ lose credibility. What exists is verifiable work:
 | Demo counter program, devnet | `EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5`, slot `501814798` |
 | Rust test suite | **40 passing, exit 0**, executing the real compiled SBF artifact through LiteSVM |
 | SDK test suite | **48 passing**, golden vectors cross-checked by an independent implementation |
-| Measured overhead | +9,837 CU, +404 bytes, +4 accounts (usually +3) |
+| Measured overhead | +404 bytes, +4 accounts (usually +3); `claim` ~14,000 CU on devnet |
 | Receipt | 202 bytes, 1,676,400 lamports, fully refundable |
 | Prior-art survey | primary-source survey with the closest deployed competitor enumerated, including its weaknesses and its advantages |
 | One-command reproduction | `bash verify.sh` |

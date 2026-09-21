@@ -62,10 +62,10 @@ document and section it draws on. The mapping:
 | --- | --- |
 | 40 Rust tests, exit 0; per-file counts 10/9/10/10/1 | `EVIDENCE.md` §4 |
 | 48 SDK tests | `EVIDENCE.md` §5 |
-| 4,067 / 13,904 / +9,837 CU; 273 / 677 / +404 bytes; 3 / 7 / +4 accounts | `EVIDENCE.md` §6 |
-| 7,783 / 13,904 / 9,553 / 2,701 CU | `EVIDENCE.md` §6 |
+| +404 bytes / +4 accounts (exact); compute units as a range | `EVIDENCE.md` §6 |
+| Compute-unit ranges, and devnet's 14,669 / 13,977 / 4,067 / 7,067 | `EVIDENCE.md` §6 |
 | 202 bytes, 1,676,400 lamports, 0.0016764 SOL, 144 bytes, 4 accounts | `EVIDENCE.md` §6 |
-| 5080 lamports/byte, stale crate 6960, “37% too high”, 128 + 276 byte decomposition, 200,000 CU budget, ~5% | `EVIDENCE.md` §6 |
+| 5080 lamports/byte, stale crate 6960, “37% too high”, 128 + 276 byte decomposition, 200,000 CU budget, ~11% of budget | `EVIDENCE.md` §6 |
 | Program ids, deploy slots 501814672 / 501814798, upgrade authority | `EVIDENCE.md` §3 |
 | Unaudited, mainnet not deployed, not on npm, no users, no integrations | `EVIDENCE.md` §7 |
 | The “not verified” list | `EVIDENCE.md` §7 |

@@ -117,8 +117,9 @@ day.
 Recorded on this date in `EVIDENCE.md`: toolchain versions, both `.so` artifacts with sizes and
 SHA-256, both devnet deployments with slots and signatures, the Rust suite result (**40 passing,
 exit 0**, executing the real compiled SBF artifact), the SDK suite result (**48 passing**), and the
-benchmark figures (+9,837 CU, +404 bytes, +4 accounts; `claim` 7,783 CU; duplicate-blocked
-9,553 CU; `close_receipt` 2,701 CU; receipt 202 bytes / 1,676,400 lamports).
+benchmark figures (+404 bytes, +4 accounts; compute units reported as a range, because LiteSVM's
+compute accounting turned out not to be reproducible run to run — see the 2026-09-21 entry below
+for how that was found and corrected).
 
 ### 2026-09-21 — security tests, benchmarks, examples, docs, demo, verification script, submission
 
@@ -147,6 +148,8 @@ The largest day by artifact count.
 | 17:40–17:50 | `apps/demo/commitonce-demo.ts` executed against devnet | four signatures recorded, A reached 2 and B reached 1 |
 | 17:50 | `submission/evidence/devnet-demo-run.log` | the raw demo output, kept as evidence |
 | 17:55 | first commits (`git log`) | the working tree committed, so the dates in this log are independently checkable |
+| 18:30 | `programs/commit-once/tests/benchmarks.rs` rewritten | **the single-compute-unit figures in the earlier entries were wrong.** Three consecutive runs of the same unmodified test binary against the same byte-identical `.so` reported a bare counter increment at 5,567, 7,067 and 19,067 CU, and the guard delta between 8,337 and 9,837. The benchmark now measures each figure across 9 independent environments and reports min/median/max, asserts only the exact structural numbers, and the README, `EVIDENCE.md`, the SDK README, the submission package and the website were all corrected to quote ranges |
+| 18:35 | devnet compute units read out of the recorded demo log | the cluster's own figures (`claim` 14,669 CU on success, 13,977 CU blocked, increment 4,067 / 7,067) are now quoted alongside the harness's, because they differ and the cluster is the authoritative runtime |
 
 ---
 
@@ -178,7 +181,8 @@ working tree:
 | SDK suite | 48 passing | 2026-09-20 |
 | `commit_once.so` | 153,472 bytes, SHA-256 `56bc2084e4f1d0b3345938e3e9406eb0af0686b410f1cb8c78cf4fe9129f25b5` | 2026-09-20 |
 | `demo_counter.so` | 138,064 bytes, SHA-256 `13b2b469276cafe298a511b01c67bc4e7601b37316c1b24b3364fb31f84e04f4` | 2026-09-20 |
-| Overhead | +9,837 CU, +404 bytes, +4 accounts | 2026-09-20 |
+| Overhead (structural, exact) | +404 bytes, +4 accounts | 2026-09-21 |
+| Overhead (compute units) | reported as a range: the earlier single figures were not reproducible | 2026-09-21 |
 | A/B demo executed against devnet | A reached counter 2 without the guard, B reached 1 with it; four signatures in [`EVIDENCE.md`](../EVIDENCE.md) and [`evidence/devnet-demo-run.log`](evidence/devnet-demo-run.log) | 2026-09-21 |
 | `verify.sh` full run | `RESULT: PASS (10 steps ran and passed)`, exit 0 | 2026-09-21 |
 

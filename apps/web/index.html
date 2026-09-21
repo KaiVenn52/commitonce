@@ -390,19 +390,19 @@
         </thead>
         <tbody>
           <tr>
-            <th scope="row">Compute units <span class="prov">measured</span></th>
-            <td class="num">4,067</td>
-            <td class="num">13,904</td>
-            <td class="num delta">+9,837</td>
+            <th scope="row">Compute units <span class="prov">observed range</span></th>
+            <td class="num">4,067 &ndash; 10,067</td>
+            <td class="num">12,404 &ndash; 22,904</td>
+            <td class="num delta">+8,337 &ndash; +12,837</td>
           </tr>
           <tr>
-            <th scope="row">Transaction size, legacy <span class="prov">computed</span></th>
+            <th scope="row">Transaction size, legacy <span class="prov">computed, exact</span></th>
             <td class="num">273 bytes</td>
             <td class="num">677 bytes</td>
             <td class="num delta">+404 bytes</td>
           </tr>
           <tr>
-            <th scope="row">Accounts <span class="prov">measured</span></th>
+            <th scope="row">Accounts <span class="prov">measured, exact</span></th>
             <td class="num">3</td>
             <td class="num">7</td>
             <td class="num delta">+4</td>
@@ -413,15 +413,29 @@
 
       <div class="tablewrap">
       <table class="data">
-        <caption>Per-operation compute units</caption>
+        <caption>Per-operation compute units, as a range</caption>
         <thead>
           <tr><th scope="col">operation</th><th scope="col" class="num">compute units</th></tr>
         </thead>
         <tbody>
-          <tr><th scope="row"><code>claim</code> alone</th><td class="num">7,783</td></tr>
-          <tr><th scope="row"><code>claim</code> + business action</th><td class="num">13,904</td></tr>
-          <tr><th scope="row">duplicate blocked, rebuilt retry</th><td class="num">9,553</td></tr>
-          <tr><th scope="row"><code>close_receipt</code>, cleanup</th><td class="num">2,701</td></tr>
+          <tr><th scope="row"><code>claim</code> alone</th><td class="num">7,783 &ndash; 12,283</td></tr>
+          <tr><th scope="row"><code>claim</code> + business action</th><td class="num">12,404 &ndash; 22,904</td></tr>
+          <tr><th scope="row">duplicate blocked, rebuilt retry</th><td class="num">8,053 &ndash; 11,053</td></tr>
+          <tr><th scope="row"><code>close_receipt</code>, cleanup</th><td class="num">2,701 (no variance observed)</td></tr>
+        </tbody>
+      </table>
+      </div>
+
+      <div class="tablewrap">
+      <table class="data">
+        <caption>The same operation, measured on devnet</caption>
+        <thead>
+          <tr><th scope="col">operation</th><th scope="col" class="num">compute units</th></tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row"><code>claim</code>, succeeded</th><td class="num">14,669</td></tr>
+          <tr><th scope="row"><code>claim</code>, blocked a duplicate</th><td class="num">13,977</td></tr>
+          <tr><th scope="row">business increment</th><td class="num">4,067 and 7,067, same run</td></tr>
         </tbody>
       </table>
       </div>
@@ -448,17 +462,26 @@
       <h3>Reading these numbers honestly</h3>
       <ul>
         <li>
-          <strong>Measured vs computed.</strong> All compute units, the receipt data length, the deposit,
-          and the <code>claim</code> instruction size and account count are read from the LiteSVM
-          execution result or the account store. Transaction wire size is <em>computed</em> — LiteSVM does
-          not report serialized size, so <code>legacy_wire_size()</code> in <code>tests/benchmarks.rs</code>
-          derives it from the legacy message format. The +404-byte delta decomposes exactly as 128 bytes
-          of added account keys (4 × 32) plus a 276-byte instruction.
+          <strong>Measured vs computed.</strong> The receipt data length, the deposit, and the
+          <code>claim</code> instruction size and account count are read from the account store and are
+          identical on every run. Transaction wire size is <em>computed</em> — LiteSVM does not report
+          serialized size, so <code>legacy_wire_size()</code> in <code>tests/benchmarks.rs</code> derives it
+          from the legacy message format. The +404-byte delta decomposes exactly as 128 bytes of added
+          account keys (4 &times; 32) plus a 276-byte instruction. <strong>Those numbers are exact.</strong>
         </li>
         <li>
-          <strong>The baseline is trivial.</strong> It is a counter increment. The guard's 9,837 CU is
-          roughly 5% of a 200,000 CU budget, and the <em>relative</em> cost falls as the guarded action
-          grows.
+          <strong>The compute units are not exact, so they are not stated as if they were.</strong>
+          LiteSVM's compute accounting is not reproducible run to run: the same unmodified test binary,
+          running the same byte-identical <code>.so</code>, reported a bare counter increment at 5,567,
+          7,067 and 19,067 CU across three consecutive runs. The figures above are therefore a range over
+          9 independent environments, and devnet's own figures are listed separately because they differ
+          from the harness's. Quoting one number would be precision nobody could reproduce.
+        </li>
+        <li>
+          <strong>Budget against the top of the range.</strong> ~23,000 CU for a guarded transaction is
+          about 11% of the 200,000 CU default budget, and well under the 400,000 CU limit the demo
+          transactions were granted on devnet. The baseline here is a trivial counter increment, so the
+          <em>relative</em> cost falls as the guarded action grows.
         </li>
         <li>
           <strong>The account delta is usually +3, not +4.</strong> The four are the receipt PDA, the

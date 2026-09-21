@@ -118,34 +118,57 @@ the transaction reverts, and your action runs once. See
 Every figure below comes from executing the real compiled program, not from estimation.
 Reproduce with `bash scripts/test.sh --test benchmarks -- --nocapture`.
 
+**The structural cost is exact. The compute-unit cost is not.** Compute units vary from run to
+run on both the real cluster and in the in-process test harness, so they are given as ranges
+and the highest figure is the one to budget against. The byte and account counts are
+deterministic and are the numbers that actually determine the wire cost and the deposit.
+
 | | Business action alone | With the guard | Delta |
 | --- | --- | --- | --- |
-| Compute units | 4,067 | 13,904 | **+9,837** |
-| Transaction size (legacy) | 273 bytes | 677 bytes | **+404 bytes** |
-| Accounts | 3 | 7 | **+4** |
+| Transaction size (legacy) — exact | 273 bytes | 677 bytes | **+404 bytes** |
+| Accounts — exact | 3 | 7 | **+4** |
+| Compute units — observed range | 4,067 – 10,067 | 12,404 – 22,904 | **+8,337 – +12,837** |
 
-| Operation | Compute units |
-| --- | --- |
-| `claim` alone | 7,783 |
-| `claim` + business action | 13,904 |
-| Duplicate blocked (rebuilt retry) | 9,553 |
-| `close_receipt` (cleanup) | 2,701 |
+| Compute units, per operation | Observed on devnet | In-process harness (median) |
+| --- | --- | --- |
+| `claim` alone | 14,669 | 9,283 |
+| `claim` blocked as a duplicate | 13,977 | 8,053 |
+| `close_receipt` (cleanup) | not measured | 2,701 (no variance observed) |
+| Business action alone | 4,067 / 7,067 | 5,567 |
 
-| Receipt account | |
+| Receipt account — exact | |
 | --- | --- |
 | Data length | 202 bytes |
 | Rent deposit | 1,676,400 lamports (0.0016764 SOL) |
 | `claim` instruction data | 144 bytes |
+| `claim` accounts | 4 |
 
-**Reading these honestly.** The +404 bytes are 128 bytes of account keys plus a 276-byte
-instruction; the +4 accounts are the receipt PDA, the Instructions sysvar, the System
-program, and the CommitOnce program id — in a typical transaction the System program is
-already present, so it is usually +3. The +9,837 CU is about 5% of a 200,000 CU budget, and
-the *relative* cost falls as the guarded action grows, because this baseline is a trivial
-counter increment. The deposit is fully refunded by `close_receipt`; the rent rate is
-mainnet's 5080 lamports/byte since SIMD-0437 step 2. Note that the `solana-rent` Rust crate
-still ships a stale 6960 lamports/byte, so any estimate derived from it is 37% too high —
-the test harness overrides the sysvar to the real value.
+**Reading these honestly.**
+
+*The structural cost is the solid claim.* +404 bytes is 128 bytes of account keys plus a
+276-byte instruction. +4 accounts are the receipt PDA, the Instructions sysvar, the System
+program and the CommitOnce program id — the System program is usually already present, so in
+practice it is usually +3. That is the whole cost, and it is exact.
+
+*The compute cost is the weaker claim, so it is stated as a range.* The same unmodified test
+binary, running the same byte-identical `.so`, has reported a bare counter increment anywhere
+from 4,067 to 10,067 CU and the guard delta from 8,337 to 12,837. On devnet the `claim`
+instruction consumed 14,669 CU when it succeeded and 13,977 CU when it rejected a duplicate —
+higher than the in-process harness reports, which is one more reason to trust the cluster over
+the harness. **Budget ~23,000 CU for a guarded transaction**, which is about 11% of the
+200,000 CU default budget and well under the 400,000 CU limit the demo transactions were
+granted. The *relative* cost falls as the guarded action grows, because this baseline is a
+trivial counter increment.
+
+*The deposit is not a cost.* It is fully refunded by `close_receipt`; only the cleanup
+transaction fee is spent. The rent rate is mainnet's 5080 lamports/byte since SIMD-0437 step 2.
+Note that the `solana-rent` Rust crate still ships a stale 6960 lamports/byte, so any estimate
+derived from it is 37% too high — the test harness overrides the sysvar to the real value.
+
+Because compute units are not reproducible, the benchmark asserts only the exact structural
+numbers and the ordering that must hold (`guarded > bare`). Asserting a specific compute-unit
+value would make the suite flaky and would assert something that is not a property of the
+program.
 
 ---
 

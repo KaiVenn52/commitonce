@@ -59,13 +59,17 @@ is concerned. Both attempts can land. The official production-readiness guidance
 
 ## What it costs
 
-Measured, not estimated:
+Measured, not estimated. The wire bytes and account counts are exact; compute units vary run to
+run, so they are given as a range (see `EVIDENCE.md` §6).
 
-| | Compute units | Wire bytes | Accounts |
+| | Compute units (observed range) | Wire bytes | Accounts |
 | --- | --- | --- | --- |
-| Business instruction alone | 4,067 | 273 | 3 |
-| With the guard | 13,904 | 677 | 7 |
-| **Guard delta** | **+9,837** | **+404** | **+4** |
+| Business instruction alone | 4,067 – 10,067 | 273 | 3 |
+| With the guard | 12,404 – 22,904 | 677 | 7 |
+| **Guard delta** | **+8,337 – +12,837** | **+404** | **+4** |
+
+On devnet the `claim` instruction itself consumed **14,669 CU** when it succeeded and
+**13,977 CU** when it rejected a duplicate. Budget ~23,000 CU for a guarded transaction.
 
 The receipt account is 202 bytes and costs **0.0016764 SOL** in rent, which is **fully
 refundable** — `closeReceiptInstruction()` returns all of it once the retention window has
