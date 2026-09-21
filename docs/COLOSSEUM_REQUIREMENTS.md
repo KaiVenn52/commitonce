@@ -239,11 +239,16 @@ Resources relevant to this project: the Solana track's "Build programs and typed
 
 ---
 
-## 10. Re-verification, 2026-09-21
+## 10. Re-verification, 2026-09-21 and 2026-09-22
 
-Colosseum relaunched the site between the first read and this one, so every operative page was
-fetched again from primary sources. **Nothing binding changed.** Three things were added, and
-one URL moved.
+Colosseum relaunched the site between the first read and these, so every operative page was
+fetched again from primary sources. **Nothing binding changed.** Several things were added, one
+URL was clarified, and the judging structure turned out to be more important than first
+recorded — see "the judging panel" below.
+
+**Deadline, re-confirmed 2026-09-22:** the live page still reads *"Submissions due October 12,
+2026"*. The Contest Period runs **Sep 14 — Oct 12, 2026**, which is 28 days; at the time of this
+check 8 had elapsed and **20 days 21 hours remained**.
 
 ### Confirmed unchanged
 
@@ -270,14 +275,40 @@ in [`NEEDS_OWNER_ACTION.md`](../NEEDS_OWNER_ACTION.md).
 
 ### New: the judging panel is public, and it is technical
 
-The live page names the track judges. Those most relevant to a Solana runtime primitive:
+**The most important structural fact on the page, and it is easy to miss:** there are *two*
+panels, and they do different jobs.
+
+> "The Colosseum team reviews **all** product submissions and **determines the overall
+> hackathon winners**, in addition to selecting the winning founders admitted into the
+> accelerator program."
+
+> "The following builders, investors, and operators work with the Colosseum team by providing
+> feedback and evaluating submissions in the dedicated hackathon tracks."
+
+So the Colosseum team is the primary audience for the submission itself — Clay Robbins, Matty
+Taylor, Nate Levine (cofounders), Max Monciardini (engineer) and Michael Rinko (associate).
+The track judges decide the **track** prizes. A submission has to work for both: a generalist
+who reads the description and watches the video, and a specialist who reads the code.
+
+The full track panel, as named on the live page:
 
 | Judge | Affiliation |
 | --- | --- |
-| Adam Gutierrez | Phantom |
+| Adam Gutierrez | Maximizing Developer Gains, Phantom |
 | Arihant Bansal | Engineer |
+| Binji | Founding Member, Ethlabs |
+| Daniel Sapkota | Cofounder, Lightcone |
+| David Tso | Ecosystem & Ventures, Base |
+| Dean | Director, Realms |
 | **Jed Halfon** | **Chief Strategy Officer, Anza** |
+| Jill Gunter | Chief Strategy Officer, Espresso Systems |
+| Julian Deschler | Cofounder, Arcium |
+| Julian Ma | Cofounder, Ethlabs |
+| LBO | Angel Investor |
+| Milian | Marketing, Arcium |
+| Mitchell | Head of Fundraising, MetaDAO |
 | Ray Zhang | Software Engineer, Ellipsis Labs |
+| Sitaram | Cofounder, Avici |
 | w.sol | DevRel, Drift |
 
 **Anza builds the Agave validator.** A judge from Anza knows the message-hash deduplication
@@ -287,13 +318,25 @@ project's existing posture — `docs/PRIOR_ART.md` §0 leads with the fact that 
 not novel, and the guarantee is stated as at-most-once within a retention window rather than
 "exactly once". That posture is not humility; with this panel it is the only defensible one.
 
-### Moved: developer resources
+### Developer resources, and workshops
 
-`https://colosseum.com/worldsfair/resources` → **`https://colosseum.com/arena/resources`**.
-Also newly linked: Colosseum Copilot at `/copilot`, and the Code of Ethics at `/code-of-ethics`.
+The live page's own navigation links **`https://colosseum.com/worldsfair/resources`**. An
+earlier read recorded this as having moved to `/arena/resources`; both resolve, and the
+canonical link from the hackathon page is the `/worldsfair/` one. Also linked: Colosseum
+Copilot at `/copilot`, and the Code of Ethics at `/code-of-ethics`.
+
+**Livestream workshops run on Discord**, with a calendar at `https://colosseum.com/events`.
+The kickoff was Sep 15; an Ethereum workshop with Austin Griffith ran Sep 22. Attending these
+is free and is another channel that puts a builder in front of the organisers during the
+Contest Period rather than at the end.
 
 ### Scale, for context
 
 The live page reports **5,069 builders** registered for this hackathon, and "80,000+ builders"
 across all Colosseum hackathons. Prior campaigns: Frontier 2,858 projects, Cypherpunk 1,576,
 Breakout 1,416, Radar 1,360, Renaissance 1,076.
+
+The accelerator is **12 weeks in San Francisco**, with **$250,000 pre-seed** to accepted teams —
+worth noting because "would this team be worth 12 weeks of Colosseum's time" is a different
+question from "is this a good hackathon project", and the answer has to come through in the
+founder story.
