@@ -210,9 +210,16 @@ Full detail, including the account-by-account and byte-by-byte layouts, is in
 ## Verification
 
 ```bash
+bash verify.sh          # everything: 10 steps, PASS/FAIL summary, true exit code
 bash scripts/build.sh   # builds, then verifies declare_id! against deploy-keys/
 bash scripts/test.sh    # 40 tests, exit code 0
 ```
+
+`verify.sh` is the one to run. It checks prerequisites, builds both programs, verifies
+`declare_id!` against the committed keypairs, runs the Rust suite and the benchmarks, then
+typechecks, builds, tests and dual-imports the SDK, and typechecks the demo and all four
+examples. It fails loudly rather than silently skipping a step, and a step that could not run
+counts as a failure, not a pass. Last full run: **`RESULT: PASS (10 steps ran and passed)`**.
 
 The tests execute the **real compiled SBF artifact** through LiteSVM — not a mock, not a
 reimplementation. They assert on observable onchain state: counter values, account
@@ -242,6 +249,26 @@ assert_eq!(env.counter_value(&authority), 1);   // ran exactly once
 The same scenario *without* the guard is a test too
 (`without_guard_two_rebuilt_transactions_execute_twice`), and it demonstrates the bug: the
 counter reaches 2.
+
+### The same thing, on devnet
+
+[`apps/demo/`](apps/demo/) runs that A/B against the deployed devnet programs and prints
+explorer links. It was executed on **2026-09-21**; the raw output is kept at
+[`submission/evidence/devnet-demo-run.log`](submission/evidence/devnet-demo-run.log) and the
+signatures are listed in [`EVIDENCE.md`](EVIDENCE.md).
+
+```bash
+PAYER_KEYPAIR=~/.config/solana/id.json node apps/demo/commitonce-demo.ts
+```
+
+```
+  scenario          counter onchain  expected  result
+  A  without-guard  2                2         PASS
+  B  with-guard     1                1         PASS
+```
+
+The retry in scenario B did not fail for some unrelated reason: it failed with
+`AlreadyCommitted`, and the guarded increment never ran a second time.
 
 ---
 
@@ -300,9 +327,15 @@ programs/
   commit-once/          the guard program (Anchor 1.2.0)
   demo-counter/         a business program that knows nothing about CommitOnce
 packages/sdk/           @commitonce/solana — dual ESM/CJS, zero runtime dependencies
-docs/                   architecture, security model, integration playbook, prior art
+apps/
+  demo/                 the A/B demo CLI, run against devnet
+  web/                  the product site — static, no build step
 examples/               SOL transfer, SPL transfer, custom program, Jupiter-style swap
+docs/                   architecture, security model, integration playbook, prior art
+submission/             the Colosseum submission package
 scripts/                build.sh, test.sh
+verify.sh               one command that checks all of the above
+deploy-keys/            the program keypairs the program IDs are derived from
 ```
 
 ---

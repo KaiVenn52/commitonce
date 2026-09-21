@@ -58,11 +58,26 @@ Winners announced by **2026-12-05**.
 
 **Actions required:**
 
-1. Record the two videos (item 2 below) and upload them; get the URLs.
-2. If the repository is private, grant read access to **`hackathon@colosseum.com`**.
-3. Confirm the repository is public or access is granted, then open the repo link in a
+1. **Push the repository to GitHub.** It is a local git repository with commits, but it has no
+   remote and has never been pushed, so there is currently **no repo link to submit**. The
+   intended name is `commitonce-dev/commitonce` (the GitHub *user* handle `@CommitOnce` is taken
+   by a dormant account, hence the org-style name):
+
+   ```bash
+   gh auth login                                     # or use a personal access token
+   gh repo create commitonce-dev/commitonce --public --source . --remote origin --push
+   # without the gh CLI:
+   #   git remote add origin git@github.com:commitonce-dev/commitonce.git
+   #   git push -u origin master
+   ```
+
+   Check the push before submitting: `git ls-remote origin` should list the branch, and the
+   repository page should render `README.md`.
+2. Record the two videos (item 2 below) and upload them; get the URLs.
+3. If the repository is private, grant read access to **`hackathon@colosseum.com`**.
+4. Confirm the repository is public or access is granted, then open the repo link in a
    private browser window to prove it works for someone who is not you.
-4. Fill the form at <https://colosseum.com> and submit **before 11:59pm PT on 2026-10-12**.
+5. Fill the form at <https://colosseum.com> and submit **before 11:59pm PT on 2026-10-12**.
 
 **Two compliance points that are easy to get wrong:**
 

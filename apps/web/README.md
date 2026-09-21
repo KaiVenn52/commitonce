@@ -33,11 +33,13 @@ npx --yes serve apps/web
 
 Hosting is a file copy: drop these four files on any static host. There is nothing to compile.
 
-> **Note on the root workspace scripts.** The repository root declares `dev:web` and `build:web`
-> as `pnpm --filter @commitonce/web …`, but this directory intentionally has no `package.json`,
-> so those two scripts have no package to target and will fail. They are pre-existing and were
-> left alone: adding a workspace package would invalidate `pnpm-lock.yaml`, and CI runs
-> `pnpm install --frozen-lockfile`. A static site needs neither a dev server nor a build.
+> **Note on the root workspace scripts.** There is deliberately no `dev:web` or `build:web`
+> script in the root `package.json`, and no `package.json` in this directory. A static site with
+> no build step needs neither a dev server nor a bundler, and adding a workspace package for one
+> would mean maintaining a `package.json` whose only purpose is to run `python -m http.server`.
+> `pnpm -r typecheck` and `pnpm -r test` therefore skip this directory, which is correct: there is
+> nothing here to compile or test. The site is verified by rendering it (see below), not by a
+> build.
 
 ## Relative links
 

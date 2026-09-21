@@ -56,18 +56,20 @@ Three sources, in order of reliability:
 1. **The repository's own artifacts and recorded results** — [`EVIDENCE.md`](../EVIDENCE.md)
    (recorded 2026-09-20 UTC, since updated), build artifacts in `target/`, the IDL, and the test
    suites themselves.
-2. **File modification timestamps** in the working tree, read at the time of writing.
-3. **The repository's research documents**, which carry their own retrieval dates
+2. **Git commit history**, which now exists: the repository was committed on 2026-09-21.
+3. **File modification timestamps** in the working tree, read at the time of writing.
+4. **The repository's research documents**, which carry their own retrieval dates
    (`docs/PRIOR_ART.md`: retrieved 2026-09-19; `submission/COLOSSEUM_GUIDES_BRIEF.md`: retrieved
    September 2026).
 
 **Limits, stated so the log is not over-trusted:**
 
-- **The repository has no commit history.** `git log` reports *"your current branch 'master' does
-  not have any commits yet"*, so there is no per-commit record of when work landed. The dated
-  entries below therefore rest on file modification timestamps, which are supporting evidence
-  rather than proof — a file's mtime can be changed by copying it. **Committing the work is a
-  pending action** (see §6), and it is the single easiest way to make this log verifiable.
+- **The commit history is shallow and was created late.** The work was authored as a working tree
+  and committed on 2026-09-21, so the history has a small number of commits and does not record
+  the intermediate steps. It establishes that the code existed by that date; it does not
+  reconstruct a day-by-day timeline. The dated entries below therefore rest mainly on file
+  modification timestamps, which are supporting evidence rather than proof — a file's mtime can be
+  changed by copying it.
 - Timestamps are local to the development machine and are not UTC-labelled. Day boundaries below
   are as recorded on that machine.
 - No hours-worked figures are claimed. This log records what was produced, not how long it took.
@@ -139,6 +141,12 @@ The largest day by artifact count.
 | 16:43 | `programs/commit-once/tests/wire_format.rs` | wire-format and layout pinning, including the cross-language PDA vector test that took the suite from 39 to **40** tests |
 | 16:45 | `CONTRIBUTING.md`, `NEEDS_OWNER_ACTION.md`, `RELEASE_RUNBOOK.md`, `SECURITY.md`, `EVIDENCE.md`, `README.md` | contribution guide, owner-action list, release runbook, security policy, evidence record, README |
 | 16:47–16:52 | `submission/` — project description, technical overview, pitch script, demo script, shot list, go-to-market, traction, founder story, FAQ, judge README, this work log | the submission package |
+| 17:00–17:45 | `examples/package.json`, `examples/tsconfig.json`, `pnpm-workspace.yaml` | the four examples added to the pnpm workspace and typechecked; **all four had real type errors** that had never been caught, because nothing compiled them |
+| 17:05–17:30 | `verify.sh` | SDK steps routed to the toolchain that owns `node_modules`; a `consumers typecheck` step added. Now **10 steps, all passing** |
+| 17:35 | `packages/sdk/README.md` | SDK-level README |
+| 17:40–17:50 | `apps/demo/commitonce-demo.ts` executed against devnet | four signatures recorded, A reached 2 and B reached 1 |
+| 17:50 | `submission/evidence/devnet-demo-run.log` | the raw demo output, kept as evidence |
+| 17:55 | first commits (`git log`) | the working tree committed, so the dates in this log are independently checkable |
 
 ---
 
@@ -171,6 +179,8 @@ working tree:
 | `commit_once.so` | 153,472 bytes, SHA-256 `56bc2084e4f1d0b3345938e3e9406eb0af0686b410f1cb8c78cf4fe9129f25b5` | 2026-09-20 |
 | `demo_counter.so` | 138,064 bytes, SHA-256 `13b2b469276cafe298a511b01c67bc4e7601b37316c1b24b3364fb31f84e04f4` | 2026-09-20 |
 | Overhead | +9,837 CU, +404 bytes, +4 accounts | 2026-09-20 |
+| A/B demo executed against devnet | A reached counter 2 without the guard, B reached 1 with it; four signatures in [`EVIDENCE.md`](../EVIDENCE.md) and [`evidence/devnet-demo-run.log`](evidence/devnet-demo-run.log) | 2026-09-21 |
+| `verify.sh` full run | `RESULT: PASS (10 steps ran and passed)`, exit 0 | 2026-09-21 |
 
 ## 6. What was not done during the Contest Period
 
@@ -179,13 +189,12 @@ this log is more useful than the flattering one.
 
 | Not done | Detail |
 | --- | --- |
-| **No git commit history** | The working tree has never been committed. This is the most actionable gap: committing makes the dates in §3 independently verifiable, and it is a normal expectation of a submission. |
 | **No mainnet deployment** | Not deployed, no mainnet keypair or funding. |
 | **No security audit** | The program is unaudited. |
 | **No npm publication** | The SDK exists and builds; it is not published. |
 | **No users, integrations, revenue** | None. See [`TRACTION.md`](TRACTION.md). |
 | **Concurrent claims of one key** | Not tested. The suite covers sequential duplicates and many distinct keys; it does not race two claims of one key in the same slot. |
-| **No examples executed against a live cluster** | The four examples are written and their READMEs say so. |
+| **No examples executed against a live cluster** | The four examples are typechecked against the SDK on every build, but none has submitted a transaction. Their READMEs say so. |
 | **Transaction v1 / address lookup tables** | Not tested. |
 | **Non-Anchor callers** | Not tested. |
 | **Compute units on mainnet** | Not measured. |
