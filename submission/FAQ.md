@@ -286,7 +286,7 @@ longest answer. The full list is [`EVIDENCE.md`](../EVIDENCE.md) §7.
 | **Real users, revenue, waitlist** | **None.** |
 | **Traction of any kind** | **None.** |
 | Transaction v1 messages | **Not tested.** v1 is live on mainnet as of epoch 1035 and does not change message-hash deduplication, but the SDK and tests exercise legacy and v0 messages only. |
-| Address lookup tables / v0 execution | **Not tested end-to-end.** Constructing and signing a v0 message containing the guard was checked; executing one against a real SVM was not. |
+| Address lookup tables / v0 execution | **Tested end-to-end** in `tests/versioned.rs`. The guard commits when the receipt PDA, the Instructions sysvar, the System Program and the business program all arrive through a lookup table; a rebuilt v0 retry is blocked with `AlreadyCommitted` and the counter stays at 1; and a signer listed in a table is not loaded from it. Previously "constructing was checked, executing was not" — now it executes. |
 | Non-Anchor callers | **Not tested.** The SDK hand-encodes the wire format, so a non-Anchor client can call the program, but no such client has been written or run. |
 | Genuine durable-nonce transactions | **Cannot be tested in LiteSVM 0.10.0** — see question 5. |
 | SBPFv3 build | **Not verified**, and deliberately not shipped, because LiteSVM cannot verify it. |

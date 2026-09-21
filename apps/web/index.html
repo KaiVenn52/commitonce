@@ -605,8 +605,8 @@ isAlreadyCommitted(rpcError);                   // true — treat as success, do
           <p class="step-n">3</p>
           <h3>Then run the guard against a cluster you control</h3>
           <pre class="code"><code>bash scripts/build.sh   # builds, then verifies declare_id! against deploy-keys/
-bash scripts/test.sh    # 42 tests against the compiled SBF artifact, exit 0
-bash verify.sh          # everything, with a PASS/FAIL summary and the true exit code</code><button class="copy copy-block" type="button" data-copy="bash scripts/build.sh   # builds, then verifies declare_id! against deploy-keys/&#10;bash scripts/test.sh    # 42 tests against the compiled SBF artifact, exit 0&#10;bash verify.sh          # everything, with a PASS/FAIL summary and the true exit code">Copy</button></pre>
+bash scripts/test.sh    # 45 tests against the compiled SBF artifact, exit 0
+bash verify.sh          # everything, with a PASS/FAIL summary and the true exit code</code><button class="copy copy-block" type="button" data-copy="bash scripts/build.sh   # builds, then verifies declare_id! against deploy-keys/&#10;bash scripts/test.sh    # 45 tests against the compiled SBF artifact, exit 0&#10;bash verify.sh          # everything, with a PASS/FAIL summary and the true exit code">Copy</button></pre>
           <p class="step-note">
             The Rust suite needs no validator, no RPC and no funds — it runs the compiled program
             in-process through LiteSVM.
@@ -678,7 +678,7 @@ bash verify.sh          # everything, with a PASS/FAIL summary and the true exit
               <a href="https://explorer.solana.com/address/EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5?cluster=devnet" target="_blank" rel="noopener noreferrer">demo_counter <span class="ext" aria-hidden="true">↗</span></a>
             </dd>
           </div>
-          <div><dt>Rust tests</dt><dd>42 passing, exit 0, executing the real compiled SBF artifact through LiteSVM.</dd></div>
+          <div><dt>Rust tests</dt><dd>45 passing, exit 0, executing the real compiled SBF artifact through LiteSVM.</dd></div>
           <div>
             <dt>Live contention</dt>
             <dd>
@@ -735,7 +735,6 @@ bash verify.sh          # everything, with a PASS/FAIL summary and the true exit
         <li>npm publication. The package is not published.</li>
         <li>Third-party integration, real users, traction, revenue, waitlist. None.</li>
         <li>Transaction v1 (<code>VersionedTransaction</code> v1). The SDK and tests exercise legacy and v0 messages only.</li>
-        <li>Address lookup tables and v0 messages end-to-end. The guard is an ordinary instruction and is expected to work, but "expected" is not "verified".</li>
         <li>Non-Anchor callers. The SDK encodes the wire format by hand, so a non-Anchor client can call it, but no such client has been written or run.</li>
         <li>Genuine durable-nonce transactions. A real nonce transaction is inexpressible in LiteSVM 0.10.0, so the tests assert the program's stricter behaviour — that the presence of the marker triggers the policy.</li>
         <li>SBPFv3 builds. Deliberately not shipped, because the project's own test suite cannot verify one.</li>

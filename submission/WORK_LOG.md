@@ -179,6 +179,8 @@ The largest day by artifact count.
 | 01:40 | `scripts/check-docs.mjs` — most of this project's claims live in prose, and prose rots | the ad-hoc sweep I had been running by hand checked markdown links and a hardcoded list of stale phrases. It did **not** check the website's `href` attributes at all, which is the artifact a judge is most likely to click through, and it printed test counts without asserting them. The repo version checks markdown *and* html links, that every evidence log is referenced by a document, that quoted test counts are counts the suites actually produce, and that no corrected claim has come back. It is now step 12 of `verify.sh` |
 | 01:50 | the first run found 21 problems, and **all 21 were the checker's fault** | it matched its own pattern list, and it flagged *correct* negations — `apps/demo/README.md` says "there is **no** `--scenario` flag", and `jupiter-swap` correctly says it has not been executed. A naive substring match treats a corrected statement as a regression. Rewrote the needles as precise patterns with file scoping, exempted the checker itself and the work log (a dated record legitimately quotes the bugs it fixed). A check that cries wolf gets switched off, so the precision is not fussiness |
 | 01:55 | and then proved the check can actually fail | a passing check proves nothing on its own, so each detector was fired deliberately: a broken markdown link, a broken html link, a retired claim, an impossible test count, and an evidence log no document references. All five caught, and the tree went green again once the faults were removed. `verify.sh` 11 → **12 steps**, all passing |
+| 02:20 | `programs/commit-once/tests/versioned.rs` — the last compatibility gap that could actually block an integrator | the suite built `VersionedMessage::Legacy` everywhere, and the docs recorded v0 + address lookup tables as *"expected to work, but not verified"*. That is the wrong answer for the transaction shape **most production clients actually build**: v0 with a lookup table is how a transaction still fits inside the 1232-byte packet limit once it touches more than a handful of accounts. It was a real question rather than a formality, because `claim` reads the Instructions sysvar and because a lookup table **cannot supply a signer**, so the authority must stay static while the receipt PDA, the sysvar and the System Program are all loaded. Three tests now: the guard commits with everything loadable coming from a table; a rebuilt v0 retry is blocked with `AlreadyCommitted` and the counter stays at 1; and a signer listed in a table is not loaded from it |
+| 02:30 | the lookup-table warmup, and a wrong assumption I had to correct | a table extended in the *current* slot is refused by the runtime, so the harness helper warps forward two slots — that is the single most common reason a v0 transaction fails the first time someone tries it. And my third test asserted that compiling a v0 message with the signer in a table would **fail**. It does not: `CompiledKeys::try_extract_table_lookup` only extracts non-signer keys, so the signer is silently kept static and compilation succeeds. That is the correct behaviour and a better property to pin, because a message that *did* load a signer would be unsignable and would fail far from its cause. Rewrote the test to assert the real guarantee. Rust suite 42 → **45** |
 
 ---
 
@@ -186,10 +188,10 @@ The largest day by artifact count.
 
 | Component | Location | State |
 | --- | --- | --- |
-| Guard program (`claim`, `close_receipt`) | `programs/commit-once/` | built (SBPFv2), deployed to devnet, 42 tests passing |
+| Guard program (`claim`, `close_receipt`) | `programs/commit-once/` | built (SBPFv2), deployed to devnet, 45 tests passing |
 | Demo counter program | `programs/demo-counter/` | built, deployed to devnet |
 | TypeScript SDK `@commitonce/solana` v0.1.0 | `packages/sdk/` | built (ESM + CJS + types), 71 tests passing, **not published to npm** |
-| Rust test suite | `programs/commit-once/tests/` | 42 tests, exit 0, executing the real compiled artifact in LiteSVM |
+| Rust test suite | `programs/commit-once/tests/` | 45 tests, exit 0, executing the real compiled artifact in LiteSVM |
 | SDK test suite | `packages/sdk/test/` | 71 tests, with golden vectors cross-checked by an independent implementation |
 | A/B demo CLI | `apps/demo/` | written and **executed against devnet**; output recorded in `submission/evidence/devnet-demo-run.log` and summarised in `EVIDENCE.md` |
 | Integration examples | `examples/` | four examples, typechecked as part of the workspace. `sol-transfer`, `spl-transfer` and `custom-program` **have been executed against devnet** (System Program; SPL Token + Associated Token; an arbitrary Anchor program); the Jupiter-swap example has never submitted a transaction |
@@ -221,7 +223,8 @@ working tree:
 | `custom-program` example executed | phase 1 committed, phase 2 blocked; counter stayed at 1 across two different transaction shapes | 2026-09-22 |
 | `commit_once` **redeployed** to devnet | slot `501995361`, signature `3YsTFBpCenHgYb3pPCNPusvznRsF8gLGEarStQ59dqHjxKchSCjFkh1fjuGZ5RqTcZzKau6Ts2P1yUgX4MNEuRcb`, data length `163712` | 2026-09-22 |
 | `commit_once.so` (current) | 154,416 bytes, SHA-256 `d6a465a7541c0b954519f5b5eb4b99a960389e43e454cf690fbeeb6f62643108` | 2026-09-22 |
-| Rust suite (current) | 42 passing, exit 0 | 2026-09-22 |
+| Rust suite (current) | 45 passing, exit 0 | 2026-09-22 |
+| v0 + address lookup tables | **Tested** in `tests/versioned.rs` — the guard commits with all non-signer accounts loaded from a table, and a rebuilt v0 retry is blocked | 2026-09-22 |
 | Durable-nonce scan | changed to fail closed; the runtime's own instruction ceiling discovered by probing, not assumed | 2026-09-22 |
 
 ## 6. What was not done during the Contest Period
@@ -237,7 +240,8 @@ this log is more useful than the flattering one.
 | **No users, integrations, revenue** | None. See [`TRACTION.md`](TRACTION.md). |
 | **Concurrent claims of one key** | **Tested in two places.** In-process: `only_the_first_of_many_attempts_commits` builds five distinct signed transactions against one blockhash — one slot — and asserts exactly one commits while the other four each fail with `AlreadyCommitted`. Live: `apps/demo/concurrent-claim.ts` fires 5–8 competing transactions at real devnet validators and gets the same result. **Caveat:** the live runs landed across 2–3 slots, not one — a client cannot force a leader to pack its transactions together. The same-slot case rests on the in-process test. |
 | **One of the four examples is not executed** | All four are typechecked against the SDK on every build. `sol-transfer`, `spl-transfer` and `custom-program` **have** been executed against devnet — see `submission/evidence/devnet-sol-transfer-run.log`, `devnet-spl-transfer-run.log` and `devnet-custom-program-run.log`. The Jupiter-swap example has never submitted a transaction, and its README says so. |
-| **Transaction v1 / address lookup tables** | Not tested. |
+| **Transaction v1** | Not tested. |
+| **Address lookup tables / v0** | **Tested** in `programs/commit-once/tests/versioned.rs`. |
 | **Non-Anchor callers** | Not tested. |
 | **Compute units on mainnet** | Not measured. |
 

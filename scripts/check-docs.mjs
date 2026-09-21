@@ -174,7 +174,7 @@ console.log(`evidence logs:  ${logs.length} checked`);
 // `submission/WORK_LOG.md` is a dated history, so it legitimately records the counts as they
 // were on each day. Everywhere else, a test count is a claim about the present.
 // ---------------------------------------------------------------------------------------
-const CURRENT_COUNTS = new Set([42, 71]);
+const CURRENT_COUNTS = new Set([45, 71]);
 const HISTORY_FILE = 'submission/WORK_LOG.md';
 let counts = 0;
 for (const file of files.filter((f) => extname(f) === '.md')) {

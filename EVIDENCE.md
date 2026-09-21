@@ -291,7 +291,7 @@ Jupiter's live API.
 
 ---
 
-## 4. Rust test suite — 42 passing, exit code 0
+## 4. Rust test suite — 45 passing, exit code 0
 
 Run: `bash scripts/test.sh`
 
@@ -299,9 +299,10 @@ Run: `bash scripts/test.sh`
 test result: ok. 11 passed; 0 failed    (invariant)
 test result: ok.  9 passed; 0 failed    (retention)
 test result: ok. 11 passed; 0 failed    (security)
+test result: ok.  3 passed; 0 failed    (versioned)
 test result: ok. 10 passed; 0 failed    (wire_format)
 test result: ok.  1 passed; 0 failed    (benchmarks)
-REAL_EXIT=0   TOTAL_PASSED=42   TOTAL_FAILED=0
+REAL_EXIT=0   TOTAL_PASSED=45   TOTAL_FAILED=0
 ```
 
 The tests execute the **real compiled SBF artifact** through LiteSVM — not a mock and not a
@@ -328,6 +329,43 @@ an error message string, because message text is not a stable contract.
 | Malformed state | `malformed_receipt_data_is_rejected`, `unsupported_receipt_version_is_rejected` | fail-closed |
 | Expiry | `receipt_cannot_be_closed_before_expiry` | both deadlines independently enforced |
 | **Durable-nonce scan bound** | `scan_bound_sits_above_the_runtime_instruction_ceiling` | discovers the runtime's own instruction ceiling by probing, then asserts `MAX_INSTRUCTION_SCAN` sits above it — see below |
+| **v0 + lookup tables** | `guarded_transaction_commits_in_a_v0_message_with_a_lookup_table`, `rebuilt_v0_retry_is_blocked_and_the_business_action_runs_once` | the invariant holds for the transaction shape production clients actually build |
+| **Signer not loaded** | `a_signer_in_a_lookup_table_stays_in_the_static_keys` | a loaded address cannot satisfy a signature, so a signer must stay static |
+
+### v0 messages and address lookup tables
+
+Every other test builds `VersionedMessage::Legacy`. Production clients mostly do not: **v0 with
+an address lookup table** is how a transaction still fits inside the 1232-byte packet limit once
+it touches more than a handful of accounts.
+
+This was recorded as *"expected to work, but not verified"*, which is the wrong answer for a
+shape most integrators use. It was a real question rather than a formality, for two reasons:
+
+1. `claim` reads the **Instructions sysvar**. That read is by transaction *index*, not by
+   account, so it should be indifferent to how accounts were resolved — but "should be" is not
+   evidence.
+2. A lookup table **cannot supply a signer**. The authority must stay in the static keys while
+   the receipt PDA, the Instructions sysvar, the System Program and the business program are all
+   loaded from a table. If the guard depended on any of those being statically present, this is
+   where it would have shown.
+
+```
+test guarded_transaction_commits_in_a_v0_message_with_a_lookup_table ... ok
+test rebuilt_v0_retry_is_blocked_and_the_business_action_runs_once ... ok
+test a_signer_in_a_lookup_table_stays_in_the_static_keys ... ok
+```
+
+Two things the tests pin that are easy to get wrong in practice:
+
+* **The warmup.** A table extended in the *current* slot is refused by the runtime, so the
+  harness helper warps forward two slots. This is the most common reason a v0 transaction fails
+  the first time someone tries it.
+* **A signer is never loaded.** The first version of the third test asserted that compiling a v0
+  message with the signer in a table would *fail*. It does not:
+  `CompiledKeys::try_extract_table_lookup` only extracts non-signer keys, so the signer is
+  silently kept static and compilation succeeds. That is the correct behaviour and a better
+  property to pin — a message that *did* load a signer would be unsignable, and would fail far
+  from its cause.
 
 ### The durable-nonce scan, and a finding from auditing it
 
@@ -571,7 +609,7 @@ Listed explicitly, because a document that only lists successes is not evidence.
 | Traction, revenue, waitlist | **None.** No such numbers exist and none are claimed. |
 | Concurrent claims of the same key | **Tested, in two places, with a caveat.** In-process, `only_the_first_of_many_attempts_commits` builds five distinct signed transactions against one blockhash — i.e. one slot — and asserts exactly one commits while the other four each fail with `AlreadyCommitted`. On a live cluster, `apps/demo/concurrent-claim.ts` fires 5–8 competing transactions at real devnet validators and gets the same result (exactly one commits, the rest fail 6000). **The caveat:** the live runs spread across 2–3 slots rather than one, because a client cannot force a leader to pack its transactions together. So the same-slot case is proven in-process and the live case is proven across slots; neither experiment is the other. |
 | Transaction v1 (`VersionedTransaction` v1) | **Not tested.** v1 is live on mainnet as of epoch 1035, and it does not change message-hash deduplication, but the SDK and tests exercise legacy and v0 messages only. |
-| Address lookup tables / v0 messages | **Not tested end-to-end.** The guard is an ordinary instruction and is expected to work, but "expected" is not "verified". |
+| Address lookup tables / v0 messages | **Tested end-to-end, in `tests/versioned.rs`.** Three tests: the guard commits when the receipt PDA, the Instructions sysvar, the System Program and the business program all arrive through a lookup table; a rebuilt v0 retry is blocked with `AlreadyCommitted` and the counter stays at 1; and a signer listed in a table is *not* loaded from it, staying in the static keys. This was previously recorded as "expected to work, but not verified" — the guard reads the Instructions sysvar by transaction index rather than by account, so the read should be indifferent to how accounts resolved, but "should be" was not evidence. |
 | Non-Anchor callers | **Not tested.** The program is Anchor-built; the SDK encodes the wire format by hand, so a non-Anchor client can call it, but no such client has been written or run. |
 | Durable-nonce transactions, genuine | **Cannot be tested in LiteSVM 0.10.0.** A real nonce transaction is inexpressible there, because LiteSVM passes the transaction's own blockhash into the program environment, making the System Program's advance check and the runtime's nonce validation mutually exclusive. The tests assert the program's stricter behaviour — that the *presence* of the marker triggers the policy — and this limitation is documented at length in `tests/security.rs`. |
 | SBPFv3 build | **Not verified.** Deliberately not shipped, because LiteSVM cannot verify it. |

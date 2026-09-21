@@ -64,7 +64,7 @@ document and section it draws on. The mapping:
 
 | On the page | Source |
 | --- | --- |
-| 42 Rust tests, exit 0; per-file counts 11/9/11/10/1 | `EVIDENCE.md` §4 |
+| 45 Rust tests, exit 0; per-file counts 11/9/11/3/10/1 | `EVIDENCE.md` §4 |
 | 71 SDK tests | `EVIDENCE.md` §5 |
 | +404 bytes / +4 accounts (exact); compute units as a range | `EVIDENCE.md` §6 |
 | Compute-unit ranges, and devnet's 14,669 / 13,977 / 4,067 / 7,067 | `EVIDENCE.md` §6 |

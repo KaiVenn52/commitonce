@@ -18,8 +18,12 @@ use {
     },
     litesvm::{types::TransactionResult, LiteSVM},
     sha2::{Digest, Sha256},
+    solana_address_lookup_table_interface::instruction::{
+        create_lookup_table, extend_lookup_table,
+    },
+    solana_clock::Clock,
     solana_keypair::Keypair,
-    solana_message::{Message, VersionedMessage},
+    solana_message::{v0, AddressLookupTableAccount, Message, VersionedMessage},
     solana_signer::Signer,
     solana_transaction::versioned::VersionedTransaction,
     solana_transaction_error::TransactionError,
@@ -436,13 +440,94 @@ impl Env {
         self.send(&ixs)
     }
 
+    // -----------------------------------------------------------------------------------
+    // v0 messages and address lookup tables.
+    //
+    // Everything else in this harness builds `VersionedMessage::Legacy`. Production clients
+    // mostly do not: v0 with an address lookup table is how a transaction fits inside the
+    // 1232-byte packet limit once it touches more than a handful of accounts. Whether the
+    // guard survives that shape is a real compatibility question, and it was previously
+    // recorded as "expected to work, but not verified".
+    // -----------------------------------------------------------------------------------
+
+    /// Create an address lookup table containing `addresses`, and warm it.
+    ///
+    /// **The warmup is the point.** Solana refuses to resolve a table that was extended in
+    /// the *current* slot, so a table built and used in the same slot fails with
+    /// `AddressLookupTableAccountNotFound` or an "extended in the same slot" error. That is
+    /// the single most common reason a v0 transaction fails the first time it is tried, and
+    /// it is why this helper warps forward instead of returning immediately.
+    pub fn create_lookup_table(&mut self, addresses: &[Pubkey]) -> Pubkey {
+        let authority = self.authority.pubkey();
+        let clock: Clock = self.svm.get_sysvar();
+
+        let (create_ix, table) = create_lookup_table(authority, authority, clock.slot);
+        assert_success(&self.send(&[create_ix]));
+
+        let extend_ix =
+            extend_lookup_table(table, authority, Some(authority), addresses.to_vec());
+        assert_success(&self.send(&[extend_ix]));
+
+        // Move past the slot the table was extended in, or the runtime will refuse it.
+        self.svm.warp_to_slot(clock.slot + 2);
+        table
+    }
+
+    /// Build, sign and submit a **v0** transaction resolving `lookup_addresses` via a table.
+    ///
+    /// Signers must stay in the static keys — a lookup table cannot supply a signer — so the
+    /// authority remains a static account and only the non-signer accounts are loaded.
+    pub fn send_v0(
+        &mut self,
+        instructions: &[Instruction],
+        lookup_table: Pubkey,
+        lookup_addresses: &[Pubkey],
+    ) -> TransactionResult {
+        let blockhash = self.svm.latest_blockhash();
+        self.send_v0_with_blockhash(instructions, lookup_table, lookup_addresses, blockhash)
+    }
+
+    /// As [`Self::send_v0`], but against an explicit blockhash so a retry can be modelled.
+    pub fn send_v0_with_blockhash(
+        &mut self,
+        instructions: &[Instruction],
+        lookup_table: Pubkey,
+        lookup_addresses: &[Pubkey],
+        blockhash: solana_hash::Hash,
+    ) -> TransactionResult {
+        let tx = self.build_v0(instructions, lookup_table, lookup_addresses, blockhash);
+        self.svm.send_transaction(tx)
+    }
+
+    /// Build and sign a v0 transaction without submitting it.
+    pub fn build_v0(
+        &mut self,
+        instructions: &[Instruction],
+        lookup_table: Pubkey,
+        lookup_addresses: &[Pubkey],
+        blockhash: solana_hash::Hash,
+    ) -> VersionedTransaction {
+        let table = AddressLookupTableAccount {
+            key: lookup_table,
+            addresses: lookup_addresses.to_vec(),
+        };
+        let message = v0::Message::try_compile(
+            &self.authority.pubkey(),
+            instructions,
+            &[table],
+            blockhash,
+        )
+        .expect("failed to compile a v0 message");
+        VersionedTransaction::try_new(VersionedMessage::V0(message), &[&self.authority])
+            .expect("failed to sign the v0 transaction")
+    }
+
     /// Build and sign a transaction without submitting it.
     ///
     /// Tests that need to prove "two attempts produced two *different signed
     /// transactions*" build both up front and compare their signatures, rather than
     /// inferring that from a submission result.
-    pub fn build_signed_with_blockhash(
-        &mut self,
+    pub fn build_signed_with_blockhash(        &mut self,
         payer: &Keypair,
         instructions: &[Instruction],
         extra_signers: &[&Keypair],

@@ -41,7 +41,7 @@ lose credibility. What exists is verifiable work:
 | --- | --- |
 | Guard program, deployed on **devnet** | live and executable; deploy slot `501995361`; signature `3YsTFBpCenHgYb3pPCNPusvznRsF8gLGEarStQ59dqHjxKchSCjFkh1fjuGZ5RqTcZzKau6Ts2P1yUgX4MNEuRcb` |
 | Demo counter program, devnet | `EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5`, slot `501814798` |
-| Rust test suite | **42 passing, exit 0**, executing the real compiled SBF artifact through LiteSVM |
+| Rust test suite | **45 passing, exit 0**, executing the real compiled SBF artifact through LiteSVM |
 | SDK test suite | **71 passing**, golden vectors cross-checked by an independent implementation |
 | Measured overhead | +404 bytes, +4 accounts (usually +3); `claim` ~14,000 CU on devnet |
 | Receipt | 202 bytes, 1,676,400 lamports, fully refundable |
