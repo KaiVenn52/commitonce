@@ -688,6 +688,16 @@ bash verify.sh          # everything, with a PASS/FAIL summary and the true exit
               force a leader to pack them together — so the same-slot case rests on the in-process test.
             </dd>
           </div>
+          <div>
+            <dt>Real integrations</dt>
+            <dd>
+              Three of the four examples have been <em>executed</em> against devnet, not just typechecked.
+              The guard composed with the System Program, with SPL Token + Associated Token in one
+              transaction, and with an arbitrary Anchor program — and in each case the rebuilt retry was
+              blocked while the business effect landed exactly once. The Jupiter swap stays structural
+              because it needs Jupiter's live API, and says so.
+            </dd>
+          </div>
           <div><dt>SDK tests</dt><dd>71 passing, pinning the derivation to golden hex vectors that a second implementation recomputes independently.</dd></div>
           <div><dt>Build integrity</dt><dd>The build verifies <code>declare_id!</code> against the program keypairs and exits 1 on mismatch rather than producing a silently broken artifact.</dd></div>
           <div><dt>Documentation</dt><dd>Architecture, security model with a threat model, integration playbook, prior-art survey with sources, and an evidence document listing what is <em>not</em> verified.</dd></div>
