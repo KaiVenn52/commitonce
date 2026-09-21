@@ -29,10 +29,10 @@ node apps/demo/commitonce-demo.ts --help
 ```
 
 `apps/demo/commitonce-demo.ts` is the entry declared in `apps/demo/package.json`. **Its execution
-against devnet is not recorded in [`EVIDENCE.md`](../EVIDENCE.md)** — the A/B is proven by the Rust
-suite, which executes the real compiled artifact in LiteSVM, but the standalone runner is newer
-than that evidence document. So the first pre-flight step is a full rehearsal run, and **you do
-not record until it passes on its own**:
+against devnet is recorded** in [`EVIDENCE.md`](../EVIDENCE.md) §3, with the raw output in
+[`evidence/devnet-demo-run.log`](evidence/devnet-demo-run.log). That run is a previous date, not
+today's, so the first pre-flight step is still a full rehearsal on the machine you are recording
+from, and **you do not record until it passes on its own**:
 
 ```bash
 export PAYER_KEYPAIR=~/.config/solana/id.json

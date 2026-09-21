@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="CommitOnce">
+  <title>CommitOnce</title>
+  <desc>A committed receipt in front, a rejected duplicate behind it. Transparent background.</desc>
+
+  <!--
+    Same mark as commitonce-mark.svg, but with no background and the "1" cut out rather than
+    painted in ink, so it sits correctly on light and dark surfaces alike. The cut is done
+    with a mask instead of a background-coloured stroke, which would only ever match one
+    background.
+  -->
+
+  <mask id="cut">
+    <rect x="113" y="149" width="250" height="250" rx="54" fill="#fff"/>
+    <g fill="none" stroke="#000" stroke-width="34"
+       stroke-linecap="round" stroke-linejoin="round">
+      <path d="M208 230 L240 202"/>
+      <path d="M240 202 L240 336"/>
+      <path d="M206 336 L274 336"/>
+    </g>
+  </mask>
+
+  <rect x="175" y="89" width="250" height="250" rx="54"
+        fill="none" stroke="#e8a33d" stroke-width="16" opacity="0.34"/>
+
+  <rect x="113" y="149" width="250" height="250" rx="54" fill="#e8a33d" mask="url(#cut)"/>
+</svg>

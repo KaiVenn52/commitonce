@@ -445,12 +445,12 @@ bash verify.sh
 ```
 
 Runs prerequisite checks, the program build, program-ID verification, the Rust suite, the
-benchmarks, and the SDK typecheck/build/tests/dual-format check plus a consumer typecheck —
-**ten steps** — then prints a PASS/FAIL summary with the true exit code. It fails loudly rather
-than silently skipping a step, and a step that could not run is reported as `NOT RUN`, which
-fails the run rather than being counted as a pass.
+benchmarks, and the SDK typecheck/build/tests/dual-format check plus a consumer typecheck and the
+brand-asset check — **eleven steps** — then prints a PASS/FAIL summary with the true exit code. It
+fails loudly rather than silently skipping a step, and a step that could not run is reported as
+`NOT RUN`, which fails the run rather than being counted as a pass.
 
-Last full run: **`RESULT: PASS (10 steps ran and passed)`**, exit code 0.
+Last full run: **`RESULT: PASS (11 steps ran and passed)`**, exit code 0.
 
 One caveat worth stating, because it is a property of this machine rather than of the project:
 the SDK steps are delegated to the Windows toolchain through WSL interop. This dependency tree

@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="CommitOnce">
+  <title>CommitOnce</title>
+  <desc>A committed receipt in front, a rejected duplicate behind it.</desc>
+
+  <!--
+    The mark reads as the product: one receipt is solid and holds the "1"; the duplicate
+    attempt is still visible behind it, uncommitted. No gradient, no glow, no shadow —
+    the same restraint as the site palette (ink #0b0c0e, amber #e8a33d).
+  -->
+
+  <rect width="512" height="512" rx="112" fill="#0b0c0e"/>
+
+  <!-- The duplicate: outline only, offset up and right, so it reads as a second attempt
+       that never filled in. -->
+  <rect x="175" y="89" width="250" height="250" rx="54"
+        fill="none" stroke="#e8a33d" stroke-width="16" opacity="0.34"/>
+
+  <!-- The committed receipt. -->
+  <rect x="113" y="149" width="250" height="250" rx="54" fill="#e8a33d"/>
+
+  <!-- The "1": one execution, cut into the receipt in ink. -->
+  <g fill="none" stroke="#0b0c0e" stroke-width="34"
+     stroke-linecap="round" stroke-linejoin="round">
+    <path d="M208 230 L240 202"/>
+    <path d="M240 202 L240 336"/>
+    <path d="M206 336 L274 336"/>
+  </g>
+</svg>

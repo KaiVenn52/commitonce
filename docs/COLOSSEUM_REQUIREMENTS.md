@@ -6,6 +6,10 @@ per-source quotes, raw HTTP evidence, all 11 flagged contradictions, and the exh
 checkbox list — is preserved at
 [`submission/COLOSSEUM_GUIDES_BRIEF.md`](../submission/COLOSSEUM_GUIDES_BRIEF.md).
 
+**Re-verified 2026-09-21** against the live pages, because Colosseum relaunched the site
+between the two reads. The results are in §10; the operative requirements did not change, but
+three things were added or moved.
+
 The Official Rules PDF is the **binding** document. Where the hackathon FAQ and the two
 Colosseum blog posts disagree with it, the disagreement is recorded rather than silently
 resolved.
@@ -189,7 +193,7 @@ Prize Acceptance Documents and passing due diligence.
 - [ ] Product name + brief description → `submission/PROJECT_DESCRIPTION.md`
 - [ ] Blockchains and tools integrated → `submission/TECHNICAL_OVERVIEW.md`
 - [ ] All teammates, backgrounds, location → `submission/FOUNDER_STORY.md`
-- [ ] Product logo or graphic → `apps/web/public/`
+- [ ] Product logo or graphic → [`assets/brand/`](../assets/brand/) (`commitonce-mark-1024.png`)
 - [ ] GitHub repository link (public; if private, grant `hackathon@colosseum.com`) → repo root
 - [ ] **Presentation video, target 2:00–2:59** → `submission/PITCH_SCRIPT.md`
 - [ ] **Product-demo video, ≤3:00** → `submission/DEMO_SCRIPT.md`
@@ -232,3 +236,64 @@ other skill install command referenced anywhere in Colosseum's materials is Mete
 
 Resources relevant to this project: the Solana track's "Build programs and typed clients",
 "Test at the right layer", "Treasury + Security", and "Payments + Commerce" sections.
+
+---
+
+## 10. Re-verification, 2026-09-21
+
+Colosseum relaunched the site between the first read and this one, so every operative page was
+fetched again from primary sources. **Nothing binding changed.** Three things were added, and
+one URL moved.
+
+### Confirmed unchanged
+
+* Contest Period **Sep 14 — Oct 12**, "Submissions due October 12, 2026".
+* Prizes: **$30,000** grand prize, **$300,000** across the next 20 ($15,000 each), **$5,000**
+  Public Good, **$5,000** University, and the **Solana Ecosystem track at $100,000 — 10
+  projects at $10,000 each**. The $840,000 total is unchanged.
+* The full judging list, quoted verbatim on the live page: Founder + Market Fit; Insight;
+  Product + Execution; Potential Market Size; Founder Communication; Viability; Traction.
+* The GitHub-repo expectations, the "pre-existing code" disclosure rule, the required
+  submission fields, and the video requirements — all word-for-word as recorded in §2 and §4.
+
+### New: weekly updates
+
+> "Weekly updates are an opportunity to share progress, stay locked in, and give us more context
+> on your product's development. They aren't strictly required for every participant, but we
+> **strongly recommend them for anyone serious about competing**. Each update should be a
+> concise, one-minute video highlighting progress and notable challenges from the previous week."
+
+Not required, and not scored as a listed criterion — but it is the only channel that puts work
+in front of Colosseum *during* the Contest Period rather than at the end, and "serious about
+competing" is the framing. **This is an owner action** (it needs a recorded video); it is listed
+in [`NEEDS_OWNER_ACTION.md`](../NEEDS_OWNER_ACTION.md).
+
+### New: the judging panel is public, and it is technical
+
+The live page names the track judges. Those most relevant to a Solana runtime primitive:
+
+| Judge | Affiliation |
+| --- | --- |
+| Adam Gutierrez | Phantom |
+| Arihant Bansal | Engineer |
+| **Jed Halfon** | **Chief Strategy Officer, Anza** |
+| Ray Zhang | Software Engineer, Ellipsis Labs |
+| w.sol | DevRel, Drift |
+
+**Anza builds the Agave validator.** A judge from Anza knows the message-hash deduplication
+behaviour first-hand, which cuts both ways: the insight will be understood immediately, and any
+overstatement about it will be caught immediately. This is the strongest argument for the
+project's existing posture — `docs/PRIOR_ART.md` §0 leads with the fact that the *mechanism* is
+not novel, and the guarantee is stated as at-most-once within a retention window rather than
+"exactly once". That posture is not humility; with this panel it is the only defensible one.
+
+### Moved: developer resources
+
+`https://colosseum.com/worldsfair/resources` → **`https://colosseum.com/arena/resources`**.
+Also newly linked: Colosseum Copilot at `/copilot`, and the Code of Ethics at `/code-of-ethics`.
+
+### Scale, for context
+
+The live page reports **5,069 builders** registered for this hackathon, and "80,000+ builders"
+across all Colosseum hackathons. Prior campaigns: Frontier 2,858 projects, Cypherpunk 1,576,
+Breakout 1,416, Radar 1,360, Renaissance 1,076.

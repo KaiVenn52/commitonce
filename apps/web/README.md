@@ -7,9 +7,13 @@ external requests.** Open `index.html` and it renders.
 apps/web/
 ├── index.html    the whole page — every fact is in the markup, not rendered by script
 ├── styles.css    design tokens + layout; system font stacks only, no webfonts
-├── main.js       ~170 lines: the mechanism toggle and clipboard buttons
-└── favicon.svg   a receipt glyph, inline SVG, no binary asset
+└── main.js       ~170 lines: the mechanism toggle and clipboard buttons
 ```
+
+The favicon is **not** kept here. `index.html` points at `assets/brand/`, which is the single
+source of truth for the mark, so the site icon and the submission logo cannot drift apart. The
+page references it as `../../assets/brand/…`, which resolves both when the site is served from
+the repository root and when `index.html` is opened directly from disk.
 
 ## How to open it
 

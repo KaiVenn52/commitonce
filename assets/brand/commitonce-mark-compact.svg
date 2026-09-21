@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="CommitOnce">
+  <title>CommitOnce</title>
+  <desc>The CommitOnce mark for small sizes: the receipt and the "1", without the duplicate.</desc>
+
+  <!--
+    The compact mark, for 32px and below (favicon, avatars, list icons).
+
+    The full mark carries a second, outlined square behind the receipt — the rejected
+    duplicate. That stroke is 16 user units at 34% opacity, which is about one pixel at 32px;
+    antialiasing blends it to roughly #100f0f against the #0b0c0e background and it stops
+    being visible at all. Rather than thicken it and unbalance the large sizes, the small
+    sizes drop it: at 32px the mark is the receipt and the "1", and that is the whole
+    identity anyway.
+
+    The "1" is scaled 1.15x about the receipt's centre so it still reads in a 16px favicon.
+    Use the full mark from 48px up; see assets/brand/README.md.
+  -->
+
+  <rect width="512" height="512" rx="112" fill="#0b0c0e"/>
+
+  <rect x="113" y="149" width="250" height="250" rx="54" fill="#e8a33d"/>
+
+  <g fill="none" stroke="#0b0c0e" stroke-width="39"
+     stroke-linecap="round" stroke-linejoin="round">
+    <path d="M203.5 223.4 L240.3 191.2"/>
+    <path d="M240.3 191.2 L240.3 345.3"/>
+    <path d="M201.2 345.3 L279.4 345.3"/>
+  </g>
+</svg>

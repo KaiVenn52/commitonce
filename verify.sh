@@ -13,8 +13,9 @@
 #   3. verifies that every declare_id! matches its deploy-keys/*-keypair.json pubkey
 #   4. runs the Rust suite against the compiled SBF artifact in LiteSVM
 #   5. runs the benchmark test with its output visible
-#   6. runs the SDK typecheck, build and test suite
-#   7. prints a PASS/FAIL summary and exits non-zero if anything failed or did not run
+#   6. runs the SDK typecheck, build, test suite and dual-format check
+#   7. checks the brand assets against the site palette
+#   8. prints a PASS/FAIL summary and exits non-zero if anything failed or did not run
 #
 # What it does NOT do, and does not claim:
 #   * It does not deploy anything, to any cluster.
@@ -384,6 +385,16 @@ run_step "SDK tests (pnpm --filter @commitonce/solana test)" \
 # compares the two builds, rather than trusting that dist/esm and dist/cjs exist.
 run_step "SDK resolves under both ESM and CJS (pnpm --filter @commitonce/solana check:dual)" \
     sdk_run pnpm --filter @commitonce/solana check:dual
+
+# ---------------------------------------------------------------------------------------
+# Brand consistency. The mark lives in assets/brand/ and the site points at it, so this
+# asserts the SVG palette still matches apps/web/styles.css, that the compact mark has not
+# grown back the duplicate that is invisible below 48px, and that every exported PNG exists.
+# It needs no rasterizer, so it runs anywhere Node does.
+# ---------------------------------------------------------------------------------------
+
+run_step "brand assets consistent (node scripts/check-brand.mjs)" \
+    sdk_run node scripts/check-brand.mjs
 
 # ---------------------------------------------------------------------------------------
 # Summary and true exit code.

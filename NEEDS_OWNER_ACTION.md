@@ -102,11 +102,24 @@ submission — treat it as the highest-value hour you will spend on this project
 **Before recording, run the demo and confirm it works:**
 
 ```bash
-cd apps/demo
-node run.ts --scenario both      # see apps/demo/README.md for the exact command and env vars
+export PAYER_KEYPAIR=~/.config/solana/id.json
+node apps/demo/commitonce-demo.ts
 ```
 
-The demo hits **devnet** and prints real explorer links. Record the terminal, not a slide.
+The demo hits **devnet** and prints real explorer links. Record the terminal, not a slide. It
+must end with `CommitOnce demo: both scenarios behaved exactly as claimed.` See
+[`apps/demo/README.md`](apps/demo/README.md) for the options and exit codes.
+
+If you want a second, stronger shot for the technical demo, `node apps/demo/concurrent-claim.ts`
+fires one idempotency key at real validators in 5–8 transactions at once. Read the caveat it
+prints before putting it on camera; [`submission/DEMO_SCRIPT.md`](submission/DEMO_SCRIPT.md) §2b
+has the wording.
+
+**Also: submit the weekly updates.** The FAQ asks for a *"concise, one-minute video"* each week
+and says they are *"strongly recommend[ed] … for anyone serious about competing"*. They are not
+required and not a scored criterion, but they are the only channel that puts work in front of
+Colosseum *during* the Contest Period rather than at the end. See
+[`docs/COLOSSEUM_REQUIREMENTS.md`](docs/COLOSSEUM_REQUIREMENTS.md) §10.
 
 ---
 
