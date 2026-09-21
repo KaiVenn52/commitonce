@@ -104,12 +104,12 @@ Do not change this default without also changing the test harness and recording 
 | What | Command |
 | --- | --- |
 | Build both programs + verify program IDs | `bash scripts/build.sh` |
-| Rust suite (40 tests, LiteSVM, real compiled artifact) | `bash scripts/test.sh` |
+| Rust suite (41 tests, LiteSVM, real compiled artifact) | `bash scripts/test.sh` |
 | One Rust test file | `cargo test -p commit-once --test invariant` |
 | Benchmarks with output visible | `cargo test -p commit-once --test benchmarks -- --nocapture` |
 | SDK typecheck | `pnpm --filter @commitonce/solana typecheck` |
 | SDK build (ESM + CJS + types) | `pnpm --filter @commitonce/solana build` |
-| SDK tests (48 tests) | `pnpm --filter @commitonce/solana test` |
+| SDK tests (71 tests) | `pnpm --filter @commitonce/solana test` |
 | Recompute golden vectors independently | `pnpm --filter @commitonce/solana vectors` |
 | Formatting check | `cargo fmt --all --check` |
 | Lints | `cargo clippy --workspace --all-targets` |

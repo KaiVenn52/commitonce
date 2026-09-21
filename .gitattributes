@@ -12,6 +12,12 @@
 *.yml text eol=lf
 *.yaml text eol=lf
 
+# Evidence logs. One of these was once written by a Windows PowerShell redirect, which
+# produces UTF-16LE with a BOM: unreadable on Linux and macOS, and treated as binary by
+# git, so the evidence could not be reviewed or diffed at all. Declaring them text stops
+# that recurring. Prefer `cmd /c ... > log` or an explicit UTF-8 writer on Windows.
+*.log text eol=lf
+
 # Windows-only files keep CRLF.
 *.bat text eol=crlf
 *.cmd text eol=crlf

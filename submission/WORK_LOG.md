@@ -115,8 +115,8 @@ day.
 | 01:17–01:22 | `docs/ARCHITECTURE.md`, `docs/SECURITY_MODEL.md` | mechanism and threat model |
 
 Recorded on this date in `EVIDENCE.md`: toolchain versions, both `.so` artifacts with sizes and
-SHA-256, both devnet deployments with slots and signatures, the Rust suite result (**40 passing,
-exit 0**, executing the real compiled SBF artifact), the SDK suite result (**48 passing**), and the
+SHA-256, both devnet deployments with slots and signatures, the Rust suite result (**41 passing,
+exit 0**, executing the real compiled SBF artifact), the SDK suite result (**71 passing**), and the
 benchmark figures (+404 bytes, +4 accounts; compute units reported as a range, because LiteSVM's
 compute accounting turned out not to be reproducible run to run — see the 2026-09-21 entry below
 for how that was found and corrected).
@@ -139,7 +139,7 @@ The largest day by artifact count.
 | 16:37 | `.github/workflows/ci.yml` | CI workflow |
 | 16:38 | `verify.sh`, example `README.md` files | one-command end-to-end verification with a PASS/FAIL summary |
 | 16:39 | `docs/INTEGRATION_PLAYBOOK.md` | adding the guard to an existing application |
-| 16:43 | `programs/commit-once/tests/wire_format.rs` | wire-format and layout pinning, including the cross-language PDA vector test that took the suite from 39 to **40** tests |
+| 16:43 | `programs/commit-once/tests/wire_format.rs` | wire-format and layout pinning, including the cross-language PDA vector test that took the suite from 39 to **40**, then to **41** tests |
 | 16:45 | `CONTRIBUTING.md`, `NEEDS_OWNER_ACTION.md`, `RELEASE_RUNBOOK.md`, `SECURITY.md`, `EVIDENCE.md`, `README.md` | contribution guide, owner-action list, release runbook, security policy, evidence record, README |
 | 16:47–16:52 | `submission/` — project description, technical overview, pitch script, demo script, shot list, go-to-market, traction, founder story, FAQ, judge README, this work log | the submission package |
 | 17:00–17:45 | `examples/package.json`, `examples/tsconfig.json`, `pnpm-workspace.yaml` | the four examples added to the pnpm workspace and typechecked; **all four had real type errors** that had never been caught, because nothing compiled them |
@@ -150,6 +150,10 @@ The largest day by artifact count.
 | 17:55 | first commits (`git log`) | the working tree committed, so the dates in this log are independently checkable |
 | 18:30 | `programs/commit-once/tests/benchmarks.rs` rewritten | **the single-compute-unit figures in the earlier entries were wrong.** Three consecutive runs of the same unmodified test binary against the same byte-identical `.so` reported a bare counter increment at 5,567, 7,067 and 19,067 CU, and the guard delta between 8,337 and 9,837. The benchmark now measures each figure across 9 independent environments and reports min/median/max, asserts only the exact structural numbers, and the README, `EVIDENCE.md`, the SDK README, the submission package and the website were all corrected to quote ranges |
 | 18:35 | devnet compute units read out of the recorded demo log | the cluster's own figures (`claim` 14,669 CU on success, 13,977 CU blocked, increment 4,067 / 7,067) are now quoted alongside the harness's, because they differ and the cluster is the authoritative runtime |
+| 19:05 | `submission/evidence/devnet-demo-run.log` re-encoded | the log had been written by a Windows PowerShell redirect, which produces **UTF-16LE with a BOM**: unreadable on Linux and macOS, and treated as **binary** by git, so the evidence could not be diffed or reviewed at all. Converted to UTF-8 and `*.log text eol=lf` added to `.gitattributes` so it cannot recur |
+| 19:20 | `programs/commit-once/tests/invariant.rs` | the recorded limitation "concurrent claims in the same slot are not tested" was **wrong** — `only_the_first_of_many_attempts_commits` already did exactly that. Strengthened it to assert the *reason* for each of the four losing attempts (a failure for an unrelated reason would previously have counted as a pass) and that all five were processed at one slot, and added `same_intent_with_different_downstream_instructions_is_still_blocked`. Rust suite 40 → **41** |
+| 19:45 | `packages/sdk/src/events.ts`, `test/events.test.ts` | **event decoding**, the last real SDK gap: the SDK could build and inspect accounts but could not read the program's own events, so any integration wanting to react to a commit had to hand-roll the Borsh layout. Adds `decodeEventsFromLogs` and friends with a dependency-free base64 decoder, pinned against a real `IntentCommitted` emitted on devnet. SDK suite 48 → **71** |
+| 19:50 | `packages/sdk/scripts/check-dual-format.mjs` | extended to cover the new exports, and now decodes the captured devnet event in **both** the ESM and CJS builds and compares the results — a module added to one entry point and not the other fails here |
 
 ---
 
@@ -157,11 +161,11 @@ The largest day by artifact count.
 
 | Component | Location | State |
 | --- | --- | --- |
-| Guard program (`claim`, `close_receipt`) | `programs/commit-once/` | built (SBPFv2), deployed to devnet, 40 tests passing |
+| Guard program (`claim`, `close_receipt`) | `programs/commit-once/` | built (SBPFv2), deployed to devnet, 41 tests passing |
 | Demo counter program | `programs/demo-counter/` | built, deployed to devnet |
-| TypeScript SDK `@commitonce/solana` v0.1.0 | `packages/sdk/` | built (ESM + CJS + types), 48 tests passing, **not published to npm** |
-| Rust test suite | `programs/commit-once/tests/` | 40 tests, exit 0, executing the real compiled artifact in LiteSVM |
-| SDK test suite | `packages/sdk/test/` | 48 tests, with golden vectors cross-checked by an independent implementation |
+| TypeScript SDK `@commitonce/solana` v0.1.0 | `packages/sdk/` | built (ESM + CJS + types), 71 tests passing, **not published to npm** |
+| Rust test suite | `programs/commit-once/tests/` | 41 tests, exit 0, executing the real compiled artifact in LiteSVM |
+| SDK test suite | `packages/sdk/test/` | 71 tests, with golden vectors cross-checked by an independent implementation |
 | A/B demo CLI | `apps/demo/` | written and **executed against devnet**; output recorded in `submission/evidence/devnet-demo-run.log` and summarised in `EVIDENCE.md` |
 | Integration examples | `examples/` | four examples, typechecked as part of the workspace; none executed against a live cluster |
 | Verification | `verify.sh`, `scripts/` | one command, PASS/FAIL summary, non-zero exit on any step that did not run |
@@ -177,8 +181,8 @@ working tree:
 | --- | --- | --- |
 | `commit_once` devnet deployment | slot `501814672`, signature `5N8nwtyQSnA9XvRGLJMqsZrGmz3zFG1zPgWzcNmqyRo9N6udGT6RhsCV6mo8G68mWEWcsDziM44M6cuuHW6Hb4uW` | 2026-09-20 |
 | `demo_counter` devnet deployment | slot `501814798` | 2026-09-20 |
-| Rust suite | 40 passing, exit 0 | 2026-09-20 |
-| SDK suite | 48 passing | 2026-09-20 |
+| Rust suite | 41 passing, exit 0 | 2026-09-20 |
+| SDK suite | 71 passing | 2026-09-20 |
 | `commit_once.so` | 153,472 bytes, SHA-256 `56bc2084e4f1d0b3345938e3e9406eb0af0686b410f1cb8c78cf4fe9129f25b5` | 2026-09-20 |
 | `demo_counter.so` | 138,064 bytes, SHA-256 `13b2b469276cafe298a511b01c67bc4e7601b37316c1b24b3364fb31f84e04f4` | 2026-09-20 |
 | Overhead (structural, exact) | +404 bytes, +4 accounts | 2026-09-21 |
@@ -197,7 +201,7 @@ this log is more useful than the flattering one.
 | **No security audit** | The program is unaudited. |
 | **No npm publication** | The SDK exists and builds; it is not published. |
 | **No users, integrations, revenue** | None. See [`TRACTION.md`](TRACTION.md). |
-| **Concurrent claims of one key** | Not tested. The suite covers sequential duplicates and many distinct keys; it does not race two claims of one key in the same slot. |
+| **Concurrent claims of one key** | **Partly tested.** `only_the_first_of_many_attempts_commits` builds five distinct signed transactions against one blockhash — one slot — and asserts exactly one commits while the other four each fail with `AlreadyCommitted`. A Solana slot executes its transactions sequentially and the claims conflict on the same PDA, so that is the cluster's ordering. What is **not** tested is contention against real validators: LiteSVM is in-process and single-threaded. |
 | **No examples executed against a live cluster** | The four examples are typechecked against the SDK on every build, but none has submitted a transaction. Their READMEs say so. |
 | **Transaction v1 / address lookup tables** | Not tested. |
 | **Non-Anchor callers** | Not tested. |

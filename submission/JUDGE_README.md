@@ -49,9 +49,9 @@ Individual steps, if you prefer:
 
 ```bash
 bash scripts/build.sh                                  # build + verify program IDs
-bash scripts/test.sh                                   # 40 Rust tests, expect exit 0
+bash scripts/test.sh                                   # 41 Rust tests, expect exit 0
 bash scripts/test.sh --test benchmarks -- --nocapture   # the overhead table
-pnpm --filter @commitonce/solana test                   # 48 SDK tests
+pnpm --filter @commitonce/solana test                   # 71 SDK tests
 ```
 
 **Confirm the devnet deployment is real** (no build required):
@@ -123,8 +123,8 @@ verified).
 | --- | --- |
 | Program ID (identical on all clusters) | `CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB` |
 | Devnet deployment | **live and executable**, deploy slot `501814672` |
-| Rust tests | **40 passing, exit 0**, executing the real compiled SBF artifact in LiteSVM |
-| SDK tests | **48 passing**, golden vectors cross-checked by an independent implementation |
+| Rust tests | **41 passing, exit 0**, executing the real compiled SBF artifact in LiteSVM |
+| SDK tests | **71 passing**, golden vectors cross-checked by an independent implementation |
 | Measured overhead | +404 bytes, +4 accounts (usually +3); `claim` ~14,000 CU on devnet |
 | Receipt | 202 bytes, 1,676,400 lamports rent, fully refundable on cleanup |
 | Build | SBPFv2, `readelf -h` reports `Flags: 0x2` |
@@ -149,9 +149,9 @@ Stated plainly, because a submission that only lists successes is not evidence.
 | Address lookup tables / v0 end-to-end | Not tested against a live SVM. |
 | Non-Anchor callers | The SDK hand-encodes the wire format so a non-Anchor client can call the program; no such client has been written. |
 | Genuine durable-nonce transactions | Cannot be constructed in LiteSVM 0.10.0; the program's stricter behaviour is asserted instead, and the limitation is documented in `tests/security.rs`. |
-| Compute units on mainnet | Not measured. LiteSVM accounting matches the runtime's; that is an expectation, not a measurement. |
+| Compute units on mainnet | Not measured. And the in-process harness does **not** match the runtime: devnet reported `claim` at 14,669 CU while the harness reports 9,283 (median). Budget from the devnet figure. |
 | SBPFv3 build | Not verified, and deliberately not shipped, because LiteSVM cannot verify it. |
-| Concurrent claims of one key | Not tested. The suite covers sequential duplicates and many distinct keys; it does not race two claims of one key in the same slot. |
+| Concurrent claims of one key | Partly tested. Five distinct signed transactions against one blockhash (one slot): exactly one commits, the other four fail `AlreadyCommitted`. Not tested against real validators. |
 
 ---
 

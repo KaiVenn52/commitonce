@@ -171,7 +171,7 @@ details.* Everything else is a prepend.
 **The adoption ladder**, in the order a cautious engineer climbs it:
 
 1. **Read** — the write-up, and the prior-art survey so they know exactly what is and is not new.
-2. **Verify locally** — `bash verify.sh`, 40 Rust tests and 48 SDK tests, no cluster needed, no
+2. **Verify locally** — `bash verify.sh`, 41 Rust tests and 71 SDK tests, no cluster needed, no
    secrets, no signup.
 3. **Try on devnet** — the guarded example against devnet, with real explorer links.
 4. **Shadow mode** — run the guard on a non-critical flow for a week and watch for

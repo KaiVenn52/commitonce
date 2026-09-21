@@ -248,7 +248,7 @@ produced from here.
 * `docs/ARCHITECTURE.md` — every design decision and its rationale, including the ones where
   the obvious choice was rejected (`init_if_needed`, a separate rent payer, signature-based
   dedup reasoning).
-* 40 tests that execute the real compiled artifact, all asserting on observable onchain
+* 41 tests that execute the real compiled artifact, all asserting on observable onchain
   state.
 * `EVIDENCE.md` §7 — an explicit list of what is **not** verified, which is where an auditor
   should start.
@@ -281,9 +281,9 @@ Recorded here so it is not mistaken for a blocker:
 | Capability | Status |
 | --- | --- |
 | Program build | Works. SBPFv2, IDs verified against `deploy-keys/`. |
-| Rust test suite | **40 passing, exit 0.** Executes the real compiled artifact. |
+| Rust test suite | **41 passing, exit 0.** Executes the real compiled artifact. |
 | SDK build (ESM + CJS + types) | Works. Verified by importing both ways. |
-| SDK test suite | **48 passing**, golden vectors cross-checked by an independent implementation. |
+| SDK test suite | **71 passing**, golden vectors cross-checked by an independent implementation. |
 | Devnet deployment | **Done and verified.** See `EVIDENCE.md` §3. |
 | Benchmarks | Measured. See `EVIDENCE.md` §6. |
 | Documentation | Written. |

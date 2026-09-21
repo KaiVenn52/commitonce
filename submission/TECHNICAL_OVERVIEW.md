@@ -635,9 +635,9 @@ bash verify.sh
 
 # Or the same steps individually:
 bash scripts/build.sh                                     # builds both programs, verifies declare_id! against deploy-keys/
-bash scripts/test.sh                                      # 40 tests, expect exit 0
+bash scripts/test.sh                                      # 41 tests, expect exit 0
 bash scripts/test.sh --test benchmarks -- --nocapture      # the overhead table
-pnpm --filter @commitonce/solana test                      # 48 tests
+pnpm --filter @commitonce/solana test                      # 71 tests
 node packages/sdk/scripts/print-vectors.mjs                # vectors recomputed without importing the SDK
 
 # Confirm the devnet deployment is live:

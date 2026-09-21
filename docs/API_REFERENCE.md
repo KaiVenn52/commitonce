@@ -680,7 +680,50 @@ isClosable(receipt, { slot: 5_000n, unixTimestamp: 1_700_000_000n }); // false: 
 
 `Error` subclass raised by `decodeIntentReceipt`. `name` is `'ReceiptDecodeError'`.
 
-### 9.6 Error classification
+### 9.6 Event decoding
+
+Events are not accounts and not return values. Anchor emits each one as a program log line,
+`Program data: <base64>`, where the decoded bytes are the 8-byte discriminator followed by the
+Borsh-encoded body. So reading an event means reading `meta.logMessages`.
+
+```ts
+import { decodeEventsFromLogs } from '@commitonce/solana';
+
+const events = decodeEventsFromLogs(meta.logMessages ?? []);
+const committed = events.find((e) => e.name === 'IntentCommitted');
+if (committed?.name === 'IntentCommitted') {
+    console.log(committed.data.createdSlot, committed.data.payloadHash);
+}
+```
+
+| Export | Signature | Purpose |
+| --- | --- | --- |
+| `decodeEventsFromLogs` | `(logs: readonly string[]) => CommitOnceEvent[]` | the function most callers want: every CommitOnce event in a transaction, in order |
+| `decodeEventFromLogLine` | `(line: string) => CommitOnceEvent \| null` | one log line |
+| `decodeCommitOnceEvent` | `(data: Uint8Array) => CommitOnceEvent \| null` | discriminator-prefixed bytes |
+| `decodeIntentCommittedBody` | `(body: Uint8Array) => IntentCommittedEvent` | the 192-byte body alone |
+| `decodeIntentReceiptClosedBody` | `(body: Uint8Array) => IntentReceiptClosedEvent` | the 136-byte body alone |
+| `isIntentCommittedEvent` / `isIntentReceiptClosedEvent` | `(data: Uint8Array) => boolean` | discriminator tests |
+| `base64ToBytes` | `(input: string) => Uint8Array` | dependency-free base64, standard or URL-safe |
+| `EventDecodeError` | `Error` subclass | malformed input |
+
+**Why a non-CommitOnce event returns `null` rather than throwing.** A transaction's logs
+legitimately contain other programs' events — the demo counter emits its own — and a
+`Program data:` line does not identify its emitter. Throwing would make the scanning
+functions unusable for their main purpose. A matching discriminator with a malformed body
+*does* throw, because that is a real disagreement worth surfacing.
+
+`IntentCommittedEvent` fields: `authority`, `namespaceHash`, `idempotencyKeyHash`,
+`payloadHash`, `refundDestination`, `createdSlot`, `expiresAtSlot`, `createdUnixTimestamp`,
+`expiresAtUnixTimestamp`. `IntentReceiptClosedEvent` fields: `authority`, `namespaceHash`,
+`idempotencyKeyHash`, `payloadHash`, `closedSlot`. The three hashes are `Uint8Array`; the
+addresses are branded `Address`; every time and slot value is a `bigint`.
+
+These decoders are pinned against a **real event emitted by the deployed program on devnet**,
+captured in `submission/evidence/devnet-demo-run.log`, so the layout is checked against the
+chain rather than against this document.
+
+### 9.7 Error classification
 
 #### `classifyError(error: unknown): CommitOnceErrorKind`
 
@@ -734,7 +777,7 @@ explains that the transaction was aborted so the guarded instructions did not ru
 type CommitOnceErrorName = keyof typeof COMMIT_ONCE_ERROR_CODES; // 11 names
 ```
 
-### 9.7 RPC client
+### 9.8 RPC client
 
 #### `createCommitOnceClient(config: CommitOnceClientConfig): CommitOnceClient`
 
@@ -815,7 +858,7 @@ if (status.status === 'committed' && status.matchesIntent === true) {
 ## 10. Verifying the implementation yourself
 
 ```bash
-# TypeScript side: 48 tests, including the cross-language vectors.
+# TypeScript side: 71 tests, including the cross-language vectors.
 pnpm --filter @commitonce/solana test
 
 # Print the pinned vectors, recomputed from @solana/kit primitives without importing the SDK.
@@ -890,8 +933,9 @@ Things a reader might reasonably expect to find here, which the source does not 
   `Instruction`. (An earlier revision of `getSubtleCrypto`'s error message named a
   `createClaimInstruction` that does not exist. That message now names `encodeClaimData` and
   `deriveReceiptAddress`, which do.)
-* **No explicit decode/encode for the receipt account's event payloads.** The two events are
-  described in the IDL and emitted on chain, but the SDK exports no decoders for them.
+* **No explicit decode/encode for the receipt account's event payloads.** *(Resolved: §9.6 adds
+  `decodeEventsFromLogs` and friends, and pins them against a real devnet event. Kept here
+  rather than deleted so the change is visible.)*
 * **No `retention` value in the receipt beyond the two deadlines.** The original
   `retention_seconds` is not stored; derive it from `expires_at_unix_ts − created_unix_ts`.
 * **No framework-level error codes enumerated.** Anchor constraint failures (seeds, address,

@@ -531,7 +531,7 @@
           <h3>From a checkout of this repository</h3>
           <pre class="code"><code>pnpm install
 pnpm --filter @commitonce/solana build   # dist/ is gitignored
-pnpm --filter @commitonce/solana test    # 48 tests</code><button class="copy copy-block" type="button" data-copy="pnpm install&#10;pnpm --filter @commitonce/solana build   # dist/ is gitignored&#10;pnpm --filter @commitonce/solana test    # 48 tests">Copy</button></pre>
+pnpm --filter @commitonce/solana test    # 71 tests</code><button class="copy copy-block" type="button" data-copy="pnpm install&#10;pnpm --filter @commitonce/solana build   # dist/ is gitignored&#10;pnpm --filter @commitonce/solana test    # 71 tests">Copy</button></pre>
           <p class="step-note">
             Requires Node 20.18.0 or newer and pnpm 11 (both pinned in the workspace
             <code>package.json</code>). The SDK has zero runtime dependencies; <code>@solana/kit</code>
@@ -598,8 +598,8 @@ isAlreadyCommitted(rpcError);                   // true — treat as success, do
           <p class="step-n">3</p>
           <h3>Then run the guard against a cluster you control</h3>
           <pre class="code"><code>bash scripts/build.sh   # builds, then verifies declare_id! against deploy-keys/
-bash scripts/test.sh    # 40 tests against the compiled SBF artifact, exit 0
-bash verify.sh          # everything, with a PASS/FAIL summary and the true exit code</code><button class="copy copy-block" type="button" data-copy="bash scripts/build.sh   # builds, then verifies declare_id! against deploy-keys/&#10;bash scripts/test.sh    # 40 tests against the compiled SBF artifact, exit 0&#10;bash verify.sh          # everything, with a PASS/FAIL summary and the true exit code">Copy</button></pre>
+bash scripts/test.sh    # 41 tests against the compiled SBF artifact, exit 0
+bash verify.sh          # everything, with a PASS/FAIL summary and the true exit code</code><button class="copy copy-block" type="button" data-copy="bash scripts/build.sh   # builds, then verifies declare_id! against deploy-keys/&#10;bash scripts/test.sh    # 41 tests against the compiled SBF artifact, exit 0&#10;bash verify.sh          # everything, with a PASS/FAIL summary and the true exit code">Copy</button></pre>
           <p class="step-note">
             The Rust suite needs no validator, no RPC and no funds — it runs the compiled program
             in-process through LiteSVM.
@@ -671,8 +671,8 @@ bash verify.sh          # everything, with a PASS/FAIL summary and the true exit
               <a href="https://explorer.solana.com/address/EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5?cluster=devnet" target="_blank" rel="noopener noreferrer">demo_counter <span class="ext" aria-hidden="true">↗</span></a>
             </dd>
           </div>
-          <div><dt>Rust tests</dt><dd>40 passing, exit 0, executing the real compiled SBF artifact through LiteSVM.</dd></div>
-          <div><dt>SDK tests</dt><dd>48 passing, pinning the derivation to golden hex vectors that a second implementation recomputes independently.</dd></div>
+          <div><dt>Rust tests</dt><dd>41 passing, exit 0, executing the real compiled SBF artifact through LiteSVM.</dd></div>
+          <div><dt>SDK tests</dt><dd>71 passing, pinning the derivation to golden hex vectors that a second implementation recomputes independently.</dd></div>
           <div><dt>Build integrity</dt><dd>The build verifies <code>declare_id!</code> against the program keypairs and exits 1 on mismatch rather than producing a silently broken artifact.</dd></div>
           <div><dt>Documentation</dt><dd>Architecture, security model with a threat model, integration playbook, prior-art survey with sources, and an evidence document listing what is <em>not</em> verified.</dd></div>
         </dl>

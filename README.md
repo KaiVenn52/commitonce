@@ -235,7 +235,7 @@ Full detail, including the account-by-account and byte-by-byte layouts, is in
 ```bash
 bash verify.sh          # everything: 10 steps, PASS/FAIL summary, true exit code
 bash scripts/build.sh   # builds, then verifies declare_id! against deploy-keys/
-bash scripts/test.sh    # 40 tests, exit code 0
+bash scripts/test.sh    # 41 tests, exit code 0
 ```
 
 `verify.sh` is the one to run. It checks prerequisites, builds both programs, verifies
@@ -250,7 +250,7 @@ existence, lamport balances, PDA addresses. No test asserts on an error message 
 
 | Suite | Tests | Covers |
 | --- | --- | --- |
-| `invariant.rs` | 10 | the core guarantee, atomic rollback, scoping, races, guard transparency |
+| `invariant.rs` | 11 | the core guarantee, atomic rollback, scoping, same-slot races, guard transparency |
 | `retention.rs` | 9 | expiry gates, rent refund, permissionless cleanup, boundary values |
 | `security.rs` | 10 | griefing, receipt substitution, malformed state, durable-nonce policy |
 | `wire_format.rs` | 10 | discriminator and layout pinning, golden hash vectors, rent rate |
@@ -369,8 +369,8 @@ deploy-keys/            the program keypairs the program IDs are derived from
 | --- | --- |
 | Program ID (all clusters) | `CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB` |
 | Demo counter program | `EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5` |
-| Rust tests | 40 passing, exit 0 |
-| SDK tests | 48 passing |
+| Rust tests | 41 passing, exit 0 |
+| SDK tests | 71 passing |
 | Built for | SBPFv2, Anchor 1.2.0, Solana 4.x toolchain |
 | Mainnet | **not deployed** |
 | Devnet | see [`NEEDS_OWNER_ACTION.md`](NEEDS_OWNER_ACTION.md) |

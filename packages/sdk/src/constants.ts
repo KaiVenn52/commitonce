@@ -102,3 +102,34 @@ export const CLOSE_RECEIPT_DISCRIMINATOR: Uint8Array = new Uint8Array([
 export const INTENT_RECEIPT_DISCRIMINATOR: Uint8Array = new Uint8Array([
     84, 252, 93, 100, 126, 80, 15, 134,
 ]);
+
+/**
+ * Anchor event discriminators: `sha256("event:<Name>")[0..8]`.
+ *
+ * Anchor emits an event as a program log line of the form
+ * `Program data: <base64>`, where the decoded bytes are the 8-byte discriminator followed
+ * by the Borsh-encoded event body. There is no other channel: an event is not an account and
+ * not a return value, so this is the only way to read one from a transaction.
+ *
+ * `test/events.test.ts` decodes an `IntentCommitted` emitted by the real deployed program on
+ * devnet, so these values are checked against the chain and not merely against the IDL.
+ */
+export const INTENT_COMMITTED_EVENT_DISCRIMINATOR: Uint8Array = new Uint8Array([
+    4, 249, 73, 51, 216, 110, 196, 249,
+]);
+
+/** `sha256("event:IntentReceiptClosed")[0..8]`. */
+export const INTENT_RECEIPT_CLOSED_EVENT_DISCRIMINATOR: Uint8Array = new Uint8Array([
+    187, 91, 174, 175, 38, 219, 181, 108,
+]);
+
+/**
+ * Borsh-encoded size of each event body, excluding the 8-byte discriminator.
+ *
+ * `IntentCommitted` is `5 × 32 + 4 × 8 = 192`; `IntentReceiptClosed` is `4 × 32 + 8 = 136`.
+ */
+export const INTENT_COMMITTED_EVENT_SIZE = 192;
+export const INTENT_RECEIPT_CLOSED_EVENT_SIZE = 136;
+
+/** The log prefix Anchor uses for an emitted event. */
+export const PROGRAM_DATA_LOG_PREFIX = 'Program data: ';

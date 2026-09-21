@@ -29,6 +29,13 @@ const EXPECTED = [
     'namespaceHash',
     'idempotencyKeyHash',
     'COMMIT_ONCE_PROGRAM_ADDRESS',
+    // Event decoding. Added after the fact, which is exactly when a dual-package hazard is
+    // most likely to slip in: a new module is easy to add to one build's entry point and not
+    // the other.
+    'decodeCommitOnceEvent',
+    'decodeEventsFromLogs',
+    'decodeIntentReceiptClosedBody',
+    'base64ToBytes',
 ];
 
 /** Constants whose values must be identical in both builds, not merely present. */
@@ -39,7 +46,18 @@ const EXPECTED_CONSTANTS = {
     MIN_RETENTION_SECONDS: 3600,
     MAX_RETENTION_SECONDS: 31536000,
     SLOTS_PER_SECOND: 4,
+    INTENT_COMMITTED_EVENT_SIZE: 192,
+    INTENT_RECEIPT_CLOSED_EVENT_SIZE: 136,
+    PROGRAM_DATA_LOG_PREFIX: 'Program data: ',
 };
+
+/**
+ * A real `IntentCommitted` emitted on devnet. Decoding it in both builds proves the new
+ * module is not only exported but *functional* under both module systems — a different
+ * failure mode from a missing export.
+ */
+const REAL_EVENT_BASE64 =
+    'BPlJM9huxPnHK0lahvh8+reWHi+31Lu09ZICpFoMp04pExlS67fJZ3srpKhHIit4sWVd8jkuiaYVQ03Rz/cFVOWai4DTJY3fHai1jVaz8EwZM/d7E0y24SGbdsDvrSZaOZE1seYQBd6wuN2Oj6U/IZtZDup5TmfQAAccvSaEQ4SFBaX8h1WEkscrSVqG+Hz6t5YeL7fUu7T1kgKkWgynTikTGVLrt8lnYJLpHQAAAABg2O4dAAAAAML+sGoAAAAAQlCyagAAAAA=';
 
 const failures = [];
 
@@ -95,6 +113,27 @@ if (esm && cjs) {
     const cjsOnly = EXPECTED.filter((n) => cjs[n] !== undefined && esm[n] === undefined);
     if (esmOnly.length > 0) failures.push(`exports present only in ESM: ${esmOnly.join(', ')}`);
     if (cjsOnly.length > 0) failures.push(`exports present only in CJS: ${cjsOnly.join(', ')}`);
+
+    // Both builds must decode the same real event to the same values. Comparing the
+    // serialised result rather than field by field keeps this honest about bigints, which
+    // JSON.stringify refuses to serialise — hence the explicit replacer.
+    const asJson = (event) =>
+        JSON.stringify(event, (_key, value) =>
+            typeof value === 'bigint' ? `${value}n` : value,
+        );
+    try {
+        const fromEsm = asJson(esm.decodeCommitOnceEvent(esm.base64ToBytes(REAL_EVENT_BASE64)));
+        const fromCjs = asJson(cjs.decodeCommitOnceEvent(cjs.base64ToBytes(REAL_EVENT_BASE64)));
+        if (fromEsm !== fromCjs) {
+            failures.push(`ESM and CJS decode the real devnet event differently:\n    ESM: ${fromEsm}\n    CJS: ${fromCjs}`);
+        } else if (!fromEsm.includes('501846624n')) {
+            failures.push(`the real devnet event did not decode to its recorded slot: ${fromEsm}`);
+        } else {
+            console.log('both builds decode the real devnet IntentCommitted identically');
+        }
+    } catch (error) {
+        failures.push(`decoding the real devnet event threw: ${error.message}`);
+    }
 }
 
 if (failures.length > 0) {

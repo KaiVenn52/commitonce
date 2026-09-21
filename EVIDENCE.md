@@ -165,17 +165,17 @@ about mainnet conditions.
 
 ---
 
-## 4. Rust test suite — 40 passing, exit code 0
+## 4. Rust test suite — 41 passing, exit code 0
 
 Run: `bash scripts/test.sh`
 
 ```
-test result: ok. 10 passed; 0 failed    (invariant)
+test result: ok. 11 passed; 0 failed    (invariant)
 test result: ok.  9 passed; 0 failed    (retention)
 test result: ok. 10 passed; 0 failed    (security)
 test result: ok. 10 passed; 0 failed    (wire_format)
 test result: ok.  1 passed; 0 failed    (benchmarks)
-REAL_EXIT=0   TOTAL_PASSED=40   TOTAL_FAILED=0
+REAL_EXIT=0   TOTAL_PASSED=41   TOTAL_FAILED=0
 ```
 
 The tests execute the **real compiled SBF artifact** through LiteSVM — not a mock and not a
@@ -190,7 +190,8 @@ an error message string, because message text is not a stable contract.
 | **The bug, demonstrated** | `without_guard_two_rebuilt_transactions_execute_twice` | two rebuilt transactions both commit; counter = 2 |
 | **The fix** | `with_guard_rebuilt_retry_is_blocked_and_business_action_runs_once` | second attempt fails `AlreadyCommitted`; counter = 1 |
 | Atomic rollback | `downstream_failure_rolls_back_the_receipt` | receipt rolls back with the business action; only the fee is spent |
-| Race | `only_the_first_of_many_attempts_commits` | five concurrently-built attempts → exactly one commit |
+| Race | `only_the_first_of_many_attempts_commits` | five same-slot attempts → exactly one commit; the four losers each fail with `AlreadyCommitted`, and all five are processed at one slot |
+| Same intent, different payload instructions | `same_intent_with_different_downstream_instructions_is_still_blocked` | the guard keys on the intent, not on what follows it; the losing attempt's transfer does not happen |
 | Runtime dedup preserved | `identical_rebroadcast_still_rejected_by_the_runtime` | CommitOnce does not interfere with message-hash dedup |
 | Guard transparency | `guard_is_transparent_to_the_business_instructions` | the guarded path produces identical business state |
 | Authority scoping | `third_party_cannot_consume_another_authoritys_key` | an attacker front-running with the victim's exact key does not block the victim |
@@ -207,16 +208,16 @@ an error message string, because message text is not a stable contract.
 
 ---
 
-## 5. SDK test suite — 48 passing
+## 5. SDK test suite — 71 passing
 
 Run: `pnpm --filter @commitonce/solana test`
 
 ```
-Test Files  1 passed (1)
-     Tests  48 passed (48)
+Test Files  2 passed (2)
+     Tests  71 passed (71)
 ```
 
-These pin the derivation to **golden hex vectors**: namespace hashes, key hashes, payload
+48 of these pin the derivation to **golden hex vectors**: namespace hashes, key hashes, payload
 fingerprints, and receipt PDA addresses.
 
 The vectors are cross-checked by a second, independent implementation:
@@ -225,6 +226,18 @@ The vectors are cross-checked by a second, independent implementation:
 derivation in `programs/commit-once/tests/wire_format.rs`. Three implementations agreeing is
 a much stronger signal than one suite agreeing with itself.
 
+The other 23 cover **event decoding** (`test/events.test.ts`). These are pinned against a real
+`IntentCommitted` emitted by the deployed program on devnet, captured verbatim in
+`submission/evidence/devnet-demo-run.log`. The captured event corroborates against the same log
+in four independent ways:
+
+| Decoded field | Corroboration in the recorded run |
+| --- | --- |
+| `createdSlot` = `501846624` | the transaction reported `SUCCESS — slot 501846624`, and the losing retry was rejected with `already committed at slot 501846624` |
+| `namespaceHash` | matches `demo:counter`, the namespace the demo printed, under `commitonce/namespace/v1` |
+| `idempotencyKeyHash` | matches `verify_20260921_175355`, the key the demo printed, under `commitonce/key/v1` |
+| the two deadlines | differ by exactly `86_400` s and `345_600` slots (= 86 400 × 4), matching the demo's `retention 86400 seconds` |
+
 Also verified: the package builds to `dist/esm`, `dist/cjs` and `dist/types`, and resolves
 correctly under **both** module systems. This is checked by
 `pnpm --filter @commitonce/solana check:dual`, which imports the built package through the
@@ -232,15 +245,17 @@ correctly under **both** module systems. This is checked by
 builds:
 
 ```
-ESM  ok  (11 exports, 6 constants)
-CJS  ok  (11 exports, 6 constants)
+ESM  ok  (15 exports, 9 constants)
+CJS  ok  (15 exports, 9 constants)
+both builds decode the real devnet IntentCommitted identically
 
 dual-format check PASSED: both builds load and agree.
 ```
 
 The check asserts that every public export is present in **both** builds and that the pinned
 constants are equal across them, so a green result means the two builds are the same code, not
-merely that both are loadable.
+merely that both are loadable. It also decodes the captured devnet event in each build and
+compares the results, so a module added to one entry point and not the other fails here.
 
 Dual-format output is verified by actually importing it both ways, not by inspecting the
 build output.
@@ -364,7 +379,7 @@ Listed explicitly, because a document that only lists successes is not evidence.
 | Third-party integration | **None.** No external project uses CommitOnce. |
 | Real users | **None.** |
 | Traction, revenue, waitlist | **None.** No such numbers exist and none are claimed. |
-| Concurrent claims of the same key | **Not tested.** The Rust suite covers sequential duplicates and many distinct keys; it does not race two claims of one key in the same slot. The invariant is enforced by PDA existence and would hold, but "would hold" is not "was measured". |
+| Concurrent claims of the same key | **Partly tested.** `only_the_first_of_many_attempts_commits` builds five distinct signed transactions against one blockhash — i.e. one slot — and asserts exactly one commits while the other four each fail with `AlreadyCommitted`. A Solana slot executes its transactions sequentially, and the claims conflict on the same PDA, so that is the ordering the cluster imposes. What is **not** tested is contention against real validators: LiteSVM is in-process, so no test here exercises a real scheduler. |
 | Transaction v1 (`VersionedTransaction` v1) | **Not tested.** v1 is live on mainnet as of epoch 1035, and it does not change message-hash deduplication, but the SDK and tests exercise legacy and v0 messages only. |
 | Address lookup tables / v0 messages | **Not tested end-to-end.** The guard is an ordinary instruction and is expected to work, but "expected" is not "verified". |
 | Non-Anchor callers | **Not tested.** The program is Anchor-built; the SDK encodes the wire format by hand, so a non-Anchor client can call it, but no such client has been written or run. |

@@ -73,12 +73,17 @@ export {
     COMMIT_ONCE_PROGRAM_ADDRESS,
     IDEMPOTENCY_KEY_DOMAIN,
     INSTRUCTIONS_SYSVAR_ADDRESS,
+    INTENT_COMMITTED_EVENT_DISCRIMINATOR,
+    INTENT_COMMITTED_EVENT_SIZE,
+    INTENT_RECEIPT_CLOSED_EVENT_DISCRIMINATOR,
+    INTENT_RECEIPT_CLOSED_EVENT_SIZE,
     INTENT_RECEIPT_DISCRIMINATOR,
     MAINNET_LAMPORTS_PER_BYTE,
     MAX_RETENTION_SECONDS,
     MIN_RETENTION_SECONDS,
     NAMESPACE_DOMAIN,
     PERMANENT_RETENTION,
+    PROGRAM_DATA_LOG_PREFIX,
     RECEIPT_ACCOUNT_SIZE,
     RECEIPT_RENT_LAMPORTS,
     RECEIPT_SEED,
@@ -137,6 +142,21 @@ export {
     type CommitOnceErrorKind,
     type CommitOnceErrorName,
 } from './errors.js';
+
+export {
+    base64ToBytes,
+    decodeCommitOnceEvent,
+    decodeEventFromLogLine,
+    decodeEventsFromLogs,
+    decodeIntentCommittedBody,
+    decodeIntentReceiptClosedBody,
+    EventDecodeError,
+    isIntentCommittedEvent,
+    isIntentReceiptClosedEvent,
+    type CommitOnceEvent,
+    type IntentCommittedEvent,
+    type IntentReceiptClosedEvent,
+} from './events.js';
 
 export {
     createCommitOnceClient,

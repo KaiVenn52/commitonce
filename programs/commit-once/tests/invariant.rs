@@ -286,21 +286,28 @@ fn same_textual_key_under_different_namespaces_does_not_collide() {
 
 /// The first successful claim binds the receipt; every subsequent attempt with the same
 /// identity fails before its business instruction can run.
+///
+/// This is the same-slot contention case. All five attempts are built against one blockhash
+/// — LiteSVM accepts only one recent blockhash at a time — so they all target the *same
+/// slot*, and each carries a different priority fee, so they are five distinct signed
+/// transactions rather than one rebroadcast. Solana executes the transactions within a slot
+/// in sequence, so this is the ordering the cluster would impose.
+///
+/// What this proves is that the *guard* stops the duplicates, not the runtime's
+/// signature-based dedup: the five messages differ, so the runtime has nothing to dedup on.
 #[test]
 fn only_the_first_of_many_attempts_commits() {
-    banner("race: N in-flight attempts, exactly one business execution");
+    banner("race: N same-slot attempts, exactly one business execution");
     let mut env = Env::new();
     let authority = env.authority_pubkey();
     assert_success(&env.send(&[initialize_counter_ix(authority)]));
 
     let claim = ClaimArgs::new(authority, "demo:counter", "race_key", sha256(b"increment"));
 
-    // Model N clients that each built and signed their attempt before any of them landed.
-    // They share the current blockhash (LiteSVM accepts only one recent blockhash at a
-    // time) but each sets a different priority fee, which is the most common way a rebuilt
-    // attempt differs from its predecessor. Every attempt is therefore a distinct,
-    // independently valid transaction carrying the same logical intent.
     let blockhash = env.svm.latest_blockhash();
+    let slot = env.clock().slot;
+
+    // Model N clients that each built and signed their attempt before any of them landed.
     let mut attempts = Vec::new();
     for bump in 0..5u64 {
         attempts.push(env.build(
@@ -318,20 +325,111 @@ fn only_the_first_of_many_attempts_commits() {
     for tx in &attempts {
         signatures.insert(tx.signatures[0]);
     }
-    assert_eq!(signatures.len(), attempts.len(), "every attempt is a distinct signed transaction");
+    assert_eq!(
+        signatures.len(),
+        attempts.len(),
+        "every attempt must be a distinct signed transaction, or the runtime would be the \
+         thing rejecting them and this would prove nothing about the guard"
+    );
 
     let mut successes = 0usize;
+    let mut already_committed = 0usize;
     for tx in attempts {
-        if env.svm.send_transaction(tx).is_ok() {
-            successes += 1;
+        match env.svm.send_transaction(tx) {
+            Ok(_) => successes += 1,
+            Err(failed) => {
+                // Assert the *reason*, not merely that it failed. A transaction that failed
+                // for an unrelated reason — a compute budget, a missing account — would
+                // otherwise be indistinguishable from the guard doing its job.
+                match &failed.err {
+                    solana_transaction_error::TransactionError::InstructionError(
+                        _,
+                        solana_instruction::error::InstructionError::Custom(code),
+                    ) if *code == E_ALREADY_COMMITTED => already_committed += 1,
+                    other => panic!(
+                        "an attempt failed for the wrong reason: {other:?}\nlogs:\n{}",
+                        failed.meta.pretty_logs()
+                    ),
+                }
+            }
         }
     }
 
     assert_eq!(successes, 1, "exactly one attempt may commit");
     assert_eq!(
+        already_committed, 4,
+        "every losing attempt must be rejected as already committed"
+    );
+    assert_eq!(
         env.counter_value(&authority),
         1,
         "the business action must execute exactly once"
+    );
+
+    // All five were processed at one slot, so this is genuinely same-slot contention and
+    // not a sequence spread across slots.
+    assert_eq!(
+        env.clock().slot,
+        slot,
+        "all attempts must be processed in a single slot"
+    );
+    assert_eq!(
+        env.read_receipt(&claim.receipt()).created_slot,
+        slot,
+        "the winning receipt must record the slot the race happened in"
+    );
+}
+
+/// The guard keys on the *intent*, not on the instructions that follow it.
+///
+/// Two same-slot attempts carrying the same `(authority, namespace, key)` but different
+/// downstream business instructions are still one intent. The second is rejected, and
+/// neither of its instructions runs — which is the property that makes the guard safe to
+/// prepend to a transaction whose contents the caller assembled independently.
+#[test]
+fn same_intent_with_different_downstream_instructions_is_still_blocked() {
+    banner("race: same intent, different payload instructions, still one commit");
+    let mut env = Env::new();
+    let authority = env.authority_pubkey();
+    assert_success(&env.send(&[initialize_counter_ix(authority)]));
+
+    // Same namespace, same key, same payload fingerprint: one logical intent.
+    let intent = sha256(b"increment counter by 1");
+    let first = ClaimArgs::new(authority, "demo:counter", "same_intent", intent);
+    let second = ClaimArgs::new(authority, "demo:counter", "same_intent", intent);
+    assert_eq!(
+        first.receipt(),
+        second.receipt(),
+        "identical intents must resolve to one receipt"
+    );
+
+    let slot = env.clock().slot;
+
+    // The two attempts differ in what they do *after* the guard.
+    assert_success(&env.send(&[first.instruction(), increment_ix(authority)]));
+    assert_eq!(env.counter_value(&authority), 1);
+
+    // The second carries a transfer instead of an increment. It must not run either
+    // instruction, and the transfer must not happen.
+    let recipient = Keypair::new().pubkey();
+    let before = env.lamports(&recipient);
+
+    let res = env.send(&[
+        second.instruction(),
+        transfer_ix(authority, recipient, 1_000_000),
+    ]);
+    assert_custom_error(&res, E_ALREADY_COMMITTED);
+
+    assert_eq!(env.counter_value(&authority), 1, "no second increment");
+    assert_eq!(
+        env.lamports(&recipient),
+        before,
+        "the losing attempt's transfer must not have happened"
+    );
+    assert_eq!(
+        env.read_receipt(&first.receipt()).created_slot,
+        slot,
+        "the original receipt is untouched by the losing attempt"
     );
 }
 

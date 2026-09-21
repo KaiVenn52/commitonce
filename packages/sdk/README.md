@@ -84,12 +84,36 @@ elapsed.
 | `encodeClaimData` | Encode the `claim` instruction data by hand |
 | `deriveReceiptAddress` | Derive the receipt PDA from authority, namespace and key |
 | `decodeIntentReceipt` | Decode a receipt account |
+| `decodeEventsFromLogs` | Decode the program's events out of a transaction's logs |
 | `classifyError` | Turn an RPC or program error into a decision: retry, stop, or conflict |
 | `isAlreadyCommitted` | `true` when the retry was correctly blocked |
 | `namespaceHash`, `idempotencyKeyHash`, `hashIntent` | The domain-separated hashes, if you want to compute them yourself |
 
 Every hash is computed with WebCrypto (`globalThis.crypto.subtle`), so this package has **zero
 runtime dependencies**. `@solana/kit` is a peer dependency.
+
+### Reading events
+
+An event is not an account, so it lives only in the transaction's logs, as
+`Program data: <base64>`. One call gets them all:
+
+```ts
+import { decodeEventsFromLogs } from '@commitonce/solana';
+
+const events = decodeEventsFromLogs(meta.logMessages ?? []);
+const committed = events.find((e) => e.name === 'IntentCommitted');
+if (committed?.name === 'IntentCommitted') {
+    committed.data.createdSlot;      // bigint
+    committed.data.payloadHash;      // Uint8Array
+}
+```
+
+Other programs' events — including the demo counter's — are skipped rather than throwing,
+because a `Program data:` line does not say who emitted it. A malformed *CommitOnce* event does
+throw, because that is a real version mismatch.
+
+The decoders are pinned against a real event emitted by the deployed program on devnet, so the
+layout is checked against the chain and not against a document.
 
 ## Runtime support
 
