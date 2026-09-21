@@ -1,0 +1,28 @@
+ORDER_ID=order_1790007247871
+
+CommitOnce — guarded SOL transfer
+  rpc            https://api.devnet.solana.com
+  authority      25TUohqYd5b6f97wc5CjMwj89ZVL8oX81nhkWVHimYpY
+  recipient      FCgzWhWeHAznER6Pmd4DB3b5TkdTfcqCtYkJfh9RZTVb
+  amount         1000000 lamports
+  namespace      examples:sol-transfer
+  idempotencyKey order_1790007247871
+  receipt PDA    FFiAJ2biRm5HNv6NPv1GcsDEjbQ15ACUqpKe4XpWkDr3
+  retention      86400s
+
+[attempt -  ] submit    guarded transfer, up to 3 attempts
+[attempt 1  ] send      phase 1 blockhash=ExFn1muW… priorityFee=1000µLamports sig=4BoCDjYK…
+[attempt 1  ] committed signature=4BoCDjYKcAt2dNj8fj8tGjpnpz1wmEosfPFUXQcBGXgnGwL4GGHCZANnUSrePYLKvc9SDq9LUiWxDcgKBan8h28w
+
+[attempt -  ] replay    phase 2 — same intent, rebuilt transaction, same idempotency key
+[attempt 1  ] send      phase 2 blockhash=8rYkNyYL… priorityFee=1000µLamports sig=LJLh8iZB…
+[attempt 1  ] blocked   AlreadyCommitted (code 6000) — duplicate blocked, the transfer did not run a second time
+
+Result
+  phase 1            committed after 1 attempt(s)
+  phase 2            duplicate-blocked after 1 attempt(s)
+  recipient before   0 lamports
+  recipient after    1000000 lamports
+  delta              1000000 lamports (one transfer, not two)
+  receipt status     committed
+  receipt matches    true (true means the stored fingerprint is this same intent)

@@ -29,8 +29,9 @@
  *      hand-encoded discriminators below exist only because this repository has no generated
  *      JavaScript client for `demo-counter` checked in.
  *
- * Run: see README.md in this directory. This example has not been executed against a live
- * cluster.
+ * Run: see README.md in this directory. This example HAS been executed against devnet, against
+ * the deployed CommitOnce and demo-counter programs; the raw output is in
+ * `submission/evidence/devnet-custom-program-run.log`.
  */
 
 import { readFile } from 'node:fs/promises';

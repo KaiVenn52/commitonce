@@ -1,0 +1,35 @@
+ORDER_ID=order_1790007330402
+
+CommitOnce — guarded custom program instruction (demo-counter)
+  rpc              https://api.devnet.solana.com
+  authority        25TUohqYd5b6f97wc5CjMwj89ZVL8oX81nhkWVHimYpY
+  business program EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5
+  counter PDA      EsBLgMcyBCtuVAkQrENY4SrXKx6tSSPRqmFskjKm1Kcv
+  count before     account does not exist yet
+  namespace        examples:demo-counter
+  idempotencyKey   order_1790007330402
+  receipt PDA      koBCJ7SajJrwCvGcSJqV3DqBxG29Ehv3jpF75yQDMCU
+  retention        86400s
+
+Instruction order in the guarded transaction:
+  0. compute budget  SetComputeUnitPrice  (transport only)
+  1. commit_once     claim                (the guard)
+  2. demo_counter    initialize           (counter absent)
+  3. demo_counter    increment            (the business instruction)
+
+[attempt -  ] submit    guarded increment, up to 3 attempts
+[attempt 1  ] send      phase 1 blockhash=9PbyTEed… priorityFee=1000µLamports sig=39g4ZWNy… businessInstructions=2
+[attempt 1  ] committed signature=39g4ZWNytEULdtDbKkQDYMne3vAYmsrrk3KCZ9iieLMV7iDKWiT13cfEFDpbcfixieyLiZC3cffAigQpHf213TgK
+
+[attempt -  ] replay    phase 2 — same intent, rebuilt transaction, same idempotency key
+[attempt 1  ] send      phase 2 blockhash=BmuPH23G… priorityFee=1000µLamports sig=65cRTwMN… businessInstructions=1
+[attempt 1  ] blocked   AlreadyCommitted (code 6000) — duplicate blocked, the counter was not incremented again
+
+Result
+  phase 1          committed after 1 attempt(s)
+  phase 2          duplicate-blocked after 1 attempt(s)
+  count before     null
+  count after      1
+  increments       n/a (counter was created) (one, not two)
+  receipt status   committed
+  receipt matches  true (true means the stored fingerprint is this same intent)

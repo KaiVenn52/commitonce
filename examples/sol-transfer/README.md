@@ -189,11 +189,37 @@ or "the account's current nonce" into the fingerprint. Intent is what the user a
 
 ## Status
 
-**This example has not been executed against a live cluster.** It has been run only far
-enough to confirm that it loads, resolves its imports, derives the receipt PDA, and reports a
-clear error when `RPC_URL` or `KEYPAIR` is missing. No transaction was submitted, and nothing
-here has been tested against a deployed CommitOnce program. Treat the expected output above
-as the shape of the output, not as captured evidence.
+**This example has been executed against devnet, against the deployed CommitOnce program.** Raw
+output: [`submission/evidence/devnet-sol-transfer-run.log`](../../submission/evidence/devnet-sol-transfer-run.log).
+
+```
+  phase 1            committed after 1 attempt(s)
+  phase 2            duplicate-blocked after 1 attempt(s)
+  recipient before   0 lamports
+  recipient after    1000000 lamports
+  delta              1000000 lamports (one transfer, not two)
+  receipt status     committed
+  receipt matches    true
+```
+
+Phase 1 committed in one attempt. Phase 2 rebuilt the transaction with a fresh blockhash and the
+same idempotency key, and was blocked with `AlreadyCommitted` (6000) — *"duplicate blocked, the
+transfer did not run a second time"*. The recipient gained exactly one transfer rather than two.
+
+Running it needs only a funded keypair and any recipient address — no mint, no extra state:
+
+```bash
+export RPC_URL=https://api.devnet.solana.com
+export KEYPAIR=~/.config/solana/id.json
+export RECIPIENT=<any address>
+export AMOUNT_LAMPORTS=1000000
+export ORDER_ID=order_$(date +%s)     # must be new each run
+node examples/sol-transfer/index.ts
+```
+
+**What this proves and does not prove.** It proves the guard composes with the System Program's
+lamport transfer in one atomic transaction, on a live cluster. It does **not** prove anything
+about mainnet, and it does not make the program audited.
 
 It **does** typecheck: this example is part of the workspace, so `pnpm -r typecheck` compiles
 it against the real SDK. A change to the SDK that breaks this file fails the build.

@@ -259,7 +259,8 @@ re-run — it is cheap, and the script sweeps the unspent balance back to the pa
 - **Mainnet.** Nothing is deployed to mainnet. Point at devnet and say devnet.
 - **A payment, a swap, or a real business flow.** The counter is deliberately trivial so the
   number on screen is unambiguous. The examples directory has guarded SOL, SPL and swap-shaped
-  flows, but they have not been executed against a live cluster and the demo does not claim they
+  flows, but only three of the four have been executed against a live cluster — the Jupiter swap
+  needs Jupiter's live API — and the demo does not claim otherwise.
   have.
 - **Any traction.** No users, no integrations, no revenue. Do not put a logo wall on screen.
 

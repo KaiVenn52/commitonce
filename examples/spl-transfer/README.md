@@ -224,12 +224,39 @@ environment variable so a mistyped scale cannot silently change the intent.
 
 ## Status
 
-**This example has not been executed against a live cluster.** It has been run only far
-enough to confirm that it loads, resolves its imports, derives the receipt PDA, derives both
-associated token addresses, builds the four-instruction message and signs it, and reports a
-clear error when `RPC_URL` or `KEYPAIR` is missing. No transaction was submitted, and nothing
-here has been tested against a deployed CommitOnce program. Treat the expected output above
-as the shape of the output, not as captured evidence.
+**This example has been executed against devnet, against the deployed CommitOnce program.** Raw
+output: [`submission/evidence/devnet-spl-transfer-run.log`](../../submission/evidence/devnet-spl-transfer-run.log).
+
+```
+  phase 1               committed after 1 attempt(s)
+  phase 2               duplicate-blocked after 1 attempt(s)
+  source before/after   1000000000 -> 999000000
+  destination before    0
+  destination after     1000000
+  delta                 1000000 base units (one transfer, not two)
+  receipt status        committed
+  receipt matches       true
+```
+
+Phase 1 committed in one attempt. Phase 2 rebuilt the transaction with a fresh blockhash and
+the same idempotency key, and was blocked with `AlreadyCommitted` (6000) — the log's own words
+are *"duplicate blocked, no ATA rent paid and no tokens moved"*. The source account fell by
+exactly one transfer, not two, and the stored fingerprint still matches the intent.
+
+The devnet state it needs is created by `setup-devnet.sh` in this directory, so the run is
+reproducible rather than a one-off:
+
+```bash
+bash examples/spl-transfer/setup-devnet.sh
+# export the lines it prints, then:
+node examples/spl-transfer/index.ts
+```
+
+**What this proves and does not prove.** It proves the guard composes with the real SPL Token
+program and the Associated Token program in one atomic transaction, on a live cluster, with the
+instruction ordering this example argues for. It does **not** prove anything about mainnet, and
+it does not make the program audited. Three of the four examples have now been executed against
+devnet; only Jupiter-swap is still structural, because it needs Jupiter's live API.
 
 It **does** typecheck: this example is part of the workspace, so `pnpm -r typecheck` compiles
 it against the real SDK. A change to the SDK that breaks this file fails the build.

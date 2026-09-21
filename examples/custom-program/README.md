@@ -227,13 +227,42 @@ time, not what the user asked for.
 
 ## Status
 
-**This example has not been executed against a live cluster.** It has been run only far
-enough to confirm that it loads, resolves its imports, passes its three discriminator
-assertions against `sha256` (so the hand-copied IDL values are correct), derives the counter
-PDA and the receipt PDA, and reports a clear error when `RPC_URL` or `KEYPAIR` is missing. No
-transaction was submitted, and nothing here has been tested against a deployed CommitOnce
-program or a deployed `demo-counter` program. Treat the expected output above as the shape of
-the output, not as captured evidence.
+**This example has been executed against devnet, against the deployed CommitOnce program and the
+deployed `demo-counter` program.** Raw output:
+[`submission/evidence/devnet-custom-program-run.log`](../../submission/evidence/devnet-custom-program-run.log).
+
+```
+  count before     account does not exist yet
+  count after      1
+  phase 1          committed after 1 attempt(s)
+  phase 2          duplicate-blocked after 1 attempt(s)
+  receipt status   committed
+  receipt matches  true
+```
+
+This run is the one that exercises the **two-business-instruction** case: phase 1 carried
+`initialize` *and* `increment`, because the counter account did not exist yet, while phase 2
+carried only `increment`. Phase 1 created the counter and set it to 1; phase 2 was blocked with
+`AlreadyCommitted` (6000) — *"duplicate blocked, the counter was not incremented again"*. So the
+guard holds across two different transaction shapes for the same logical intent, which is
+exactly the case a naive "compare the message" approach would get wrong.
+
+Running it needs only a funded keypair — both programs are already live on devnet:
+
+```bash
+export RPC_URL=https://api.devnet.solana.com
+export KEYPAIR=~/.config/solana/id.json
+export ORDER_ID=order_$(date +%s)     # must be new each run
+node examples/custom-program/index.ts
+```
+
+The three discriminator assertions still run first and still fail loudly if the hand-copied IDL
+values ever drift from the program.
+
+**What this proves and does not prove.** It proves the guard composes with an arbitrary
+third-party Anchor program, including when the business instruction set differs between the
+first attempt and the retry. It does **not** prove anything about mainnet, and it does not make
+the program audited.
 
 It **does** typecheck: this example is part of the workspace, so `pnpm -r typecheck` compiles
 it against the real SDK. A change to the SDK that breaks this file fails the build.

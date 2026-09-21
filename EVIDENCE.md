@@ -212,6 +212,77 @@ The run is also cheap to repeat: it sweeps the unspent balance back to the payer
 the 0.01 funded). The receipt's 0.0016764 SOL stays locked for the retention window, which is
 `close_receipt` refusing early by design rather than a leak.
 
+### Real integrations — the guard composed with other programs, on devnet
+
+The two runs above use the demo counter, which exists only to make the guard observable. The
+question a composability claim has to answer is whether the guard works when it is wrapped
+around **somebody else's program**. Two of the four examples have been executed against devnet,
+against the deployed CommitOnce program:
+
+| Example | Composed with | Result |
+| --- | --- | --- |
+| [`sol-transfer`](examples/sol-transfer/) | System Program `Transfer` | phase 1 committed; phase 2 blocked; recipient gained exactly one transfer |
+| [`spl-transfer`](examples/spl-transfer/) | SPL Token `TransferChecked` + Associated Token `CreateIdempotent` | phase 1 committed; phase 2 blocked; source fell by exactly one transfer |
+| [`custom-program`](examples/custom-program/) | an arbitrary Anchor program (`demo-counter`) | phase 1 committed; phase 2 blocked; counter stayed at 1 |
+
+The `custom-program` run is worth calling out separately, because phase 1 and phase 2 carried
+**different numbers of business instructions** — phase 1 had `initialize` *and* `increment`,
+since the counter did not exist yet, while phase 2 had only `increment`. The guard blocked the
+retry anyway, which is precisely the case a naive "compare the transaction message" approach
+gets wrong.
+
+The `spl-transfer` run is the stronger of the two, because it puts **two** third-party programs
+in the same atomic transaction as the guard, and one of them (the ATA program) is conditional on
+state that may or may not already exist. Its instruction order:
+
+```
+  0. compute budget  SetComputeUnitPrice   (transport only)
+  1. commit_once     claim                 (the guard)
+  2. ATA program     CreateIdempotent      (destination token account, if absent)
+  3. SPL Token       TransferChecked       (the business instruction)
+```
+
+Full output:
+[`submission/evidence/devnet-spl-transfer-run.log`](submission/evidence/devnet-spl-transfer-run.log)
+and
+[`submission/evidence/devnet-sol-transfer-run.log`](submission/evidence/devnet-sol-transfer-run.log).
+
+```
+  # spl-transfer
+  phase 1               committed after 1 attempt(s)
+  phase 2               duplicate-blocked after 1 attempt(s)
+  source before/after   1000000000 -> 999000000
+  destination before    0
+  destination after     1000000
+  delta                 1000000 base units (one transfer, not two)
+  receipt matches       true
+
+  # sol-transfer
+  phase 1            committed after 1 attempt(s)
+  phase 2            duplicate-blocked after 1 attempt(s)
+  recipient before   0 lamports
+  recipient after    1000000 lamports
+  delta              1000000 lamports (one transfer, not two)
+  receipt matches    true
+```
+
+In both, phase 1 committed on the first attempt, and phase 2 rebuilt the transaction with a
+fresh blockhash and the same idempotency key and was blocked with `AlreadyCommitted` (6000).
+The `spl-transfer` log's own words are *"duplicate blocked, no ATA rent paid and no tokens
+moved"*.
+
+The devnet state `spl-transfer` needs is created by
+[`examples/spl-transfer/setup-devnet.sh`](examples/spl-transfer/setup-devnet.sh), so it is
+reproducible rather than a one-off. `sol-transfer` needs only a funded keypair and any recipient
+address.
+
+**What this proves:** the guard composes with the System Program, the SPL Token program, the
+Associated Token program and an arbitrary Anchor program, in one atomic transaction each, on a
+live cluster, with the instruction ordering the examples argue for. **What it does not prove:**
+anything about mainnet, and it does not make the program audited. The Jupiter-swap example is
+still structural — it has never submitted a transaction, and it has never been run against
+Jupiter's live API.
+
 ---
 
 ## 4. Rust test suite — 41 passing, exit code 0
@@ -461,4 +532,6 @@ that from the presence of those packages and routes the SDK steps to the toolcha
 toolchain it runs everything natively.
 
 The examples are typechecked as part of the workspace (`pnpm -r typecheck`), so a change to the
-SDK that breaks an integration example fails the build rather than rotting silently.
+SDK that breaks an integration example fails the build rather than rotting silently. One of the
+four — `examples/spl-transfer` — has additionally been executed against devnet; see §3. The other
+three are structural.

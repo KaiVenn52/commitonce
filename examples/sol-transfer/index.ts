@@ -21,8 +21,8 @@
  *      rebuilt transaction (different blockhash, different priority fee, different
  *      signature). The guard blocks it, and the recipient's balance does not move.
  *
- * Run: see README.md in this directory. This example has not been executed against a live
- * cluster.
+ * Run: see README.md in this directory. This example HAS been executed against devnet, against
+ * the deployed program; the raw output is in `submission/evidence/devnet-sol-transfer-run.log`.
  */
 
 import { readFile } from 'node:fs/promises';

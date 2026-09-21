@@ -20,8 +20,9 @@
  * non-idempotent variant would fail with "account already in use" in that case, for no
  * good reason.
  *
- * Run: see README.md in this directory. This example has not been executed against a live
- * cluster.
+ * Run: see README.md in this directory, and run `setup-devnet.sh` first. This example HAS been
+ * executed against devnet, against the deployed program; the raw output is in
+ * `submission/evidence/devnet-spl-transfer-run.log`. The Jupiter-swap example has not.
  */
 
 import { readFile } from 'node:fs/promises';
