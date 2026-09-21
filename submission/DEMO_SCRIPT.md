@@ -65,7 +65,7 @@ solana program show CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB --url devnet
 solana program show EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5 --url devnet
 ```
 
-Expect `Last Deployed In Slot` **501814672** (commit_once) and **501814798** (demo_counter), and
+Expect `Last Deployed In Slot` **501995361** (commit_once) and **501814798** (demo_counter), and
 `Owner: BPFLoaderUpgradeab1e11111111111111111111111` on both. Both are **upgradeable**; if a judge
 asks, say so.
 

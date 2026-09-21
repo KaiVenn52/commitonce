@@ -171,6 +171,9 @@ The largest day by artifact count.
 | 00:05 | `examples/spl-transfer` executed against devnet | the strongest of the three, because it puts **two** third-party programs in the same atomic transaction as the guard, one of them conditional on state that may not exist yet: `claim` → ATA `CreateIdempotent` → SPL `TransferChecked`. Source 1,000,000,000 → 999,000,000, destination 0 → 1,000,000 — one transfer. The log's own words: *"duplicate blocked, no ATA rent paid and no tokens moved"*. Wrote `examples/spl-transfer/setup-devnet.sh` so the devnet state it needs is reproducible by anyone rather than a one-off I happened to have |
 | 00:15 | `examples/custom-program` executed against devnet | the case a naive approach gets wrong. Phase 1 carried **two** business instructions (`initialize` *and* `increment`, because the counter did not exist yet) and phase 2 carried **one**. The guard blocked the retry anyway: counter stayed at 1, *"duplicate blocked, the counter was not incremented again"*. So the invariant holds across two different transaction shapes for one logical intent, which is exactly what a message-hash comparison cannot do |
 | 00:20 | three devnet runs, read honestly | each is a single run of a single example, not a soak test, and each proves composability **on devnet only**. `jupiter-swap` remains structural — it needs Jupiter's live API, and I did not fake it. Every README, `EVIDENCE.md` and the work-log limitation table now say three of four rather than four of four |
+| 00:40 | auditing `claim`, and a real defect: **the durable-nonce scan failed open** | `claim` refuses a durable nonce with a finite retention, because a nonce transaction never expires and cleanup would later reopen the duplicate window. It detects one by scanning the transaction's instructions for `AdvanceNonceAccount`, bounded by `MAX_INSTRUCTION_SCAN = 128`. Running out of budget returned **"no nonce found"** — so padding a transaction with filler would have hidden a real nonce past the bound and let a caller combine a nonce with a finite retention, which is exactly what the check exists to prevent. Now it **fails closed** with a new `InstructionScanInconclusive` (6011) rather than guessing. This is the kind of defect that only shows up by reading the failure branch rather than the happy path |
+| 00:50 | and then the more interesting half: **the fail-open branch was unreachable** | writing the test to prove the bypass exposed something better. The first attempt padded with a truncated `Transfer`, which the System Program rejected before `claim` ever ran — a reminder that filler has to actually execute. The second attempt padded with zero-lamport transfers and died with `InstructionError(64, MaxInstructionTraceLengthExceeded)`: **the SVM caps a transaction at its own instruction ceiling**. So `MAX_INSTRUCTION_SCAN = 128` can never be exhausted today. I am recording that as the finding rather than as a win — the fix is still correct, but it closed a hole that the runtime was already closing for us |
+| 01:00 | the ceiling is now discovered, not assumed | the test that asserts "the bound is above the ceiling" first hardcoded 64 from memory, and the runtime reported the failure at index **63**. Rather than guess again, `discover_instruction_ceiling` probes upward until a transaction fails, then asserts `MAX_INSTRUCTION_SCAN` sits above whatever it found. A number owned by another codebase is exactly the kind of thing that changes without warning, so the test measures it and fails loudly if a future runtime raises its ceiling past 128. The same test confirms the largest allowed transaction is still scanned to completion, so the bound causes no spurious refusals. Rust suite 41 → **42** |
 
 ---
 
@@ -178,10 +181,10 @@ The largest day by artifact count.
 
 | Component | Location | State |
 | --- | --- | --- |
-| Guard program (`claim`, `close_receipt`) | `programs/commit-once/` | built (SBPFv2), deployed to devnet, 41 tests passing |
+| Guard program (`claim`, `close_receipt`) | `programs/commit-once/` | built (SBPFv2), deployed to devnet, 42 tests passing |
 | Demo counter program | `programs/demo-counter/` | built, deployed to devnet |
 | TypeScript SDK `@commitonce/solana` v0.1.0 | `packages/sdk/` | built (ESM + CJS + types), 71 tests passing, **not published to npm** |
-| Rust test suite | `programs/commit-once/tests/` | 41 tests, exit 0, executing the real compiled artifact in LiteSVM |
+| Rust test suite | `programs/commit-once/tests/` | 42 tests, exit 0, executing the real compiled artifact in LiteSVM |
 | SDK test suite | `packages/sdk/test/` | 71 tests, with golden vectors cross-checked by an independent implementation |
 | A/B demo CLI | `apps/demo/` | written and **executed against devnet**; output recorded in `submission/evidence/devnet-demo-run.log` and summarised in `EVIDENCE.md` |
 | Integration examples | `examples/` | four examples, typechecked as part of the workspace. `sol-transfer`, `spl-transfer` and `custom-program` **have been executed against devnet** (System Program; SPL Token + Associated Token; an arbitrary Anchor program); the Jupiter-swap example has never submitted a transaction |
@@ -206,6 +209,15 @@ working tree:
 | Overhead (compute units) | reported as a range: the earlier single figures were not reproducible | 2026-09-21 |
 | A/B demo executed against devnet | A reached counter 2 without the guard, B reached 1 with it; four signatures in [`EVIDENCE.md`](../EVIDENCE.md) and [`evidence/devnet-demo-run.log`](evidence/devnet-demo-run.log) | 2026-09-21 |
 | `verify.sh` full run | `RESULT: PASS (11 steps ran and passed)`, exit 0 | 2026-09-21 |
+| A/B demo executed against devnet | A reached counter 2 without the guard, B reached 1 with it; four signatures in [`EVIDENCE.md`](../EVIDENCE.md) and [`evidence/devnet-demo-run.log`](evidence/devnet-demo-run.log) | 2026-09-21 |
+| Live contention run | 5 attempts on one key: exactly 1 commit, 4 rejected onchain with `AlreadyCommitted`; spread over 2 slots | 2026-09-21 |
+| `sol-transfer` example executed | phase 1 committed, phase 2 blocked; recipient gained exactly one transfer | 2026-09-22 |
+| `spl-transfer` example executed | phase 1 committed, phase 2 blocked; source fell by exactly one transfer, no ATA rent paid on the retry | 2026-09-22 |
+| `custom-program` example executed | phase 1 committed, phase 2 blocked; counter stayed at 1 across two different transaction shapes | 2026-09-22 |
+| `commit_once` **redeployed** to devnet | slot `501995361`, signature `3YsTFBpCenHgYb3pPCNPusvznRsF8gLGEarStQ59dqHjxKchSCjFkh1fjuGZ5RqTcZzKau6Ts2P1yUgX4MNEuRcb`, data length `163712` | 2026-09-22 |
+| `commit_once.so` (current) | 154,416 bytes, SHA-256 `d6a465a7541c0b954519f5b5eb4b99a960389e43e454cf690fbeeb6f62643108` | 2026-09-22 |
+| Rust suite (current) | 42 passing, exit 0 | 2026-09-22 |
+| Durable-nonce scan | changed to fail closed; the runtime's own instruction ceiling discovered by probing, not assumed | 2026-09-22 |
 
 ## 6. What was not done during the Contest Period
 

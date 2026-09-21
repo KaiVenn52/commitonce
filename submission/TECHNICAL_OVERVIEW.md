@@ -339,6 +339,15 @@ instructions) and **rejects the transaction with `DurableNonceUnsupported` (6002
 `retention_seconds == 0`.** Permanent receipts have no cleanup path, so they are safe to combine
 with nonces and are explicitly supported.
 
+**The scan fails closed.** Running out of budget returns `InstructionScanInconclusive` (6011)
+rather than assuming the transaction is nonce-free, because assuming that would let a caller hide
+a real nonce past the bound by padding the transaction and so obtain a finite receipt on a
+transaction that never expires. In practice the bound cannot be reached — the SVM caps a
+transaction at its own instruction ceiling, which
+`scan_bound_sits_above_the_runtime_instruction_ceiling` discovers by probing rather than
+hardcoding — but the bound is asserted to stay above that ceiling, because a constant owned by
+another codebase is exactly the kind of thing that changes without warning.
+
 The conceptual technique — rejecting nonce transactions by inspecting the instructions sysvar —
 is borrowed from Squads' `nonce-guard`, which inspects the same sysvar for the same reason.
 That program deduplicates nothing (its PDA is per-owner, not per-intent), but it demonstrates
@@ -636,7 +645,7 @@ bash verify.sh
 
 # Or the same steps individually:
 bash scripts/build.sh                                     # builds both programs, verifies declare_id! against deploy-keys/
-bash scripts/test.sh                                      # 41 tests, expect exit 0
+bash scripts/test.sh                                      # 42 tests, expect exit 0
 bash scripts/test.sh --test benchmarks -- --nocapture      # the overhead table
 pnpm --filter @commitonce/solana test                      # 71 tests
 node packages/sdk/scripts/print-vectors.mjs                # vectors recomputed without importing the SDK
@@ -655,7 +664,7 @@ and reproduced against `target/deploy/` when this document was written):
 
 | Artifact | Size | SHA-256 |
 | --- | --- | --- |
-| `commit_once.so` | 153,472 bytes | `56bc2084e4f1d0b3345938e3e9406eb0af0686b410f1cb8c78cf4fe9129f25b5` |
+| `commit_once.so` | 154,416 bytes | `d6a465a7541c0b954519f5b5eb4b99a960389e43e454cf690fbeeb6f62643108` |
 | `demo_counter.so` | 138,064 bytes | `13b2b469276cafe298a511b01c67bc4e7601b37316c1b24b3364fb31f84e04f4` |
 
 Both are built for SBPFv2 (`readelf -h` reports `Flags: 0x2`).

@@ -22,7 +22,7 @@ Concepts are in [`CONCEPTS.md`](./CONCEPTS.md); integration guidance is in
 | Instructions | `claim`, `close_receipt` |
 | Accounts | `IntentReceipt` |
 | Events | `IntentCommitted`, `IntentReceiptClosed` |
-| Custom error range | 6000–6010 |
+| Custom error range | 6000–6011 |
 | Account size | 202 bytes |
 
 The address is compiled in via `declare_id!` and is derived from
@@ -233,7 +233,7 @@ These are exported in the IDL (`target/idl/commit_once.json`) except where noted
 | `MAX_RETENTION_SECONDS` | `u64` | `31536000` | Longest accepted finite retention (365 days). |
 | `SLOTS_PER_SECOND` | `u64` | `4` | Slot-rate assumption (250 ms slots since epoch 1036) used to derive `expires_at_slot`. |
 | `ADVANCE_NONCE_ACCOUNT_DISCRIMINATOR` | `u32` | `4` | System Program `AdvanceNonceAccount` discriminator, used for nonce detection. |
-| `MAX_INSTRUCTION_SCAN` | `usize` | `128` | Upper bound on instructions scanned for nonce semantics. Deliberately **not** in the IDL: it is an implementation detail. |
+| `MAX_INSTRUCTION_SCAN` | `usize` | `128` | Upper bound on instructions scanned for nonce semantics. A **refusal threshold**, not just a work bound: past it `claim` returns `InstructionScanInconclusive` rather than assuming the transaction is nonce-free. Deliberately **not** in the IDL: it is an implementation detail. |
 
 ---
 
@@ -257,6 +257,7 @@ reordering of the Rust enum cannot be misread by a caller.
 | 6008 | `0x1778` | `UnsupportedReceiptVersion` | The receipt's stored `version` is not `1`. | The receipt was written by an incompatible program version. Upgrade the SDK / stop. |
 | 6009 | `0x1779` | `ReceiptNotExpired` | `close_receipt` was called before **both** deadlines passed. | Wait. The receipt is untouched; retry after both deadlines. |
 | 6010 | `0x177A` | `ReceiptIsPermanent` | `close_receipt` was called on a permanent receipt. | Nothing to do: a permanent receipt can never be closed, and its deposit is never returned. |
+| 6011 | `0x177B` | `InstructionScanInconclusive` | The transaction carried more instructions than the durable-nonce scan reads, so `claim` could not prove it was nonce-free. | Use `retention: 'permanent'`, which skips the scan, or split the transaction. Unreachable in practice: the SVM caps a transaction below the scan bound. |
 
 For reference, the messages the program attaches to these errors (as they appear in
 transaction logs and in the IDL) are:
@@ -274,6 +275,7 @@ transaction logs and in the IDL) are:
 | 6008 | `Unsupported receipt layout version` |
 | 6009 | `Receipt has not expired yet` |
 | 6010 | `Permanent receipts cannot be closed` |
+| 6011 | `Too many instructions to verify durable-nonce safety` |
 
 A blockable duplicate also logs, before returning the error:
 

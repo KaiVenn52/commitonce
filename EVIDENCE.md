@@ -38,9 +38,9 @@ Produced by `bash scripts/build.sh`.
 
 | Artifact | Size | SHA-256 |
 | --- | --- | --- |
-| `target/deploy/commit_once.so` | 153,472 bytes | `56bc2084e4f1d0b3345938e3e9406eb0af0686b410f1cb8c78cf4fe9129f25b5` |
+| `target/deploy/commit_once.so` | 154,416 bytes | `d6a465a7541c0b954519f5b5eb4b99a960389e43e454cf690fbeeb6f62643108` |
 | `target/deploy/demo_counter.so` | 138,064 bytes | `13b2b469276cafe298a511b01c67bc4e7601b37316c1b24b3364fb31f84e04f4` |
-| `target/idl/commit_once.json` | 14,695 bytes | — |
+| `target/idl/commit_once.json` | 14,841 bytes | — |
 | `target/idl/demo_counter.json` | 3,778 bytes | — |
 
 ### Target architecture, and why
@@ -89,13 +89,19 @@ Program Id:            CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB
 Owner:                 BPFLoaderUpgradeab1e11111111111111111111111
 ProgramData Address:   29tT1XTCZ9bPCvBP93S4z9oxt9EChWv3hWWmLzpSED5x
 Authority:             25TUohqYd5b6f97wc5CjMwj89ZVL8oX81nhkWVHimYpY
-Last Deployed In Slot: 501814672
-Data Length:           153472 (0x25780) bytes
-Balance:               0.7805166 SOL
+Last Deployed In Slot: 501995361
+Data Length:           163712 (0x27f80) bytes
+Balance:               0.8325358 SOL
 ```
 
 Deploy signature:
-`5N8nwtyQSnA9XvRGLJMqsZrGmz3zFG1zPgWzcNmqyRo9N6udGT6RhsCV6mo8G68mWEWcsDziM44M6cuuHW6Hb4uW`
+`3YsTFBpCenHgYb3pPCNPusvznRsF8gLGEarStQ59dqHjxKchSCjFkh1fjuGZ5RqTcZzKau6Ts2P1yUgX4MNEuRcb`
+
+This is the **second** deployment of `commit_once`; the first was at slot `501814672`. It was
+redeployed after the durable-nonce scan was changed to fail closed (§4), so that the live program
+matches the source it is described by. `Data Length` is larger than the `.so` because the loader
+allocates headroom for future upgrades. Receipt PDAs written by the first deployment survive the
+upgrade — the layout did not change — which is the upgrade path the release runbook describes.
 
 ### `demo_counter`
 
@@ -118,7 +124,7 @@ Deploy signature:
 export HOME=/home/dell2u
 solana program show CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB --url devnet
 solana program show EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5 --url devnet
-solana confirm -v 5N8nwtyQSnA9XvRGLJMqsZrGmz3zFG1zPgWzcNmqyRo9N6udGT6RhsCV6mo8G68mWEWcsDziM44M6cuuHW6Hb4uW --url devnet
+solana confirm -v 3YsTFBpCenHgYb3pPCNPusvznRsF8gLGEarStQ59dqHjxKchSCjFkh1fjuGZ5RqTcZzKau6Ts2P1yUgX4MNEuRcb --url devnet
 ```
 
 Both programs are **upgradeable**, with `25TUohqYd5b6f97wc5CjMwj89ZVL8oX81nhkWVHimYpY` as
@@ -285,17 +291,17 @@ Jupiter's live API.
 
 ---
 
-## 4. Rust test suite — 41 passing, exit code 0
+## 4. Rust test suite — 42 passing, exit code 0
 
 Run: `bash scripts/test.sh`
 
 ```
 test result: ok. 11 passed; 0 failed    (invariant)
 test result: ok.  9 passed; 0 failed    (retention)
-test result: ok. 10 passed; 0 failed    (security)
+test result: ok. 11 passed; 0 failed    (security)
 test result: ok. 10 passed; 0 failed    (wire_format)
 test result: ok.  1 passed; 0 failed    (benchmarks)
-REAL_EXIT=0   TOTAL_PASSED=41   TOTAL_FAILED=0
+REAL_EXIT=0   TOTAL_PASSED=42   TOTAL_FAILED=0
 ```
 
 The tests execute the **real compiled SBF artifact** through LiteSVM — not a mock and not a
@@ -321,6 +327,31 @@ an error message string, because message text is not a stable contract.
 | Foreign-owned account | `receipt_with_foreign_owner_is_rejected` | owner checked before trusting existing state |
 | Malformed state | `malformed_receipt_data_is_rejected`, `unsupported_receipt_version_is_rejected` | fail-closed |
 | Expiry | `receipt_cannot_be_closed_before_expiry` | both deadlines independently enforced |
+| **Durable-nonce scan bound** | `scan_bound_sits_above_the_runtime_instruction_ceiling` | discovers the runtime's own instruction ceiling by probing, then asserts `MAX_INSTRUCTION_SCAN` sits above it — see below |
+
+### The durable-nonce scan, and a finding from auditing it
+
+`claim` refuses a durable-nonce transaction when the retention is finite, because a nonce
+transaction never expires and cleanup would later reopen the duplicate window. It detects one by
+scanning the transaction's instructions for a System Program `AdvanceNonceAccount`.
+
+That scan is bounded by `MAX_INSTRUCTION_SCAN`, and the bound originally **failed open**: running
+out of budget returned "no nonce found". Padding a transaction with filler instructions would
+therefore have hidden a real nonce past the bound and let a caller combine a nonce with a finite
+retention — precisely what the check exists to prevent.
+
+The scan now **fails closed**, returning `InstructionScanInconclusive` (6011) rather than
+guessing. Auditing that change turned up the more interesting fact: **the SVM caps a transaction
+at its own instruction ceiling** (`MaxInstructionTraceLengthExceeded`), which the test discovers
+by probing rather than hardcoding, because the first attempt to hardcode it from memory was wrong
+by one. So the refuse branch is currently unreachable — but it is unreachable because of a
+constant owned by another codebase, which is exactly the kind of thing that changes without
+warning. `scan_bound_sits_above_the_runtime_instruction_ceiling` asserts the relationship, so if
+a future runtime raises its ceiling past 128, the suite fails and says to raise the bound rather
+than silently reopening the hole.
+
+The same test confirms the largest transaction the runtime allows is still scanned to completion,
+so the bound does not cause spurious refusals at the ceiling.
 | Rent | `close_returns_rent_deposit_to_the_configured_destination`, `close_requires_the_configured_refund_destination` | deposit cannot be redirected |
 | Reopen (documented cost) | `closing_frees_the_key_for_a_new_claim` | the window is finite, asserted not just described |
 | Nonce policy | `durable_nonce_transaction_is_rejected_for_finite_retention`, `..._allowed_for_permanent_retention`, `ordinary_transactions_are_not_mistaken_for_nonce_transactions` | policy holds in both directions |

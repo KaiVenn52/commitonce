@@ -53,6 +53,17 @@ pub const ADVANCE_NONCE_ACCOUNT_DISCRIMINATOR: u32 = 4;
 
 /// Upper bound on instructions scanned when looking for durable-nonce semantics.
 ///
+/// **This is a refusal threshold, not just a work bound.** A transaction carrying more
+/// instructions than this is rejected with `InstructionScanInconclusive` when a finite
+/// retention is requested, because the program cannot prove the transaction is nonce-free.
+/// The alternative — assuming "no nonce found within the bound" means "no nonce" — is a
+/// bypass: an instruction with no accounts and no data compiles to three bytes, so a
+/// transaction can carry hundreds of them well inside the 1232-byte packet limit and push
+/// a real `AdvanceNonceAccount` past the bound.
+///
+/// 128 is far above any realistic transaction (the guard itself is one instruction, and a
+/// typical transaction is under thirty), and `PERMANENT_RETENTION` skips the scan entirely.
+///
 /// Deliberately *not* marked `#[constant]`: anchor's `#[constant]` attribute cannot
 /// expand `usize`, and this bound is an implementation detail that has no business in
 /// the public IDL.

@@ -35,6 +35,8 @@ export const COMMIT_ONCE_ERROR_CODES = {
     ReceiptNotExpired: 6009,
     /** `close_receipt` was called on a permanent receipt. */
     ReceiptIsPermanent: 6010,
+    /** The transaction had more instructions than the durable-nonce scan reads. */
+    InstructionScanInconclusive: 6011,
 } as const;
 
 export type CommitOnceErrorName = keyof typeof COMMIT_ONCE_ERROR_CODES;
@@ -68,6 +70,11 @@ export const COMMIT_ONCE_ERROR_MESSAGES: Record<CommitOnceErrorName, string> = {
         'deadline must pass before it can be closed.',
     ReceiptIsPermanent:
         'This receipt is permanent (retention 0) and can never be closed.',
+    InstructionScanInconclusive:
+        'The transaction carries more instructions than the durable-nonce scan reads, so ' +
+        'CommitOnce could not prove it is not a durable-nonce transaction and refused ' +
+        'rather than assuming. Use retention 0 (permanent), which skips the scan, or ' +
+        'split the transaction.',
 };
 
 /** The discriminant returned by {@link classifyError}. */

@@ -309,3 +309,100 @@ fn ordinary_transactions_are_not_mistaken_for_nonce_transactions() {
     assert_success(&res);
     assert!(env.account_exists(&claim.receipt()));
 }
+
+/// The runtime's own ceiling on how many instructions a transaction may carry.
+///
+/// This is enforced by the SVM, not by this program, and it is **discovered** rather than
+/// hardcoded: the first version of this test asserted 64 from memory, and the runtime
+/// reported the failure one index lower. A number owned by another codebase is exactly the
+/// kind of thing that changes without warning, so the test probes for it and then asserts
+/// the relationship that actually matters.
+///
+/// Returns the largest instruction count that executed successfully.
+fn discover_instruction_ceiling(
+    env: &mut Env,
+    authority: Pubkey,
+    recipient: Pubkey,
+) -> usize {
+    let mut largest_ok = 0usize;
+
+    // 2 instructions is the floor: the guard plus one business instruction. 120 is well
+    // past any plausible ceiling, so reaching it means something is wrong with the probe.
+    for total in 2..=120usize {
+        let claim = ClaimArgs::new(
+            authority,
+            "ns",
+            &format!("ceiling_probe_{total}"),
+            sha256(b"payload"),
+        )
+        .retention(MIN_RETENTION);
+
+        let mut ixs: Vec<solana_instruction::Instruction> = (0..total - 2)
+            .map(|_| transfer_ix(authority, recipient, 0))
+            .collect();
+        ixs.push(claim.instruction());
+        ixs.push(increment_ix(authority));
+        assert_eq!(ixs.len(), total);
+
+        if env.send(&ixs).is_ok() {
+            largest_ok = total;
+        } else {
+            return largest_ok;
+        }
+    }
+
+    panic!("no instruction ceiling was found below 120; the probe is not measuring what it thinks");
+}
+
+/// **The scan bound must sit above the runtime's own instruction ceiling.**
+///
+/// `transaction_uses_durable_nonce` returns `false` when it runs off the end of the
+/// instruction list, and refuses with `InstructionScanInconclusive` when it exhausts
+/// `MAX_INSTRUCTION_SCAN` first. Those two outcomes are only distinguishable if the bound is
+/// above the largest instruction list the runtime will execute — otherwise a padded
+/// transaction could push a real `AdvanceNonceAccount` past the bound and be waved through,
+/// letting a caller combine a durable nonce with a finite retention and reopen the duplicate
+/// window at cleanup.
+///
+/// If this test ever fails, the fix is to raise `MAX_INSTRUCTION_SCAN`, not to relax the
+/// assertion.
+#[test]
+fn scan_bound_sits_above_the_runtime_instruction_ceiling() {
+    banner("durable nonce: the scan bound is above the runtime's instruction ceiling");
+    let mut env = Env::new();
+    let authority = env.authority_pubkey();
+    assert_success(&env.send(&[initialize_counter_ix(authority)]));
+
+    let recipient = Keypair::new().pubkey();
+    assert_success(&env.send(&[transfer_ix(authority, recipient, 1_000_000)]));
+
+    let ceiling = discover_instruction_ceiling(&mut env, authority, recipient);
+
+    // A ceiling of 0 would mean the probe never succeeded at all, which is a broken probe
+    // rather than a finding.
+    assert!(
+        ceiling >= 2,
+        "the probe never found a transaction that executed, so it measured nothing"
+    );
+
+    assert!(
+        MAX_INSTRUCTION_SCAN > ceiling,
+        "MAX_INSTRUCTION_SCAN ({MAX_INSTRUCTION_SCAN}) must exceed the runtime's instruction \
+         ceiling ({ceiling}), or the nonce scan can run out of budget before the instruction \
+         list ends and a padded transaction could hide its nonce advance past the bound"
+    );
+
+    // And the largest transaction the runtime allows must still be scanned to completion,
+    // so the bound does not cause spurious refusals at the ceiling.
+    let claim = ClaimArgs::new(authority, "ns", "at_ceiling", sha256(b"payload"))
+        .retention(MIN_RETENTION);
+    let mut ixs: Vec<solana_instruction::Instruction> = (0..ceiling - 2)
+        .map(|_| transfer_ix(authority, recipient, 0))
+        .collect();
+    ixs.push(claim.instruction());
+    ixs.push(increment_ix(authority));
+    assert_eq!(ixs.len(), ceiling);
+
+    assert_success(&env.send(&ixs));
+    assert!(env.account_exists(&claim.receipt()));
+}

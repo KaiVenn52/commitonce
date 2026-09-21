@@ -79,6 +79,7 @@ pub const E_INVALID_RECEIPT_AUTHORITY: u32 = 6007;
 pub const E_UNSUPPORTED_RECEIPT_VERSION: u32 = 6008;
 pub const E_RECEIPT_NOT_EXPIRED: u32 = 6009;
 pub const E_RECEIPT_IS_PERMANENT: u32 = 6010;
+pub const E_INSTRUCTION_SCAN_INCONCLUSIVE: u32 = 6011;
 
 pub const HOUR: u64 = 60 * 60;
 pub const DAY: u64 = 24 * HOUR;
@@ -86,6 +87,9 @@ pub const DAY: u64 = 24 * HOUR;
 /// Program-declared retention bounds, re-exported so tests read them from the single
 /// source of truth rather than restating the numbers.
 pub const MIN_RETENTION: u64 = commit_once::MIN_RETENTION_SECONDS;
+
+/// Re-exported so tests can reason about the durable-nonce scan bound directly.
+pub const MAX_INSTRUCTION_SCAN: usize = commit_once::MAX_INSTRUCTION_SCAN;
 pub const MAX_RETENTION: u64 = commit_once::MAX_RETENTION_SECONDS;
 
 /// Domain-separated hashing. These prefixes are the cross-language contract with the

@@ -241,6 +241,18 @@ fn create_receipt<'info>(
 /// is a reliable indicator. We scan every instruction in the transaction rather than
 /// only the first, which is deliberately stricter than strictly necessary.
 ///
+/// **The scan fails closed.** `MAX_INSTRUCTION_SCAN` bounds the work, and a transaction
+/// that runs past that bound is *refused* rather than assumed nonce-free. Failing open
+/// here would let a caller combine a durable nonce with an expiring receipt — the exact
+/// combination this check exists to refuse — by padding the transaction until the nonce
+/// advance fell beyond the bound. A padded transaction is not hypothetical: an instruction
+/// with no accounts and no data compiles to three bytes, so a packet well inside the
+/// 1232-byte limit can carry far more than `MAX_INSTRUCTION_SCAN` of them.
+///
+/// The cost of failing closed is that a transaction with more than `MAX_INSTRUCTION_SCAN`
+/// instructions cannot use a finite retention. No realistic transaction comes close, and
+/// `PERMANENT_RETENTION` skips this check entirely.
+///
 /// The conceptual approach is borrowed from audited open-source prior art (Squads
 /// `nonce-guard`); this implementation is written and tested independently.
 fn transaction_uses_durable_nonce(instructions_sysvar: &AccountInfo) -> Result<bool> {
@@ -259,9 +271,14 @@ fn transaction_uses_durable_nonce(instructions_sysvar: &AccountInfo) -> Result<b
                     return Ok(true);
                 }
             }
-            // Ran past the end of the transaction's instruction list.
+            // Ran past the end of the transaction's instruction list. The account is
+            // address-constrained to the Instructions sysvar, so this cannot be a
+            // wrong-sysvar error: the scan is complete and there is no nonce advance.
             Err(_) => return Ok(false),
         }
     }
-    Ok(false)
+
+    // The bound was reached without running off the end of the list, so the scan is
+    // incomplete and a nonce advance could be sitting beyond it. Refuse.
+    err!(CommitOnceError::InstructionScanInconclusive)
 }

@@ -42,4 +42,8 @@ pub enum CommitOnceError {
     /// Permanent receipts have no expiry and can never be closed.
     #[msg("Permanent receipts cannot be closed")]
     ReceiptIsPermanent,
+    /// The transaction carried more instructions than the durable-nonce scan will read, so
+    /// the program cannot prove it is nonce-free and refuses rather than assuming it is.
+    #[msg("Too many instructions to verify durable-nonce safety")]
+    InstructionScanInconclusive,
 }
