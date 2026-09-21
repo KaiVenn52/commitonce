@@ -1,0 +1,24 @@
+{
+  "name": "@commitonce/examples",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Runnable CommitOnce integration examples: SOL transfer, SPL transfer, a custom program, and a Jupiter swap",
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@commitonce/solana": "workspace:*",
+    "@solana-program/system": "0.14.1",
+    "@solana-program/token": "0.16.1",
+    "@solana/kit": "8.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.2",
+    "typescript": "7.0.2"
+  }
+}

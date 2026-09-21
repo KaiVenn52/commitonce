@@ -1,0 +1,58 @@
+{
+  "name": "@commitonce/solana",
+  "version": "0.1.0",
+  "description": "Onchain idempotency keys for Solana. Retry without executing twice.",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/commitonce-dev/commitonce",
+  "homepage": "https://github.com/commitonce-dev/commitonce#readme",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "solana",
+    "idempotency",
+    "idempotency-key",
+    "at-most-once",
+    "exactly-once",
+    "retry",
+    "duplicate-transaction",
+    "blockchain",
+    "web3"
+  ],
+  "engines": {
+    "node": ">=20.18.0"
+  },
+  "peerDependencies": {
+    "@solana/kit": "^8.0.0"
+  },
+  "devDependencies": {
+    "@solana/kit": "8.3.0",
+    "@solana-program/system": "0.14.1",
+    "@solana-program/token": "0.16.1",
+    "@types/node": "26.6.2",
+    "typescript": "7.0.2",
+    "vitest": "5.0.1"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "vectors": "node scripts/print-vectors.mjs",
+    "check:dual": "node scripts/check-dual-format.mjs"
+  }
+}

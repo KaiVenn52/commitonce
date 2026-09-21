@@ -1,0 +1,234 @@
+# Colosseum Crypto World's Fair 2026 — compliance requirements
+
+Actionable summary of the **operative** requirements for the CommitOnce submission.
+Every fact was retrieved on **2026-09-19** from primary sources. The full extraction —
+per-source quotes, raw HTTP evidence, all 11 flagged contradictions, and the exhaustive
+checkbox list — is preserved at
+[`submission/COLOSSEUM_GUIDES_BRIEF.md`](../submission/COLOSSEUM_GUIDES_BRIEF.md).
+
+The Official Rules PDF is the **binding** document. Where the hackathon FAQ and the two
+Colosseum blog posts disagree with it, the disagreement is recorded rather than silently
+resolved.
+
+---
+
+## 1. Hard dates
+
+| Fact | Value | Source |
+| --- | --- | --- |
+| Contest Period start | **6:00am PT, 2026-09-14** | Rules §5 |
+| **Contest Period end / submissions due** | **11:59pm PT, 2026-10-12** (= `2026-10-13T06:59:00Z`) | Rules §5, §6(b); hackathon page `countdownTarget` |
+| Winners announced | by **2026-12-05** | Rules §5, §13 |
+| Registration disabled after | 11:59pm PT, 2026-10-12 | Rules §6(a) |
+
+The hackathon page independently renders the same instant as `2026-10-13T06:59:00.000Z`
+labelled "Submissions due", which corroborates the PDF.
+
+**Because the deadline is the binding constraint, `submission/WORK_LOG.md` records dated
+evidence of work done inside the Contest Period.**
+
+---
+
+## 2. What is actually judged — the "built during the hackathon" rule
+
+This is the single most easily-missed rule and it constrains what may be claimed.
+
+> "Teams may begin development before the hackathon, but **products are judged only on the
+> work completed between the competition's start and end dates**." — hackathon FAQ
+
+> "Builders may use pre-existing code, but teams **must disclose all relevant past
+> development work in the submission form**." — hackathon FAQ
+
+> "'Pre-existing code' **does not refer to open-source code developed by others**. We
+> encourage founders to compose with existing crypto protocols." — hackathon FAQ
+
+> "Entrants agree to **inform Administrator of the status and ownership of any open-source
+> or other third party code**, intellectual property filings, or searches related to their
+> Project Submission." — Rules §9
+
+> "If a team misrepresents its product's development history or fails to disclose relevant
+> information, Colosseum retains the sole right to: Disqualify the team…; Ban individual
+> builders from participating in future Colosseum hackathons; Revoke prizes." — hackathon FAQ
+
+**Consequences for CommitOnce:**
+
+- All CommitOnce source code was written inside the Contest Period. There is **no
+  pre-existing CommitOnce code to disclose**, and the submission must say so plainly.
+- Third-party open-source dependencies are *not* "pre-existing code", but their status and
+  ownership still has to be disclosed (Rules §9). `docs/PRIOR_ART.md` and
+  `submission/TECHNICAL_OVERVIEW.md` carry that inventory, and the license/provenance of
+  every dependency is recorded.
+- Prior art by others must be cited, not obscured. `docs/PRIOR_ART.md` documents that the
+  receipt-PDA mechanism and the prepend-a-guard UX are **already deployed prior art**, and
+  what is genuinely new. Claiming invention of either would be a misrepresentation.
+
+---
+
+## 3. Judging criteria — two official lists that differ
+
+**No source publishes weights.** Satisfy the **union**.
+
+**Official Rules §8** (binding): (a) Functionality — *"How well does this Project
+Submission work? What is the quality of the code?"*; (b) Potential Impact — TAM and impact
+on the broader crypto ecosystem; (c) Novelty; (d) UX; (e) Open-source — *"Is this Project
+Submission open-source? How well does the Project Submission compose with other primitives
+in the crypto ecosystem?"*; (f) Business Plan.
+
+**Hackathon FAQ** (adds Traction): Founder + Market Fit; Insight; Product + Execution;
+Potential Market Size; Founder Communication; Viability; **Traction** — *"Does the product
+already have demand or revenue? If so, how durable are its revenue and user base?"*
+
+**What is explicitly said to matter most:**
+
+> "**The pitch video is the most important element of the submission.** It is usually the
+> first item judges review and **can determine whether a project is shortlisted** for deeper
+> evaluation." — Colosseum blog, *Perfecting Your Hackathon Submission*
+
+> "A two-to-three-minute presentation video. **This is one of the first resources judges
+> review**, so it should be clear, concise, and high quality." — hackathon FAQ
+
+**Process:** multiple rounds of Colosseum evaluation → shortlist → judging panel → an even
+smaller group invited to a **15-minute Zoom interview**. Winners ~1 month after the deadline.
+
+---
+
+## 4. Required submission content
+
+From the hackathon FAQ, verbatim:
+
+- Product name and a brief description
+- Which blockchains and tools are being integrated
+- All teammates, with context on their backgrounds and previous experience
+- Where the team is located
+- A product logo or graphic
+- A GitHub repository link. *"Open-source repositories are encouraged, but private
+  repositories are allowed if access is granted to hackathon@colosseum.com for review."*
+- **A two-to-three-minute presentation video**
+- **A product-demo video of no more than three minutes**
+- Go-to-market strategy, demand validation, and plans for developing distribution
+
+Plus, from Rules §12(a)(i): **"All Content must be in English."**
+
+Plus, from the FAQ: optional fields should be completed — *"Ignoring optional fields that
+could provide important context"* is listed as a common mistake.
+
+**Video lengths.** Three sources give three phrasings: *"under 3 minutes"* (blog, 2024),
+*"two-to-three-minute"* (FAQ), *"no more than three minutes"* (blog, 2025). **Target
+2:00–2:59** to satisfy all three simultaneously.
+
+**Pitch video must cover** (union of both blog posts and the FAQ): team background; the
+problem; why the team started building it; who the product is for; the market opportunity;
+how initial usage will be obtained, or the traction and user feedback already received
+(*"even if informal"*); how the product works; and the broader vision.
+
+**Technical demo video must cover**: design and implementation choices, the tech stack, and
+the reasoning behind prioritisation decisions — *"Judges are particularly interested in the
+reasoning behind these decisions, especially with regard to Solana integration, on-chain
+logic, and overall architecture."*
+
+---
+
+## 5. Repository expectations
+
+From the hackathon FAQ, "What do you look for in the submitted Github repo?" — judges want
+to see that the team:
+
+- *"Did significant work during the hackathon"*
+- *"Were the ones to do this work, rather than a third party"*
+- *"Prioritized feature development strategically"*
+
+Explicitly **not** sought: *"Using a particular language or framework"*; *"Specific design
+patterns, best practices, or code-quality checks"*.
+
+**Implication:** the commit history and `submission/WORK_LOG.md` are themselves evidence.
+Tooling quality is neither required nor penalised; the scored signal is substantial,
+self-authored, strategically-prioritised work inside the Contest Period.
+
+---
+
+## 6. Eligibility and limits
+
+- Age of majority in country of residence **or** 18, whichever is older (Rules §3(a)).
+- Excluded jurisdictions: Afghanistan, Belarus, Cuba, Iran, North Korea, Russia, Somalia,
+  Syria, Crimea/Sevastopol, Donetsk, Luhansk, Zaporizhzhia, Kherson, Venezuela, Yemen; plus
+  sanctioned individuals and employees/contractors/immediate family of the Administrator or
+  Contest Sponsors (Rules §3(b)).
+- Participation must not violate employer policies or third-party obligations (Rules §3(c)).
+- **Every** team member must register on colosseum.com before the deadline; the team leader
+  adds them during submission (Rules §6, FAQ).
+- **One product submission per team, and therefore one per individual** (Rules §7, FAQ).
+- Must be a **new startup** that has not raised significant outside capital (FAQ).
+- **Solo founders are allowed** — *"You may submit a product as a solo founder."* — but a
+  solo founder *"should explain their relevant experience and why they're uniquely suited
+  to build the product."*
+- Track scope: Colosseum hackathons are *"open to builders across all blockchain
+  ecosystems"*. CommitOnce is a Solana primitive and is submitted to the **Solana track**.
+
+---
+
+## 7. Prizes (Rules §14; totals exactly $840,000)
+
+| Award | Amount | Notes |
+| --- | --- | --- |
+| Grand Champion | $30,000 | in Phantom CASH stablecoin |
+| Public Goods Award | $5,000 | |
+| **University Award** | **$5,000** | the founder is a university engineering student — directly eligible |
+| Next 20 standout teams | $15,000 each | $300,000 total |
+| **Solana track** | **$100,000 across 10 projects** | $10,000 each — CommitOnce's primary track |
+| Other tracks | $25k–$100k each | Tempo, Hyperliquid, Zcash, Ethereum L1, Base, Arbitrum, Robinhood Chain |
+
+Rules §15(b): all prizes are paid to the **Team Leader**. Rules §13: winning is contingent on
+Prize Acceptance Documents and passing due diligence.
+
+---
+
+## 8. Compliance checklist
+
+### Submission artifacts
+
+- [ ] Product name + brief description → `submission/PROJECT_DESCRIPTION.md`
+- [ ] Blockchains and tools integrated → `submission/TECHNICAL_OVERVIEW.md`
+- [ ] All teammates, backgrounds, location → `submission/FOUNDER_STORY.md`
+- [ ] Product logo or graphic → `apps/web/public/`
+- [ ] GitHub repository link (public; if private, grant `hackathon@colosseum.com`) → repo root
+- [ ] **Presentation video, target 2:00–2:59** → `submission/PITCH_SCRIPT.md`
+- [ ] **Product-demo video, ≤3:00** → `submission/DEMO_SCRIPT.md`
+- [ ] Video shot list / capture instructions → `submission/VIDEO_SHOTLIST.md`
+- [ ] Go-to-market, demand validation, distribution → `submission/GTM.md`
+- [ ] Traction — real and evidenced only → `submission/TRACTION.md`, `EVIDENCE.md`
+- [ ] Business plan / viability → `submission/GTM.md`
+- [ ] Founder + market fit, insight, why-now → `submission/FOUNDER_STORY.md`
+- [ ] Judge orientation → `submission/JUDGE_README.md`
+- [ ] FAQ → `submission/FAQ.md`
+- [ ] Dated work log for the Contest Period → `submission/WORK_LOG.md`
+- [ ] **Disclosure of pre-existing work** (none, stated explicitly) and third-party code
+      status → `submission/TECHNICAL_OVERVIEW.md`, `docs/PRIOR_ART.md`
+- [ ] All Content in English
+
+### Engineering evidence backing "Functionality" and "Open-source"
+
+- [ ] Working onchain program with the at-most-once invariant proven by tests
+- [ ] One-command reproducible verification (`verify.sh`)
+- [ ] Apache-2.0 `LICENSE`
+- [ ] Composable SDK usable without modifying the downstream program
+- [ ] `EVIDENCE.md` with reproducible proof of every headline claim
+- [ ] Honest security model including limitations (`docs/SECURITY_MODEL.md`)
+
+---
+
+## 9. Colosseum developer resources
+
+The official resource index is installable as a coding-agent skill:
+
+```bash
+npx skills add ColosseumOrg/colosseum-resources
+```
+
+The `ColosseumOrg/colosseum-resources` repository contains **exactly one** skill
+(`colosseum-resources`), a multi-ecosystem hackathon resource advisor that fetches the live
+corpus from `https://ColosseumOrg.github.io/hackathon-resources/current.json`. The only
+other skill install command referenced anywhere in Colosseum's materials is Meteora's
+`npx skills add MeteoraAg/meteora-invent`.
+
+Resources relevant to this project: the Solana track's "Build programs and typed clients",
+"Test at the right layer", "Treasury + Security", and "Payments + Commerce" sections.

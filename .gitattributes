@@ -1,0 +1,30 @@
+# Normalize to LF in the repository. The repo is developed on Windows and built on
+# Linux (WSL2), and shell scripts + Rust sources must not acquire CRLF.
+* text=auto eol=lf
+
+*.sh text eol=lf
+*.rs text eol=lf
+*.toml text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Windows-only files keep CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary artifacts are never normalized.
+*.so binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.mp4 binary
+*.ico binary
+*.woff binary
+*.woff2 binary

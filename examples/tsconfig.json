@@ -1,0 +1,12 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"],
+    // Each example is a standalone script run directly by Node's built-in TypeScript support
+    // (`node examples/sol-transfer/index.ts`), which strips types in place and never rewrites
+    // specifiers. Relative imports therefore carry real extensions.
+    "allowImportingTsExtensions": true
+  },
+  "include": ["sol-transfer/index.ts", "spl-transfer/index.ts", "custom-program/index.ts", "jupiter-swap/index.ts"]
+}

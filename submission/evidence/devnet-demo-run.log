@@ -1,0 +1,256 @@
+
+============================================================================================
+CommitOnce A/B demo — the same rebuilt retry, with and without the guard
+============================================================================================
+
+  Solana deduplicates transactions by message hash. A retry that is rebuilt — new blockhash,
+  higher priority fee, re-signed — has different bytes, so the runtime sees a brand new
+  transaction and will execute it a second time. That is the bug.
+
+  CommitOnce prepends one instruction, commit_once::claim, to the SAME atomic transaction as
+  the business instruction. It creates a receipt PDA keyed by (authority, namespace,
+  idempotency key). If the receipt already exists, claim errors, the transaction reverts,
+  and the business instruction never runs again. That is the fix.
+
+  Guarantee: at-most-once SUCCESSFUL execution of a guarded logical intent within the
+  configured retention window. Not "exactly once" in general — an expired receipt can be
+  closed, which frees the key again.
+
+--------------------------------------------------------------------------------------------
+Environment
+--------------------------------------------------------------------------------------------
+  cluster                 devnet
+  rpc                     https://api.devnet.solana.com
+  commit_once             CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB
+  demo_counter            EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5
+  payer source            $PAYER_KEYPAIR (\\wsl.localhost\Ubuntu\home\dell2u\.config\solana\id.json)
+  payer                   25TUohqYd5b6f97wc5CjMwj89ZVL8oX81nhkWVHimYpY
+  status                  DEVNET ONLY — the programs are UNAUDITED
+
+--------------------------------------------------------------------------------------------
+Preflight
+--------------------------------------------------------------------------------------------
+  wire format       ok — recomputed global:initialize, global:increment, account:Counter from sha256
+  payer balance     7.2918 SOL
+
+--------------------------------------------------------------------------------------------
+Setup — fresh authorities so every run starts from the same place
+--------------------------------------------------------------------------------------------
+
+  Each run generates brand new authorities in memory and funds them from the payer. The
+  counter PDA is [b"counter", owner], so a fresh owner means a counter that does not exist
+  yet — repeated runs therefore behave identically, with no cleanup step.
+  scenario A authority    ESrospryAVPpuSvXUaw7tJMhwY2Thm1ZgNsr8zoVM39G
+  scenario B authority    DqXXFaA6WSz5qJheeZFmeJKV3i8P5TQcTDPXKRxeQvFG
+  funding tx              8TYAk1rQLaPJRfvzkd662Xdg4tijdGLNDoTwDpMzReNxGe6ZZFmpjEVR4JTdDU3WwprW3Km9PGukZVQiYMCGBfy
+  funding explorer        https://explorer.solana.com/tx/8TYAk1rQLaPJRfvzkd662Xdg4tijdGLNDoTwDpMzReNxGe6ZZFmpjEVR4JTdDU3WwprW3Km9PGukZVQiYMCGBfy?cluster=devnet
+  funded each with        0.0500 SOL
+
+--------------------------------------------------------------------------------------------
+Scenario A — without-guard
+--------------------------------------------------------------------------------------------
+
+  No guard. Two rebuilt transactions for the same logical intent. Both are expected to
+  succeed, and the counter is expected to reach 2.
+  authority               ESrospryAVPpuSvXUaw7tJMhwY2Thm1ZgNsr8zoVM39G
+  counter PDA             CxCr4iNebUBqtp3F87SmZAkkixPxbAjhdkYWDT1UHvx3
+  logical intent          increment counter CxCr4iNebUBqtp3F87SmZAkkixPxbAjhdkYWDT1UHvx3 by 1
+  intent fingerprint      531791cfc2011a6060987cb539666e94c23ffea1c5dc19217640bf8eac49c27d
+  namespace               demo:counter  (unused — nothing is claimed)
+  idempotency key         order_928  (unused — nothing is claimed)
+
+    setup           counter initialized at 0 in 5fqHteGt5KhEHnDeSdpMiEuY6zL75LpmRWHJ2h7GcZXrQ8gQGRJ1rA8UGmfZFAnD6DNX7QYY6NqFXEzwmR9HpPoe
+    setup explorer  https://explorer.solana.com/tx/5fqHteGt5KhEHnDeSdpMiEuY6zL75LpmRWHJ2h7GcZXrQ8gQGRJ1rA8UGmfZFAnD6DNX7QYY6NqFXEzwmR9HpPoe?cluster=devnet
+
+  attempt 1 of 2  (baseline — first send)
+    changed         nothing — this is the first attempt
+    unchanged       intent hash    531791cfc2011a6060987cb539666e94c23ffea1c5dc19217640bf8eac49c27d
+    blockhash       FraYb6B5e2tn3TWyw7n2DzDR9Gf7ni5DCQer9mDNBVMR
+    priority fee    1,000 micro-lamports/CU
+    instructions    compute-budget:setComputeUnitPrice  demo_counter:increment
+    signature       2T6xF1js9kBaNBrNPq26UwNybDim3ZjaHkE13U2N7Bn8AK7DkygAwkEu1VncLSU3AyxKeE1HJjAg2xLAXeNjjdiS
+    explorer        https://explorer.solana.com/tx/2T6xF1js9kBaNBrNPq26UwNybDim3ZjaHkE13U2N7Bn8AK7DkygAwkEu1VncLSU3AyxKeE1HJjAg2xLAXeNjjdiS?cluster=devnet
+    outcome         SUCCESS — slot 501827636, 4,217 CU, fee 5,203 lamports
+      program logs    
+        | Program ComputeBudget111111111111111111111111111111 invoke [1]
+        | Program ComputeBudget111111111111111111111111111111 success
+        | Program EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5 invoke [1]
+        | Program log: Instruction: Increment
+        | Program data: XM93zEfNbA+xlOUZ5RFs4RoI1hEVNWaAd7U8GDZkhFcBEhc6tEC3nAEAAAAAAAAANEjpHQAAAADHx8TCmPI3HlHGWgk5iZdvkrOaVkePc7X8LJaWL7qWhw==
+        | Program EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5 consumed 4067 of 202850 compute units
+        | Program EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5 success
+    counter onchain 1
+
+  attempt 2 of 2  (REBUILT — what a client sends after an ambiguous timeout)
+    changed         blockhash      FraYb6B5e2tn3TWy...DNBVMR -> D4wPNioYvUuSDsvw...rqxZHE   CHANGED
+    changed         priority fee   1,000 -> 50,000 micro-lamports/CU   CHANGED
+    changed         signature      differs, because the message bytes differ   CHANGED
+    unchanged       intent hash    531791cfc2011a6060987cb539666e94c23ffea1c5dc19217640bf8eac49c27d   UNCHANGED
+                      the fingerprint covers the semantic intent only. It excludes blockhash,
+                      priority fee and signature on purpose: a retry must look like the
+                      same intent, or the guard cannot do its job.
+    blockhash       D4wPNioYvUuSDsvwhVtfHP3SWASRqT8YXyH2eXrqxZHE
+    priority fee    50,000 micro-lamports/CU
+    instructions    compute-budget:setComputeUnitPrice  demo_counter:increment
+    signature       2Ax7EsKsxvn1mjgVoRjqaQscXnCsDw3JrBVZVeHJtyzba8BD1KwZ74wcmt1iJdS9VNKs8bYXC8SScy3UgU9Ns4dL
+    explorer        https://explorer.solana.com/tx/2Ax7EsKsxvn1mjgVoRjqaQscXnCsDw3JrBVZVeHJtyzba8BD1KwZ74wcmt1iJdS9VNKs8bYXC8SScy3UgU9Ns4dL?cluster=devnet
+    outcome         SUCCESS — slot 501827651, 4,217 CU, fee 15,150 lamports
+      program logs    
+        | Program ComputeBudget111111111111111111111111111111 invoke [1]
+        | Program ComputeBudget111111111111111111111111111111 success
+        | Program EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5 invoke [1]
+        | Program log: Instruction: Increment
+        | Program data: XM93zEfNbA+xlOUZ5RFs4RoI1hEVNWaAd7U8GDZkhFcBEhc6tEC3nAIAAAAAAAAAQ0jpHQAAAADHx8TCmPI3HlHGWgk5iZdvkrOaVkePc7X8LJaWL7qWhw==
+        | Program EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5 consumed 4067 of 202850 compute units
+        | Program EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5 success
+    counter onchain 2
+
+    final read      counter account CxCr4iNebUBqtp3F87SmZAkkixPxbAjhdkYWDT1UHvx3
+    count           2
+    last slot       501827651
+
+--------------------------------------------------------------------------------------------
+Scenario B — with-guard
+--------------------------------------------------------------------------------------------
+
+  Guarded. Each transaction is [commit_once::claim, demo_counter::increment]. The first is
+  expected to succeed, the second to fail with AlreadyCommitted, and the counter is expected
+  to reach 1.
+  authority               DqXXFaA6WSz5qJheeZFmeJKV3i8P5TQcTDPXKRxeQvFG
+  counter PDA             DExRTif67Vx2k1JXtxZDo9qfs4Q7CFYEkWkLZLkdzmoN
+  logical intent          increment counter DExRTif67Vx2k1JXtxZDo9qfs4Q7CFYEkWkLZLkdzmoN by 1
+  intent fingerprint      48ad944f090a88a6f8e6f31ed2b5cd53157a696665517bffcf22a168a1fe7eea
+  namespace               demo:counter
+  idempotency key         order_928
+  retention               86400 seconds
+  receipt PDA             GFrBfdALSstiXwAtoVX3sP4HmMLtQu75NQadCN3rwCBd
+  refund destination      DqXXFaA6WSz5qJheeZFmeJKV3i8P5TQcTDPXKRxeQvFG
+
+    setup           counter initialized at 0 in 4KUcehYanUKKtkRWHEQkFapusecJErNFogH8Rb5w8BmduGQnUtp6Wr8tG6C9o3tvbitc6A74hj6UpHxV9gobEA1V
+    setup explorer  https://explorer.solana.com/tx/4KUcehYanUKKtkRWHEQkFapusecJErNFogH8Rb5w8BmduGQnUtp6Wr8tG6C9o3tvbitc6A74hj6UpHxV9gobEA1V?cluster=devnet
+
+  attempt 1 of 2  (baseline — first send)
+    changed         nothing — this is the first attempt
+    unchanged       intent hash    48ad944f090a88a6f8e6f31ed2b5cd53157a696665517bffcf22a168a1fe7eea
+    blockhash       DvWT29pE7ePA8VdjZtVXiMtzqHtffSmncM5i3t13k8J9
+    priority fee    1,000 micro-lamports/CU
+    instructions    compute-budget:setComputeUnitPrice  commit_once:claim  demo_counter:increment
+    signature       4K6hPLWCJDSL927KBUWggSEdKMXrJ3ZuofmNFg8bN92TcCXQgJ9AtdJpXc6wwf5G72mJ8VmRvp2LXUpABcd4Lx9P
+    explorer        https://explorer.solana.com/tx/4K6hPLWCJDSL927KBUWggSEdKMXrJ3ZuofmNFg8bN92TcCXQgJ9AtdJpXc6wwf5G72mJ8VmRvp2LXUpABcd4Lx9P?cluster=devnet
+    outcome         SUCCESS — slot 501827676, 12,886 CU, fee 5,403 lamports
+      program logs    
+        | Program ComputeBudget111111111111111111111111111111 invoke [1]
+        | Program ComputeBudget111111111111111111111111111111 success
+        | Program CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB invoke [1]
+        | Program log: Instruction: Claim
+        | Program 11111111111111111111111111111111 invoke [2]
+        | Program 11111111111111111111111111111111 success
+        | Program data: BPlJM9huxPm+uqH/eWPdA9YNX2Z6aKSnKKPxHdZ4wqW05M3d/Zh693srpKhHIit4sWVd8jkuiaYVQ03Rz/cFVOWai4DTJY3fCpuppX47mYxYBxWeAuNi8tFMhc/gLltQjn8s/S09Tg1IrZRPCQqIpvjm8x7Stc1TFXppZmVRe//PIqFoof5+6r66of95Y90D1g1fZnpopKcoo/Ed1njCpbTkzd39mHr3XEjpHQAAAABcju4dAAAAAH/ysGoAAAAA/0OyagAAAAA=
+        | Program CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB consumed 8669 of 402850 compute units
+        | Program CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB success
+        | Program EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5 invoke [1]
+        | Program log: Instruction: Increment
+        | Program data: XM93zEfNbA+133WNfxTMWNKoSS2gzJIv4PV69z8i4v99DIBMkl1reQEAAAAAAAAAXEjpHQAAAAC+uqH/eWPdA9YNX2Z6aKSnKKPxHdZ4wqW05M3d/Zh69w==
+        | Program EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5 consumed 4067 of 394181 compute units
+        | Program EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5 success
+    counter onchain 1
+
+  attempt 2 of 2  (REBUILT — what a client sends after an ambiguous timeout)
+    changed         blockhash      DvWT29pE7ePA8Vdj...13k8J9 -> 5D36kRuHjmTsT49m...AFSUVg   CHANGED
+    changed         priority fee   1,000 -> 50,000 micro-lamports/CU   CHANGED
+    changed         signature      differs, because the message bytes differ   CHANGED
+    unchanged       intent hash    48ad944f090a88a6f8e6f31ed2b5cd53157a696665517bffcf22a168a1fe7eea   UNCHANGED
+                      the fingerprint covers the semantic intent only. It excludes blockhash,
+                      priority fee and signature on purpose: a retry must look like the
+                      same intent, or the guard cannot do its job.
+    blockhash       5D36kRuHjmTsT49m2bkHpKbJ43uTKgXfqhePxBAFSUVg
+    priority fee    50,000 micro-lamports/CU
+    instructions    compute-budget:setComputeUnitPrice  commit_once:claim  demo_counter:increment
+    signature       4z8EFbsKjk9DHhSr7s9uzjMkFs4aUQxTBgYEH3Z7LWiWkb5uUfSyCSZxL7DgyPoiAz3NopT6R4VpHFcE4nosk3wt
+    explorer        https://explorer.solana.com/tx/4z8EFbsKjk9DHhSr7s9uzjMkFs4aUQxTBgYEH3Z7LWiWkb5uUfSyCSZxL7DgyPoiAz3NopT6R4VpHFcE4nosk3wt?cluster=devnet
+    outcome         FAILED — AlreadyCommitted (custom program error 6000) - This intent has already committed. The transaction was aborted so the guarded instructions did not run a second time.
+      program logs    
+        | Program ComputeBudget111111111111111111111111111111 invoke [1]
+        | Program ComputeBudget111111111111111111111111111111 success
+        | Program CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB invoke [1]
+        | Program log: Instruction: Claim
+        | Program log: CommitOnce: duplicate intent blocked (already committed at slot 501827676)
+        | Program log: AnchorError thrown in programs/commit-once/src/instructions/claim.rs:146. Error Code: AlreadyCommitted. Error Number: 6000. Error Message: This intent has already been committed.
+        | Program CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB consumed 7977 of 402850 compute units
+        | Program CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB failed: custom program error: 0x1770
+    counter onchain 1
+                      unchanged — claim reverted the whole transaction, so the guarded
+                      increment never executed.
+
+    final read      counter account DExRTif67Vx2k1JXtxZDo9qfs4Q7CFYEkWkLZLkdzmoN
+    count           1
+    last slot       501827676
+
+    receipt         GFrBfdALSstiXwAtoVX3sP4HmMLtQu75NQadCN3rwCBd
+    receipt version 1
+    receipt payload hash 48ad944f090a88a6f8e6f31ed2b5cd53157a696665517bffcf22a168a1fe7eea
+    payload hash matches true
+    created slot    501827676
+    expires at slot 502173276
+    expires at (unix) 1790067711
+
+============================================================================================
+Summary — the difference, side by side
+============================================================================================
+  scenario          counter onchain  expected  result  attempts that executed
+  ----------------  ---------------  --------  ------  ----------------------
+  A  without-guard  2                2         PASS    2 of 2
+  B  with-guard     1                1         PASS    1 of 2
+
+  Same logical intent. Same rebuild pattern: a new blockhash and a 50x priority fee on
+  attempt 2. The only difference is whether commit_once::claim is prepended to the same
+  atomic transaction.
+
+  #   attempt                        outcome                    onchain    signature
+  --  -----------------------------  -------------------------  ---------  ----------------------------------------------------------------------------------------
+  A1  first send                     success                    counter 1  2T6xF1js9kBaNBrNPq26UwNybDim3ZjaHkE13U2N7Bn8AK7DkygAwkEu1VncLSU3AyxKeE1HJjAg2xLAXeNjjdiS
+  A2  rebuilt (new blockhash + fee)  success                    counter 2  2Ax7EsKsxvn1mjgVoRjqaQscXnCsDw3JrBVZVeHJtyzba8BD1KwZ74wcmt1iJdS9VNKs8bYXC8SScy3UgU9Ns4dL
+  B1  first send                     success                    counter 1  4K6hPLWCJDSL927KBUWggSEdKMXrJ3ZuofmNFg8bN92TcCXQgJ9AtdJpXc6wwf5G72mJ8VmRvp2LXUpABcd4Lx9P
+  B2  rebuilt (new blockhash + fee)  FAILED: already-committed  counter 1  4z8EFbsKjk9DHhSr7s9uzjMkFs4aUQxTBgYEH3Z7LWiWkb5uUfSyCSZxL7DgyPoiAz3NopT6R4VpHFcE4nosk3wt
+
+  Every signature above is a real transaction submitted to devnet and confirmed by the
+  cluster. The failing ones are onchain too: they were submitted with skipPreflight enabled,
+  so they were included in a block and rejected by the runtime rather than being turned away
+  during simulation.
+
+
+--------------------------------------------------------------------------------------------
+Explorer links
+--------------------------------------------------------------------------------------------
+  A1    SUCCESS https://explorer.solana.com/tx/2T6xF1js9kBaNBrNPq26UwNybDim3ZjaHkE13U2N7Bn8AK7DkygAwkEu1VncLSU3AyxKeE1HJjAg2xLAXeNjjdiS?cluster=devnet
+  A2    SUCCESS https://explorer.solana.com/tx/2Ax7EsKsxvn1mjgVoRjqaQscXnCsDw3JrBVZVeHJtyzba8BD1KwZ74wcmt1iJdS9VNKs8bYXC8SScy3UgU9Ns4dL?cluster=devnet
+  B1    SUCCESS https://explorer.solana.com/tx/4K6hPLWCJDSL927KBUWggSEdKMXrJ3ZuofmNFg8bN92TcCXQgJ9AtdJpXc6wwf5G72mJ8VmRvp2LXUpABcd4Lx9P?cluster=devnet
+  B2    FAILED  https://explorer.solana.com/tx/4z8EFbsKjk9DHhSr7s9uzjMkFs4aUQxTBgYEH3Z7LWiWkb5uUfSyCSZxL7DgyPoiAz3NopT6R4VpHFcE4nosk3wt?cluster=devnet
+
+
+--------------------------------------------------------------------------------------------
+What this does and does not prove
+--------------------------------------------------------------------------------------------
+  Proves: at-most-once successful execution of a guarded logical intent within the
+  configured retention window. Scenario B reached 1, not 2, and the second attempt failed
+  with AlreadyCommitted, so the guarded increment never ran.
+
+  Does not prove: universal exactly-once execution. Once a receipt expires it can be closed
+  by anyone, and closing it frees the key for a new claim. Choose retention: "permanent"
+  when the key must never be reusable. Retention is per-claim, not per-namespace.
+
+  Also worth knowing: the two scenarios use different authorities, so their counters, their
+  receipts and their fingerprints differ. That is the authority-scoped PDA working as
+  designed — a third party who learns your namespace and key derives a different receipt and
+  cannot consume or block your intent. Within each scenario, the two attempts share one
+  fingerprint.
+
+  Devnet only. The commit_once and demo_counter programs are UNAUDITED and are not deployed
+  to mainnet-beta. Do not treat this as production-ready.
+
+CommitOnce demo: both scenarios behaved exactly as claimed.
+--------------------------------------------------------------------------------------------
+  without the guard the counter reached 2; with the guard it reached 1.
+  The guard did not make the retry fail for an unrelated reason: the retry failed
+  with AlreadyCommitted, and the guarded increment never ran a second time.
+--------------------------------------------------------------------------------------------

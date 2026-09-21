@@ -1,0 +1,844 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CommitOnce — idempotency keys for Solana</title>
+<meta name="description" content="CommitOnce prepends one instruction to the same atomic transaction as your business instructions, so a rebuilt retry cannot execute the same logical intent twice. At-most-once within a retention window. Devnet only, unaudited.">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0b0c0e">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="styles.css">
+<script defer src="main.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<!--
+  Honest-status strip. This is deliberately above the fold and never collapses: the
+  limitations of this program are part of the product, not a footnote. Every claim in it is
+  listed in EVIDENCE.md §7.
+-->
+<div class="statusbar">
+  <p class="statusbar-text">
+    <span class="pulse" aria-hidden="true"></span>
+    <strong>Unaudited.</strong> Devnet only — mainnet not deployed. Not published to npm. No users.
+  </p>
+  <a class="statusbar-link" href="#status">What that means</a>
+</div>
+
+<header class="topbar">
+  <a class="wordmark" href="#top">
+    <span class="wordmark-mark" aria-hidden="true"></span>
+    commit<em>once</em>
+  </a>
+  <nav class="topnav" aria-label="Sections">
+    <a href="#bug">The bug</a>
+    <a href="#mechanism">Mechanism</a>
+    <a href="#overhead">Overhead</a>
+    <a href="#quickstart">Quickstart</a>
+    <a href="#status">Status</a>
+    <a href="#prior-art">Prior art</a>
+  </nav>
+</header>
+
+<main id="main">
+
+  <!-- ====================================================================== HERO -->
+  <section class="hero" id="top">
+    <div class="hero-main">
+      <p class="eyebrow"><code>commit_once::claim</code> — one instruction, prepended to the transaction you already build</p>
+
+      <h1>Solana deduplicates transactions by <em>message hash</em>. A rebuilt retry is a different message.</h1>
+
+      <p class="lead">
+        Your client submits a payment. The response times out and it cannot tell whether the
+        transaction landed, so it rebuilds — fresh blockhash, higher priority fee because the first
+        attempt was slow, re-signed. Different bytes, different message hash, so the runtime's status
+        cache has nothing to match on: <strong>both attempts can execute.</strong> Solana's own
+        production-readiness guidance names this and hands the fix back to the application.
+      </p>
+
+      <div class="guarantee">
+        <p class="guarantee-label">The guarantee, stated exactly</p>
+        <p class="guarantee-text">
+          At-most-once successful execution of a guarded logical intent within the configured
+          retention window.
+        </p>
+        <p class="guarantee-note">
+          Not exactly-once. CommitOnce prevents a second execution; it does not make the first one
+          land. Retry until success and you get exactly-once-style application semantics. Three
+          parts of that sentence are load-bearing: <em>at most once</em>, <em>guarded</em>
+          transactions only, and <em>within the window</em> — after a receipt expires and is cleaned
+          up, the key is free again.
+        </p>
+      </div>
+
+      <div class="cta">
+        <a class="btn btn-primary" href="#quickstart">Quickstart</a>
+        <a class="btn" href="https://explorer.solana.com/address/CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB?cluster=devnet" target="_blank" rel="noopener noreferrer">
+          Program on devnet <span class="ext" aria-hidden="true">↗</span>
+        </a>
+        <a class="btn btn-quiet" href="#status">Read the status first</a>
+      </div>
+
+      <p class="addrline">
+        <span class="addrline-label">program id</span>
+        <code class="addr">CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB</code>
+        <button class="copy" type="button" data-copy="CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB">Copy</button>
+      </p>
+    </div>
+
+    <aside class="hero-side" aria-labelledby="runtime-view">
+      <div class="panel">
+        <p class="panel-head" id="runtime-view">What the runtime sees</p>
+        <table class="mini">
+          <caption class="vh">Two attempts at one logical intent, as the runtime sees them</caption>
+          <thead>
+            <tr><th scope="col"></th><th scope="col">message hash</th><th scope="col">priority fee</th><th scope="col">result</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">attempt 1</th>
+              <td class="mono">H<sub>1</sub></td>
+              <td class="mono">p</td>
+              <td class="ok">executes</td>
+            </tr>
+            <tr>
+              <th scope="row">attempt 2 <span class="tag">rebuilt</span></th>
+              <td class="mono">H<sub>2</sub></td>
+              <td class="mono">p′</td>
+              <td class="ok">executes</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="panel-note">
+          H<sub>1</sub> ≠ H<sub>2</sub> and p ≠ p′, so the runtime sees two unrelated transactions and
+          <code>AlreadyProcessed</code> never fires. The two attempts share one thing the chain cannot
+          see: they are the <em>same logical intent</em>. That is the gap.
+        </p>
+        <p class="panel-src">Schematic — not measured values. <a class="src" href="../../docs/ARCHITECTURE.md">docs/ARCHITECTURE.md §1</a></p>
+      </div>
+    </aside>
+  </section>
+
+  <!-- ================================================================= 01 THE BUG -->
+  <section class="band" id="bug">
+    <div class="band-head">
+      <p class="kicker">01 — the failure, as a test</p>
+      <h2>Two rebuilt transactions for one intent. Without the guard, both land.</h2>
+      <p class="section-lead">
+        This is not a thought experiment. Both cases are asserted in
+        <code>programs/commit-once/tests/invariant.rs</code>, which executes the real compiled SBF
+        artifact through LiteSVM — not a mock, not a reimplementation. The tests assert on observable
+        chain state (a counter owned by a separate demo program that knows nothing about CommitOnce),
+        never on an error string.
+      </p>
+    </div>
+
+    <div class="pairs">
+      <article class="testcard">
+        <p class="testcard-tag">the bug</p>
+        <h3 class="mono">without_guard_two_rebuilt_transactions_execute_twice</h3>
+        <p>
+          Two transactions for the same logical action, each built against the blockhash that was
+          current when it was built — exactly what a client does after losing a response.
+        </p>
+        <p class="verdict verdict-bad">both commit · <span class="mono">counter = 2</span></p>
+      </article>
+
+      <article class="testcard">
+        <p class="testcard-tag">the fix</p>
+        <h3 class="mono">with_guard_rebuilt_retry_is_blocked_and_business_action_runs_once</h3>
+        <p>
+          The same scenario with <code>claim</code> prepended. The retry is a genuinely different
+          signed transaction, and it is rejected with <code>AlreadyCommitted</code>.
+        </p>
+        <p class="verdict verdict-ok">second attempt reverts · <span class="mono">counter = 1</span></p>
+      </article>
+    </div>
+
+    <div class="factsrow">
+      <div class="fact">
+        <p class="fact-n">40</p>
+        <p class="fact-l">Rust tests passing, exit 0</p>
+        <p class="fact-s">10 invariant · 9 retention · 10 security · 10 wire format · 1 benchmark</p>
+      </div>
+      <div class="fact">
+        <p class="fact-n">48</p>
+        <p class="fact-l">SDK tests passing</p>
+        <p class="fact-s">Derivation pinned to golden hex vectors, cross-checked by a second implementation that does not import the SDK</p>
+      </div>
+      <div class="fact">
+        <p class="fact-n">0</p>
+        <p class="fact-l">Third-party integrations, users, revenue, waitlist</p>
+        <p class="fact-s">None exist. None are claimed anywhere on this page.</p>
+      </div>
+    </div>
+    <p class="srcrow">Sources: <a class="src" href="../../EVIDENCE.md">EVIDENCE.md §4, §5, §7</a></p>
+  </section>
+
+  <!-- ============================================================= 02 MECHANISM -->
+  <section class="band" id="mechanism">
+    <div class="band-head">
+      <p class="kicker">02 — the mechanism</p>
+      <h2>The guard is not a retry helper. It is instruction&nbsp;0 of the <em>same atomic transaction</em>.</h2>
+      <p class="section-lead">
+        <code>claim</code> derives a receipt PDA from <code>(authority, namespace, idempotency key)</code>
+        and tries to create it. If the account is already there, the instruction errors, the error fails
+        the transaction, and every instruction after it — your business instructions — never runs.
+        Atomicity is what makes the guard correct rather than merely convenient.
+      </p>
+    </div>
+
+    <div class="mechanism" data-mode="guarded" id="mechanism-diagram">
+      <div class="modes" role="group" aria-label="Show the transaction with or without the guard">
+        <button type="button" class="mode" data-set-mode="guarded" aria-pressed="true">With the guard</button>
+        <button type="button" class="mode" data-set-mode="unguarded" aria-pressed="false">Without the guard</button>
+        <p class="modes-note" id="modes-note">Toggle to compare the two paths.</p>
+      </div>
+
+      <div class="lanes">
+        <div class="lane">
+          <p class="lane-title"><span class="lane-n">attempt 1</span> first submission</p>
+          <div class="tx tx-ok">
+            <p class="tx-label">one atomic transaction — all or nothing</p>
+            <ol class="slots">
+              <li class="slot slot-claim">
+                <span class="slot-i">0</span>
+                <span class="slot-body">
+                  <span class="slot-name">commit_once::claim</span>
+                  <span class="slot-note">receipt PDA absent → create it, continue</span>
+                </span>
+              </li>
+              <li class="slot">
+                <span class="slot-i">1</span>
+                <span class="slot-body">
+                  <span class="slot-name">your business instruction</span>
+                  <span class="slot-note">transfer · swap · mint · game action</span>
+                </span>
+              </li>
+            </ol>
+            <p class="tx-verdict ok">commits</p>
+          </div>
+          <p class="lane-state">receipt PDA created · counter <span class="mono">= 1</span></p>
+        </div>
+
+        <div class="lane">
+          <p class="lane-title"><span class="lane-n">attempt 2</span> rebuilt after an ambiguous timeout</p>
+
+          <!-- guarded variant -->
+          <div class="tx tx-bad v-guarded">
+            <p class="tx-label">one atomic transaction — all or nothing</p>
+            <ol class="slots">
+              <li class="slot slot-claim slot-fail">
+                <span class="slot-i">0</span>
+                <span class="slot-body">
+                  <span class="slot-name">commit_once::claim</span>
+                  <span class="slot-note">receipt PDA present → <strong>AlreadyCommitted</strong></span>
+                </span>
+              </li>
+              <li class="slot slot-blocked">
+                <span class="slot-i">1</span>
+                <span class="slot-body">
+                  <span class="slot-name">your business instruction</span>
+                  <span class="slot-note">never runs — the transaction is already failing</span>
+                </span>
+              </li>
+            </ol>
+            <p class="tx-verdict bad">whole transaction reverts</p>
+          </div>
+
+          <!-- unguarded variant -->
+          <div class="tx tx-ok v-unguarded">
+            <p class="tx-label">one atomic transaction — all or nothing</p>
+            <ol class="slots">
+              <li class="slot slot-absent">
+                <span class="slot-i">0</span>
+                <span class="slot-body">
+                  <span class="slot-name">no guard instruction</span>
+                  <span class="slot-note">nothing here knows the intent already committed</span>
+                </span>
+              </li>
+              <li class="slot">
+                <span class="slot-i">1</span>
+                <span class="slot-body">
+                  <span class="slot-name">your business instruction</span>
+                  <span class="slot-note">runs a second time</span>
+                </span>
+              </li>
+            </ol>
+            <p class="tx-verdict ok">commits</p>
+          </div>
+
+          <p class="lane-state v-guarded">nothing executed · counter <span class="mono">= 1</span></p>
+          <p class="lane-state v-unguarded">executed again · counter <span class="mono">= 2</span></p>
+        </div>
+      </div>
+
+      <p class="mech-summary v-guarded">
+        One intent, one commit. The retry costs a transaction fee and nothing else.
+      </p>
+      <p class="mech-summary v-unguarded">
+        Two commits for one intent — a duplicated payment, mint or order. This is the failure the guard
+        exists to prevent.
+      </p>
+    </div>
+
+    <div class="twoup">
+      <article class="note">
+        <h3>A receipt cannot exist without its action having committed</h3>
+        <p>
+          If a later instruction fails, the receipt creation rolls back with it. There is no state in
+          which a receipt exists but the action did not happen, so a failed attempt stays retryable
+          instead of being permanently poisoned. Only the transaction fee is spent.
+        </p>
+        <p class="testref"><code>downstream_failure_rolls_back_the_receipt</code></p>
+      </article>
+      <article class="note">
+        <h3>A blocked duplicate cannot partially execute</h3>
+        <p>
+          When <code>claim</code> errors, the error fails the transaction, so the business instructions
+          after it never run. There is no window in which half of the guarded work happened.
+        </p>
+        <p class="testref"><code>with_guard_rebuilt_retry_is_blocked_and_business_action_runs_once</code></p>
+      </article>
+    </div>
+
+    <div class="derive">
+      <p class="derive-head">Receipt identity — the address <em>is</em> the intent</p>
+      <pre class="code code-tight"><code>receipt PDA = find_program_address(
+    seeds = [
+        b"commit-once",        // 11 bytes — domain prefix
+        authority,             // 32 bytes — the signer
+        namespace_hash,        // 32 bytes — sha256("commitonce/namespace/v1" ‖ namespace)
+        idempotency_key_hash,  // 32 bytes — sha256("commitonce/key/v1" ‖ key)
+    ],
+    program_id = CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB,
+)</code><button class="copy copy-block" type="button" data-copy="receipt PDA = find_program_address(&#10;    seeds = [&#10;        b&quot;commit-once&quot;,        // 11 bytes — domain prefix&#10;        authority,             // 32 bytes — the signer&#10;        namespace_hash,        // 32 bytes — sha256(&quot;commitonce/namespace/v1&quot; ‖ namespace)&#10;        idempotency_key_hash,  // 32 bytes — sha256(&quot;commitonce/key/v1&quot; ‖ key)&#10;    ],&#10;    program_id = CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB,&#10;)">Copy</button></pre>
+      <ul class="derive-points">
+        <li>
+          <strong>The authority is in the seeds.</strong> A third party who learns your namespace and key
+          derives a <em>different</em> address, so they cannot consume your key and cannot block your
+          intent. Enforced by the program's <code>seeds</code> constraint, not left to callers to
+          remember — an un-scoped "have I done this already?" guard is a griefing vector.
+          <span class="testref-inline"><code>third_party_cannot_consume_another_authoritys_key</code></span>
+        </li>
+        <li>
+          <strong>Hashes are derived client-side.</strong> Fixed-size instruction data, unbounded strings
+          kept out of PDA seeds, and the derivation pinned to golden hex vectors in two languages.
+          <code>prepareIntent()</code> needs no RPC, prover or indexer.
+        </li>
+        <li>
+          <strong>The fingerprint covers meaning, not transport.</strong> Recipient, amount, mint, memo,
+          order id — never blockhash, signature, priority fee, compute budget, retry count or submission
+          route. Including any of those would make a retry look like a new intent and defeat the product.
+          Reusing a key with a different fingerprint is reported as <code>IdempotencyConflict</code>, not
+          silently swallowed.
+        </li>
+        <li>
+          <strong>Retention is explicit.</strong> Either a bounded window (one hour to 365 days) or
+          <code>permanent</code>, which never expires and can never be closed. After cleanup the key is
+          free again — a deliberate trade-off, asserted by
+          <code>closing_frees_the_key_for_a_new_claim</code> rather than only described.
+        </li>
+        <li>
+          <strong>Cleanup is permissionless and cannot steal.</strong> <code>close_receipt</code> refunds
+          the deposit to the destination recorded at claim time, and the program refuses any other
+          destination. Both a slot deadline and a wall-clock deadline must pass, so a change in slot
+          timing can only ever delay cleanup, never accelerate it into a window where a still-valid
+          signed duplicate could execute.
+        </li>
+        <li>
+          <strong>Durable-nonce transactions are refused unless retention is permanent.</strong> A nonce
+          transaction never expires, so a cleanable receipt would reopen the duplicate window forever.
+          <code>claim</code> detects the nonce marker in the Instructions sysvar and rejects it.
+        </li>
+      </ul>
+      <p class="srcrow">
+        Sources: <a class="src" href="../../docs/ARCHITECTURE.md">docs/ARCHITECTURE.md §2–§7</a> ·
+        <a class="src" href="../../docs/SECURITY_MODEL.md">docs/SECURITY_MODEL.md §1–§6</a> ·
+        retention bounds are stated in ARCHITECTURE §5, not in EVIDENCE.md
+      </p>
+    </div>
+  </section>
+
+  <!-- ============================================================== 03 OVERHEAD -->
+  <section class="band" id="overhead">
+    <div class="band-head">
+      <p class="kicker">03 — what it costs</p>
+      <h2>Measured overhead</h2>
+      <p class="section-lead">
+        Every figure below comes from executing the real compiled program in LiteSVM, not from
+        estimation. Reproduce with
+        <code>bash scripts/test.sh --test benchmarks -- --nocapture</code>.
+      </p>
+    </div>
+
+    <div class="overhead-grid">
+    <div class="tables">
+      <div class="tablewrap">
+      <table class="data">
+        <caption>Transaction overhead — baseline is a trivial counter increment</caption>
+        <thead>
+          <tr>
+            <th scope="col">metric</th>
+            <th scope="col" class="num">business action alone</th>
+            <th scope="col" class="num">with the guard</th>
+            <th scope="col" class="num">delta</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Compute units <span class="prov">measured</span></th>
+            <td class="num">4,067</td>
+            <td class="num">13,904</td>
+            <td class="num delta">+9,837</td>
+          </tr>
+          <tr>
+            <th scope="row">Transaction size, legacy <span class="prov">computed</span></th>
+            <td class="num">273 bytes</td>
+            <td class="num">677 bytes</td>
+            <td class="num delta">+404 bytes</td>
+          </tr>
+          <tr>
+            <th scope="row">Accounts <span class="prov">measured</span></th>
+            <td class="num">3</td>
+            <td class="num">7</td>
+            <td class="num delta">+4</td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+
+      <div class="tablewrap">
+      <table class="data">
+        <caption>Per-operation compute units</caption>
+        <thead>
+          <tr><th scope="col">operation</th><th scope="col" class="num">compute units</th></tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row"><code>claim</code> alone</th><td class="num">7,783</td></tr>
+          <tr><th scope="row"><code>claim</code> + business action</th><td class="num">13,904</td></tr>
+          <tr><th scope="row">duplicate blocked, rebuilt retry</th><td class="num">9,553</td></tr>
+          <tr><th scope="row"><code>close_receipt</code>, cleanup</th><td class="num">2,701</td></tr>
+        </tbody>
+      </table>
+      </div>
+
+      <div class="tablewrap">
+      <table class="data">
+        <caption>The receipt account</caption>
+        <thead>
+          <tr><th scope="col">property</th><th scope="col" class="num">value</th></tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row">Data length</th><td class="num">202 bytes</td></tr>
+          <tr><th scope="row">Rent deposit</th><td class="num">1,676,400 lamports</td></tr>
+          <tr><th scope="row">Deposit in SOL</th><td class="num">0.0016764 SOL</td></tr>
+          <tr><th scope="row"><code>claim</code> instruction data</th><td class="num">144 bytes</td></tr>
+          <tr><th scope="row"><code>claim</code> accounts</th><td class="num">4</td></tr>
+          <tr><th scope="row">Refunded on cleanup</th><td class="num">the full deposit</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <div class="honest">
+      <h3>Reading these numbers honestly</h3>
+      <ul>
+        <li>
+          <strong>Measured vs computed.</strong> All compute units, the receipt data length, the deposit,
+          and the <code>claim</code> instruction size and account count are read from the LiteSVM
+          execution result or the account store. Transaction wire size is <em>computed</em> — LiteSVM does
+          not report serialized size, so <code>legacy_wire_size()</code> in <code>tests/benchmarks.rs</code>
+          derives it from the legacy message format. The +404-byte delta decomposes exactly as 128 bytes
+          of added account keys (4 × 32) plus a 276-byte instruction.
+        </li>
+        <li>
+          <strong>The baseline is trivial.</strong> It is a counter increment. The guard's 9,837 CU is
+          roughly 5% of a 200,000 CU budget, and the <em>relative</em> cost falls as the guarded action
+          grows.
+        </li>
+        <li>
+          <strong>The account delta is usually +3, not +4.</strong> The four are the receipt PDA, the
+          Instructions sysvar, the System program and the CommitOnce program id — and in a typical
+          transaction the System program is already present.
+        </li>
+        <li>
+          <strong>The deposit is refundable.</strong> <code>close_receipt</code> returns the full
+          1,676,400 lamports once both deadlines have passed; only the cleanup transaction fee is spent.
+          A <code>permanent</code> receipt never refunds it.
+        </li>
+        <li>
+          <strong>The rent rate is live, and the crate constant is wrong.</strong> Rent is
+          <strong>5080 lamports/byte</strong> since SIMD-0437 step 2, read out of the live mainnet Rent
+          sysvar: <code>(202 data + 128 overhead) × 5080 = 1,676,400</code>. The <code>solana-rent</code>
+          Rust crate still ships a stale effective 6960 lamports/byte, so any estimate derived from it is
+          <strong>37% too high</strong>. The test harness overrides the sysvar so the figures above are
+          accurate.
+        </li>
+        <li>
+          <strong>Not measured on mainnet.</strong> LiteSVM's compute accounting matches the runtime's,
+          but no mainnet measurement was taken — see the status section.
+        </li>
+      </ul>
+      <p class="srcrow">Source: <a class="src" href="../../EVIDENCE.md">EVIDENCE.md §6, §7</a></p>
+    </div>
+    </div>
+  </section>
+
+  <!-- ============================================================= 04 QUICKSTART -->
+  <section class="band" id="quickstart">
+    <div class="band-head">
+      <p class="kicker">04 — quickstart</p>
+      <h2>Build the guard, prepend it, keep retrying</h2>
+      <p class="section-lead">
+        The whole integration surface is one instruction. <code>prepareIntent()</code> is pure — it
+        derives everything locally with WebCrypto and touches no network, which is what makes the guard
+        usable inside a wallet, a relayer or an offline signer.
+      </p>
+    </div>
+
+    <div class="quickstart">
+      <div class="steps">
+        <div class="step">
+          <p class="step-n">1</p>
+          <h3>From a checkout of this repository</h3>
+          <pre class="code"><code>pnpm install
+pnpm --filter @commitonce/solana build   # dist/ is gitignored
+pnpm --filter @commitonce/solana test    # 48 tests</code><button class="copy copy-block" type="button" data-copy="pnpm install&#10;pnpm --filter @commitonce/solana build   # dist/ is gitignored&#10;pnpm --filter @commitonce/solana test    # 48 tests">Copy</button></pre>
+          <p class="step-note">
+            Requires Node 20.18.0 or newer and pnpm 11 (both pinned in the workspace
+            <code>package.json</code>). The SDK has zero runtime dependencies; <code>@solana/kit</code>
+            is a peer dependency.
+          </p>
+        </div>
+
+        <div class="step">
+          <p class="step-n">2</p>
+          <h3>Prepend the guard to your own instructions</h3>
+          <pre class="code"><code>// packages/sdk/quickstart.mjs — runs offline: WebCrypto hashing and local signing only.
+import { bytesToHex, isAlreadyCommitted, prepareIntent } from '@commitonce/solana';
+import {
+    appendTransactionMessageInstructions,
+    createTransactionMessage,
+    generateKeyPairSigner,
+    pipe,
+    setTransactionMessageFeePayerSigner,
+    setTransactionMessageLifetimeUsingBlockhash,
+} from '@solana/kit';
+
+const authority = await generateKeyPairSigner();
+
+// The fingerprint covers what the intent *is*, never how it was transported.
+// Including a blockhash, priority fee or signature here would defeat the product.
+const intent = { to: recipient, mint: 'USDC', amount: 10_000_000n };
+
+// 1. Build the guard. Pure: no RPC, no prover, no indexer.
+const guard = await prepareIntent({
+    authority: authority.address,
+    namespace: 'payments:transfer',
+    idempotencyKey: 'order_928',   // reuse the SAME key on every retry
+    intent,
+    retention: '24h',              // or 'permanent', which never expires
+});
+
+// 2. Prepend it to the transaction you were already building. Same atomic transaction.
+const message = pipe(
+    createTransactionMessage({ version: 0 }),
+    (m) => setTransactionMessageFeePayerSigner(authority, m),
+    (m) => appendTransactionMessageInstructions(
+        [guard.instruction, ...yourBusinessInstructions],
+        m,
+    ),
+    (m) => setTransactionMessageLifetimeUsingBlockhash(latestBlockhash, m),
+);
+
+console.log(guard.receipt);                     // the receipt PDA this intent claims
+console.log(bytesToHex(guard.instruction.data)); // 144 bytes, fixed size
+
+// 3. A rebuilt retry produces the same guard bytes and the same receipt address,
+//    so the second attempt is blocked instead of executing again.
+isAlreadyCommitted(rpcError);                   // true — treat as success, do not retry again</code><button class="copy copy-block" type="button" data-copy="// packages/sdk/quickstart.mjs — runs offline: WebCrypto hashing and local signing only.&#10;import { bytesToHex, isAlreadyCommitted, prepareIntent } from '@commitonce/solana';&#10;import {&#10;    appendTransactionMessageInstructions,&#10;    createTransactionMessage,&#10;    generateKeyPairSigner,&#10;    pipe,&#10;    setTransactionMessageFeePayerSigner,&#10;    setTransactionMessageLifetimeUsingBlockhash,&#10;} from '@solana/kit';&#10;&#10;const authority = await generateKeyPairSigner();&#10;&#10;// The fingerprint covers what the intent *is*, never how it was transported.&#10;// Including a blockhash, priority fee or signature here would defeat the product.&#10;const intent = { to: recipient, mint: 'USDC', amount: 10_000_000n };&#10;&#10;// 1. Build the guard. Pure: no RPC, no prover, no indexer.&#10;const guard = await prepareIntent({&#10;    authority: authority.address,&#10;    namespace: 'payments:transfer',&#10;    idempotencyKey: 'order_928',   // reuse the SAME key on every retry&#10;    intent,&#10;    retention: '24h',              // or 'permanent', which never expires&#10;});&#10;&#10;// 2. Prepend it to the transaction you were already building. Same atomic transaction.&#10;const message = pipe(&#10;    createTransactionMessage({ version: 0 }),&#10;    (m) => setTransactionMessageFeePayerSigner(authority, m),&#10;    (m) => appendTransactionMessageInstructions(&#10;        [guard.instruction, ...yourBusinessInstructions],&#10;        m,&#10;    ),&#10;    (m) => setTransactionMessageLifetimeUsingBlockhash(latestBlockhash, m),&#10;);&#10;&#10;console.log(guard.receipt);                     // the receipt PDA this intent claims&#10;console.log(bytesToHex(guard.instruction.data)); // 144 bytes, fixed size&#10;&#10;// 3. A rebuilt retry produces the same guard bytes and the same receipt address,&#10;//    so the second attempt is blocked instead of executing again.&#10;isAlreadyCommitted(rpcError);                   // true — treat as success, do not retry again">Copy</button></pre>
+          <p class="step-note">
+            <code>recipient</code>, <code>latestBlockhash</code>, <code>yourBusinessInstructions</code>
+            and <code>rpcError</code> are yours — the surrounding transaction is not CommitOnce's
+            business. A complete, runnable version of this file (including a locally signed transaction
+            and the offline rebuild-equality check) is
+            <a href="../../docs/QUICKSTART.md">docs/QUICKSTART.md → Path A</a>.
+          </p>
+        </div>
+
+        <div class="step">
+          <p class="step-n">3</p>
+          <h3>Then run the guard against a cluster you control</h3>
+          <pre class="code"><code>bash scripts/build.sh   # builds, then verifies declare_id! against deploy-keys/
+bash scripts/test.sh    # 40 tests against the compiled SBF artifact, exit 0
+bash verify.sh          # everything, with a PASS/FAIL summary and the true exit code</code><button class="copy copy-block" type="button" data-copy="bash scripts/build.sh   # builds, then verifies declare_id! against deploy-keys/&#10;bash scripts/test.sh    # 40 tests against the compiled SBF artifact, exit 0&#10;bash verify.sh          # everything, with a PASS/FAIL summary and the true exit code">Copy</button></pre>
+          <p class="step-note">
+            The Rust suite needs no validator, no RPC and no funds — it runs the compiled program
+            in-process through LiteSVM.
+          </p>
+        </div>
+      </div>
+
+      <aside class="callout">
+        <h3>Before you copy any of this</h3>
+        <ul>
+          <li>
+            <strong>The SDK is not on npm.</strong> <code>@commitonce/solana</code> is unclaimed and
+            unpublished, so <code>npm install @commitonce/solana</code> will fail. Build it from a
+            checkout of this repository, as in step 1.
+          </li>
+          <li>
+            <strong>There is no mainnet deployment to point at.</strong> The devnet program is live; if
+            you want this on mainnet you must deploy and fund it yourself, and the program is unaudited.
+          </li>
+          <li>
+            <strong>The examples in this repository submit real transactions to devnet</strong> and need a
+            funded keypair and an RPC endpoint.
+          </li>
+          <li>
+            <strong>Retrying is still your job.</strong> The guard makes a second execution impossible;
+            it does not make the first one happen.
+          </li>
+        </ul>
+        <p class="srcrow">Sources: <a class="src" href="../../EVIDENCE.md">EVIDENCE.md §7</a> ·
+          <a class="src" href="../../NEEDS_OWNER_ACTION.md">NEEDS_OWNER_ACTION.md §3, §4</a></p>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ================================================================= 05 STATUS -->
+  <section class="band band-status" id="status">
+    <div class="band-head">
+      <p class="kicker">05 — status</p>
+      <h2>What is done, and what is not</h2>
+      <p class="section-lead">
+        A document that only lists successes is not evidence. This section exists because technical
+        buyers check, and because an unaudited program that says so is easier to reason about than one
+        that does not.
+      </p>
+    </div>
+
+    <div class="statusgrid">
+      <div class="statuscard statuscard-bad">
+        <p class="statuscard-head">Not done</p>
+        <dl class="deflist">
+          <div><dt>Security audit</dt><dd><strong>Not done.</strong> The program is unaudited. There is no auditor, no report and no bug bounty.</dd></div>
+          <div><dt>Mainnet</dt><dd><strong>Not deployed.</strong> No mainnet keypair and no mainnet funding exists for it.</dd></div>
+          <div><dt>npm</dt><dd><strong>Not published.</strong> The package name and scope are unclaimed as of the name check.</dd></div>
+          <div><dt>Third-party integration</dt><dd><strong>None.</strong> No external project uses CommitOnce.</dd></div>
+          <div><dt>Users</dt><dd><strong>None.</strong> No traction, revenue or waitlist numbers exist, so none are shown.</dd></div>
+        </dl>
+      </div>
+
+      <div class="statuscard statuscard-ok">
+        <p class="statuscard-head">Done, and verifiable</p>
+        <dl class="deflist">
+          <div>
+            <dt>Devnet deployment</dt>
+            <dd>
+              Both programs are live and executable on devnet, read back with
+              <code>solana program show &lt;id&gt; --url devnet</code>.
+              <a href="https://explorer.solana.com/address/CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB?cluster=devnet" target="_blank" rel="noopener noreferrer">commit_once <span class="ext" aria-hidden="true">↗</span></a>
+              ·
+              <a href="https://explorer.solana.com/address/EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5?cluster=devnet" target="_blank" rel="noopener noreferrer">demo_counter <span class="ext" aria-hidden="true">↗</span></a>
+            </dd>
+          </div>
+          <div><dt>Rust tests</dt><dd>40 passing, exit 0, executing the real compiled SBF artifact through LiteSVM.</dd></div>
+          <div><dt>SDK tests</dt><dd>48 passing, pinning the derivation to golden hex vectors that a second implementation recomputes independently.</dd></div>
+          <div><dt>Build integrity</dt><dd>The build verifies <code>declare_id!</code> against the program keypairs and exits 1 on mismatch rather than producing a silently broken artifact.</dd></div>
+          <div><dt>Documentation</dt><dd>Architecture, security model with a threat model, integration playbook, prior-art survey with sources, and an evidence document listing what is <em>not</em> verified.</dd></div>
+        </dl>
+      </div>
+    </div>
+
+    <div class="deployed">
+      <p class="deployed-head">Deployed addresses — devnet</p>
+      <div class="addrow">
+        <span class="addrow-k">commit_once</span>
+        <code class="addr">CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB</code>
+        <span class="addrow-m">deploy slot 501814672</span>
+        <button class="copy" type="button" data-copy="CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB">Copy</button>
+      </div>
+      <div class="addrow">
+        <span class="addrow-k">demo_counter</span>
+        <code class="addr">EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5</code>
+        <span class="addrow-m">deploy slot 501814798</span>
+        <button class="copy" type="button" data-copy="EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5">Copy</button>
+      </div>
+      <p class="deployed-note">
+        <strong>Both are upgradeable</strong>, with the deploying key as upgrade authority. That is
+        disclosed rather than glossed over: an upgradeable program is not the same trust model as an
+        immutable one, and a mainnet deployment decision has to account for it.
+      </p>
+      <p class="srcrow">Source: <a class="src" href="../../EVIDENCE.md">EVIDENCE.md §3</a></p>
+    </div>
+
+    <div class="notverified">
+      <h3>Not verified — stated explicitly</h3>
+      <ul class="checks">
+        <li>Mainnet deployment. No mainnet keypair or funding.</li>
+        <li>Security audit. The program is unaudited.</li>
+        <li>npm publication. The package is not published.</li>
+        <li>Third-party integration, real users, traction, revenue, waitlist. None.</li>
+        <li>Transaction v1 (<code>VersionedTransaction</code> v1). The SDK and tests exercise legacy and v0 messages only.</li>
+        <li>Address lookup tables and v0 messages end-to-end. The guard is an ordinary instruction and is expected to work, but "expected" is not "verified".</li>
+        <li>Non-Anchor callers. The SDK encodes the wire format by hand, so a non-Anchor client can call it, but no such client has been written or run.</li>
+        <li>Genuine durable-nonce transactions. A real nonce transaction is inexpressible in LiteSVM 0.10.0, so the tests assert the program's stricter behaviour — that the presence of the marker triggers the policy.</li>
+        <li>SBPFv3 builds. Deliberately not shipped, because the project's own test suite cannot verify one.</li>
+        <li>Compute-unit figures on mainnet. Not measured.</li>
+      </ul>
+      <p class="srcrow">Source: <a class="src" href="../../EVIDENCE.md">EVIDENCE.md §7</a></p>
+    </div>
+
+    <div class="limits">
+      <h3>Known limitations of the design</h3>
+      <ol class="checks checks-num">
+        <li><strong>The window is finite unless you choose <code>permanent</code>.</strong> After cleanup the key is free again.</li>
+        <li><strong>The authority is a single key.</strong> No multisig or threshold authority today; a Squads vault can act as the authority, but individual member keys cannot share one receipt.</li>
+        <li><strong>Durable-nonce transactions require <code>permanent</code> retention.</strong></li>
+        <li><strong>A conflicting payload is detected, not resolved.</strong> The program reports it; deciding what to do is the application's job.</li>
+        <li><strong>The fingerprint is only as good as what you put in it.</strong> Pass semantic fields, never transport details.</li>
+        <li><strong>It does not make a transaction land</strong>, and it does not protect a code path that skips the guard.</li>
+      </ol>
+      <p class="srcrow">Sources: <a class="src" href="../../README.md">README.md § Known limitations</a> ·
+        <a class="src" href="../../docs/SECURITY_MODEL.md">docs/SECURITY_MODEL.md §7</a></p>
+    </div>
+  </section>
+
+  <!-- ============================================================= 06 PRIOR ART -->
+  <section class="band" id="prior-art">
+    <div class="band-head">
+      <p class="kicker">06 — prior art</p>
+      <h2>The closest competitor, named by us</h2>
+      <p class="section-lead">
+        A judge or an investor will find this anyway, so it belongs on the page. CommitOnce is not novel
+        in <em>mechanism</em>: a receipt that aborts if it already exists is an old, widely used
+        primitive. The closest product is Light Protocol's
+        <a href="https://github.com/Lightprotocol/nullifier-program" target="_blank" rel="noopener noreferrer">nullifier-program <span class="ext" aria-hidden="true">↗</span></a>
+        (<code>NFLx5WGPrTHHvdRNsidcrNcLxRruMC92E4yv7zhZBoT</code>) — real, live on mainnet and devnet,
+        permissionless, generic, and described in much the same terms. Its own README says
+        <em>unaudited, use at your own risk</em>.
+      </p>
+    </div>
+
+    <div class="tablewrap">
+    <table class="data data-compare">
+      <caption>Why they are not materially equivalent — five concrete reasons</caption>
+      <thead>
+        <tr><th scope="col"></th><th scope="col">Light <code>nullifier-program</code></th><th scope="col">CommitOnce</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row">Seeds</th>
+          <td><code>["nullifier", id]</code> — <strong>no signer</strong></td>
+          <td>authority-scoped, enforced by the program's <code>seeds</code> constraint</td>
+        </tr>
+        <tr>
+          <th scope="row">Griefing</th>
+          <td>anyone who guesses an id can claim and block it</td>
+          <td>a third party derives a <em>different</em> address</td>
+        </tr>
+        <tr>
+          <th scope="row">Dependencies</th>
+          <td>requires an RPC or prover round trip to fetch a validity proof before the instruction can be built</td>
+          <td>self-contained; derivation is local and pure</td>
+        </tr>
+        <tr>
+          <th scope="row">Storage</th>
+          <td>compressed accounts, Light state trees, upgradeable</td>
+          <td>plain 202-byte PDA, 1,676,400 lamports, refundable on cleanup</td>
+        </tr>
+        <tr>
+          <th scope="row">Namespaces</th>
+          <td>none</td>
+          <td>first-class</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+    <div class="twoup">
+      <article class="note">
+        <h3>What is genuinely new here</h3>
+        <p>
+          Not the receipt-PDA-abort-if-exists mechanism. It is the <em>combination</em>: an
+          authority-scoped key space enforced by the protocol, a self-contained instruction that needs
+          no RPC or prover, explicit namespaces, a bounded retention window with a refundable deposit and
+          permissionless cleanup, and the productization around it.
+        </p>
+      </article>
+      <article class="note">
+        <h3>Also acknowledged</h3>
+        <p>
+          Solana's production-readiness guide names the problem and assigns the remedy to the
+          application. Squads' <code>nonce-guard</code> uses the same Instructions-sysvar introspection
+          this program uses for its nonce policy. Anchor's <code>init</code> idiom is the same primitive
+          at a smaller scale. Helium's <code>lazy_transactions</code> genuinely implements at-most-once
+          execution across rebuilds, but is application-specific rather than generic. The Stripe-style
+          <code>Idempotency-Key</code> pattern is the closest conceptual relative — and SDP's
+          specification includes a transaction id in its fingerprint, a primary-source admission that
+          HTTP idempotency keys do not solve rebuilt transactions.
+        </p>
+      </article>
+    </div>
+
+    <p class="srcrow">
+      Full survey with per-claim sources and raw notes:
+      <a class="src" href="../../docs/PRIOR_ART.md">docs/PRIOR_ART.md</a> ·
+      <a class="src" href="https://solana.com/docs/tools/production-readiness" target="_blank" rel="noopener noreferrer">Solana production-readiness guidance <span class="ext" aria-hidden="true">↗</span></a> ·
+      <a class="src" href="https://www.zkcompression.com/compressed-pdas/nullifier-pda" target="_blank" rel="noopener noreferrer">Light nullifier PDA docs <span class="ext" aria-hidden="true">↗</span></a>
+    </p>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="foot-grid">
+    <div>
+      <p class="foot-mark">commit<em>once</em></p>
+      <p class="foot-line">
+        Onchain idempotency keys for Solana actions. Retry without executing twice. Apache-2.0.
+      </p>
+      <p class="foot-line foot-line-dim">
+        This page is static HTML, CSS and a small amount of JavaScript with no external requests, no
+        analytics, no fonts and no trackers. Every number on it is reproducible from the repository.
+      </p>
+    </div>
+    <nav class="foot-links" aria-label="Repository documents">
+      <p class="foot-head">In the repository</p>
+      <a href="../../README.md">README</a>
+      <a href="../../EVIDENCE.md">EVIDENCE — what is verified</a>
+      <a href="../../docs/ARCHITECTURE.md">Architecture</a>
+      <a href="../../docs/SECURITY_MODEL.md">Security model</a>
+      <a href="../../docs/QUICKSTART.md">Quickstart</a>
+      <a href="../../docs/API_REFERENCE.md">API reference</a>
+      <a href="../../docs/PRIOR_ART.md">Prior art</a>
+      <a href="../../NEEDS_OWNER_ACTION.md">Needs owner action</a>
+      <a href="../../packages/sdk/src/index.ts">SDK entry point</a>
+      <a href="../../LICENSE">License</a>
+    </nav>
+    <div>
+      <p class="foot-head">On chain — devnet</p>
+      <a href="https://explorer.solana.com/address/CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB?cluster=devnet" target="_blank" rel="noopener noreferrer">commit_once program <span class="ext" aria-hidden="true">↗</span></a>
+      <a href="https://explorer.solana.com/address/EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5?cluster=devnet" target="_blank" rel="noopener noreferrer">demo_counter program <span class="ext" aria-hidden="true">↗</span></a>
+      <a href="https://explorer.solana.com/tx/5N8nwtyQSnA9XvRGLJMqsZrGmz3zFG1zPgWzcNmqyRo9N6udGT6RhsCV6mo8G68mWEWcsDziM44M6cuuHW6Hb4uW?cluster=devnet" target="_blank" rel="noopener noreferrer">commit_once deploy transaction <span class="ext" aria-hidden="true">↗</span></a>
+      <p class="foot-note">
+        Explorer links are devnet-scoped (<code>?cluster=devnet</code>). There is no mainnet link because
+        there is no mainnet deployment.
+      </p>
+    </div>
+  </div>
+  <p class="foot-bottom">
+    Links under “In the repository” are relative paths into this checkout, because no public git remote
+    exists yet — see <a href="../../NEEDS_OWNER_ACTION.md">NEEDS_OWNER_ACTION.md</a>. Unaudited,
+    devnet only, not published to npm, zero users. Nothing on this page is a claim of universal
+    exactly-once execution.
+  </p>
+</footer>
+
+<p class="toast" id="toast" role="status" aria-live="polite"></p>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"],
+    // The demo is executed by Node's built-in TypeScript support (`node apps/demo/commitonce-demo.ts`),
+    // which strips types in place and never rewrites specifiers. Relative imports therefore
+    // carry the real `.ts` extension, and TypeScript has to be told that is intentional.
+    "allowImportingTsExtensions": true
+  },
+  "include": ["commitonce-demo.ts", "src/**/*.ts"]
+}

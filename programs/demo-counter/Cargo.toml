@@ -1,0 +1,28 @@
+[package]
+name = "demo-counter"
+version = "0.1.0"
+description = "Deterministic side-effect program used as the business action in the CommitOnce A/B demo"
+edition.workspace = true
+rust-version.workspace = true
+license = "Apache-2.0"
+repository = "https://github.com/commitonce-dev/commitonce"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "demo_counter"
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build"]
+anchor-debug = []
+custom-heap = []
+custom-panic = []
+
+[dependencies]
+anchor-lang = "1.2.0"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }

@@ -1,0 +1,24 @@
+skip_local_validator = true
+
+[toolchain]
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.devnet]
+commit_once = "CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB"
+demo_counter = "EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5"
+
+[programs.localnet]
+commit_once = "CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB"
+demo_counter = "EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "cargo test --workspace -- --nocapture"
+
+[hooks]

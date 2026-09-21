@@ -1,0 +1,45 @@
+# ---- Rust / Anchor ----
+target/
+**/target/
+.anchor/
+programs/*/target/
+*.so
+test-ledger/
+.yarn/
+cargo-*.lock
+
+# ---- Node ----
+node_modules/
+.pnpm-store/
+dist/
+build/
+.vite/
+*.tsbuildinfo
+coverage/
+.vercel/
+.netlify/
+
+# ---- Secrets & local state ----
+.env
+.env.*
+!.env.example
+*.json.bak
+keypairs/
+**/keypair.json
+# The program keypairs ARE committed, deliberately. A program's address is derived from its
+# keypair and `declare_id!` is compiled into the program, so without these a fresh clone
+# cannot build an artifact whose ID matches the source. See deploy-keys/README.md for why
+# that is safe for these devnet keys and why mainnet must generate its own.
+!deploy-keys/*-keypair.json
+
+# ---- Traces generated locally ----
+traces/local/
+traces/*.tmp.json
+
+# ---- Editors / OS ----
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp

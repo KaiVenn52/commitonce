@@ -1,0 +1,33 @@
+{
+  "name": "commitonce",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CommitOnce — onchain idempotency keys for Solana. Retry without executing twice.",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/commitonce-dev/commitonce",
+  "packageManager": "pnpm@11.24.0",
+  "engines": {
+    "node": ">=20.18.0"
+  },
+  "scripts": {
+    "build": "pnpm --filter \"./packages/**\" build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "test:sdk": "pnpm --filter @commitonce/solana test",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md,yml,yaml}\"",
+    "program:build": "bash scripts/build.sh",
+    "program:test": "bash scripts/test.sh",
+    "demo": "pnpm --filter @commitonce/demo run demo",
+    "demo:without-guard": "pnpm --filter @commitonce/demo run demo:without-guard",
+    "demo:with-guard": "pnpm --filter @commitonce/demo run demo:with-guard",
+    "verify": "bash verify.sh"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.2",
+    "prettier": "3.9.8",
+    "tsx": "4.23.13",
+    "typescript": "7.0.2",
+    "vitest": "5.0.1"
+  }
+}

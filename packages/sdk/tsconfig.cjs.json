@@ -1,0 +1,21 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    // TypeScript 7 removed the `node10` resolver, and `node16`/`nodenext` force `module`
+    // to match. `bundler` is the remaining resolver that permits an explicit CommonJS
+    // emit, and it resolves the `.js` specifiers used in this source correctly.
+    "moduleResolution": "bundler",
+    "outDir": "./dist/cjs",
+    "declaration": false,
+    "declarationMap": false,
+    "rootDir": "./src",
+    // The base config enables `verbatimModuleSyntax` so the ESM pass preserves
+    // import/export syntax exactly as written. That flag is incompatible with *emitting*
+    // CommonJS: it forbids translating ESM syntax into `require`. It is therefore off for
+    // this pass only. The ESM pass keeps the strict behaviour.
+    "verbatimModuleSyntax": false,
+    "isolatedModules": false
+  },
+  "include": ["src/**/*.ts"]
+}

@@ -1,0 +1,18 @@
+packages:
+  - "packages/*"
+  - "apps/*"
+  # One package covering all four examples, rather than four packages: the examples share a
+  # single dependency set and differ only in which program they guard. This keeps them inside
+  # `pnpm -r typecheck`, so a change to the SDK that breaks an example fails the build instead
+  # of silently rotting in a directory nobody compiles.
+  - "examples"
+
+# pnpm 11 blocks dependency lifecycle scripts by default (supply-chain hardening).
+# esbuild is the only dependency in this workspace that needs one: its postinstall
+# links the platform-specific native binary that Vite and Vitest execute. Everything
+# else in the tree is script-free.
+allowBuilds:
+  esbuild: true
+
+minimumReleaseAgeExclude:
+  - "@types/node@26.6.2"

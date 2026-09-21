@@ -1,0 +1,303 @@
+# CI for CommitOnce.
+#
+# NOT EXECUTED. This workflow has never been run. It is written from the documented install
+# paths for the pinned toolchain versions and from the commands in scripts/. Treat the first
+# run as a debugging exercise, not as evidence that the project builds in CI. Nothing in this
+# repository claims a CI result.
+#
+# What it does:
+#   * program job — installs the pinned Solana and Anchor toolchains, builds both programs for
+#     SBPFv2, verifies declare_id! against the committed keypairs, runs the Rust suite against
+#     the compiled SBF artifacts, then re-runs the benchmark with output visible.
+#   * sdk job — installs Node and pnpm, then runs the SDK typecheck, build and test suite.
+#
+# What it deliberately does NOT do, and why:
+#   * No deployment step of any kind. Deploying needs a funded keypair, which is a credential
+#     this repository does not have and must not carry. If a devnet deployment job is ever
+#     added, it must be gated so forks cannot run it, e.g.
+#       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+#     plus a repository-identity check, and it must read the keypair from a repository secret
+#     that a maintainer creates. No such secret exists today, so no such step exists here.
+#   * No npm publish. Publishing needs an npm token; see NEEDS_OWNER_ACTION.md §3.
+#   * No devnet integration test. The examples and the demo submit real transactions and need
+#     a funded keypair and an RPC endpoint. The Rust suite runs against LiteSVM in-process, so
+#     CI needs no network access to a cluster and no funds at all.
+#   * No step reads any secret. There is nothing here that could be gated on a fork, because
+#     nothing here needs a credential.
+#
+# One known gap, stated rather than hidden: `.gitignore` lists `deploy-keys/`, while
+# scripts/build.sh and README.md both describe those keypairs as committed. A fresh clone may
+# therefore contain no program keypairs at all. Anchor reads the keypair from
+# $CARGO_TARGET_DIR/deploy/<name>-keypair.json and compares it with the compiled-in
+# declare_id!; with no keypair it would either fail or generate a fresh one, silently
+# producing an artifact whose program ID nobody controls. The "Stage program keypairs" step
+# below therefore fails the job loudly when the keypairs are missing instead of letting that
+# happen.
+
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+  workflow_dispatch:
+
+# Read-only: nothing in this workflow writes to the repository.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  # Pinned to the versions recorded in EVIDENCE.md §1. If a pinned version stops resolving,
+  # the install steps fail loudly; update the pin here and in EVIDENCE.md together rather
+  # than switching to a floating "stable" channel, which would make a green run unrepeatable.
+  SOLANA_VERSION: "4.2.2"
+  ANCHOR_VERSION: "1.2.0"
+  # Set explicitly, as the project does locally, so that the artifact directory is
+  # predictable: Anchor writes its deploy directory and IDLs under $CARGO_TARGET_DIR.
+  CARGO_TARGET_DIR: ${{ github.workspace }}/target
+  # SBPFv2. LiteSVM 0.10.0 cannot verify a v3 ELF (e_flags = 0x3), so a v3 build could not be
+  # executed by this project's own test suite. See docs/ARCHITECTURE.md §10.
+  SBPF_ARCH: v2
+
+jobs:
+  program:
+    name: program (build, program IDs, Rust suite, benchmarks)
+    runs-on: ubuntu-latest
+    # Installing the Solana toolchain and compiling for SBPF is slow on a cold cache: expect
+    # roughly 20-40 minutes the first time, much less once the caches below are warm.
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ---------------------------------------------------------------------------------
+      # Toolchains
+      # ---------------------------------------------------------------------------------
+
+      # rust-toolchain.toml pins channel 1.89.0 with rustfmt and clippy. Installing the same
+      # toolchain here keeps rustup from downloading it implicitly later, and keeps the
+      # rustfmt/clippy versions used by review identical to the pinned ones.
+      - name: Install Rust (rustup, pinned to rust-toolchain.toml)
+        run: |
+          set -euo pipefail
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+            | sh -s -- -y --profile minimal --default-toolchain none
+          "$HOME/.cargo/bin/rustup" toolchain install 1.89.0 \
+            --profile minimal --component rustfmt --component clippy
+          "$HOME/.cargo/bin/rustup" default 1.89.0
+          "$HOME/.cargo/bin/cargo" --version
+          "$HOME/.cargo/bin/rustc" --version
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
+      # Official Anza release install. This downloads a release tarball and, on first use,
+      # platform-tools as well; both are cached below. cargo-build-sbf comes from this
+      # toolchain, which is why the Solana CLI is installed before any build step.
+      - name: Install Solana CLI (pinned release)
+        run: |
+          set -euo pipefail
+          sh -c "$(curl -sSfL "https://release.anza.xyz/v${SOLANA_VERSION}/install")"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/share/solana/install/active_release/bin/solana" --version
+
+      # Prebuilt Anchor release binary, pinned to the version this repository targets
+      # (Anchor.toml, Cargo.toml, docs/ARCHITECTURE.md §10 all say 1.2.0). Installed into
+      # ~/.local/bin so no sudo is needed.
+      #
+      # The asset name follows Anchor's published release naming
+      # (anchor-<version>-x86_64-unknown-linux-gnu). If the pinned version publishes no such
+      # asset, this step fails loudly. The fallback is to build the CLI from source, which
+      # adds several minutes:
+      #   cargo install --git https://github.com/solana-foundation/anchor \
+      #     --tag v${ANCHOR_VERSION} anchor-cli --locked
+      - name: Install Anchor CLI (pinned release)
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/bin"
+          curl -sSfL \
+            "https://github.com/solana-foundation/anchor/releases/download/v${ANCHOR_VERSION}/anchor-${ANCHOR_VERSION}-x86_64-unknown-linux-gnu" \
+            -o "$HOME/.local/bin/anchor"
+          chmod 0755 "$HOME/.local/bin/anchor"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/anchor" --version
+
+      - name: Show toolchain versions
+        run: |
+          set -euo pipefail
+          cargo --version
+          rustc --version
+          solana --version
+          cargo-build-sbf --version
+          anchor --version
+          echo "CARGO_TARGET_DIR=$CARGO_TARGET_DIR"
+          echo "SBPF_ARCH=$SBPF_ARCH"
+
+      # ---------------------------------------------------------------------------------
+      # Caches
+      # ---------------------------------------------------------------------------------
+
+      # The Rust registry, the target directory (including the SBF artifacts) and the Solana
+      # platform-tools download. Keyed on the lockfiles and toolchain pins so that a version
+      # bump starts a fresh cache instead of mixing artifacts from two toolchains.
+      - name: Cache cargo registry, target dir and Solana platform tools
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            ${{ github.workspace }}/target
+            ~/.cache/solana
+          key: cot-${{ runner.os }}-${{ env.SOLANA_VERSION }}-${{ env.ANCHOR_VERSION }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+          restore-keys: |
+            cot-${{ runner.os }}-${{ env.SOLANA_VERSION }}-${{ env.ANCHOR_VERSION }}-
+
+      # ---------------------------------------------------------------------------------
+      # Build and verify
+      # ---------------------------------------------------------------------------------
+
+      # scripts/build.sh is NOT called here, deliberately. It force-exports
+      # HOME=/home/dell2u and prepends a WSL-specific PATH, because that is where the
+      # maintainer's toolchains live. On a GitHub runner that home directory does not exist,
+      # so cargo and anchor would look in the wrong places and fail confusingly. The steps
+      # below replicate what it does — force-copy the committed keypairs, build for SBPFv2,
+      # verify declare_id! — using the runner's own environment.
+      #
+      # If you change scripts/build.sh, change these steps in the same commit, or better:
+      # make the script take HOME from the environment so the two cannot diverge.
+      - name: Stage program keypairs
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          keys=(deploy-keys/*-keypair.json)
+          if [ "${#keys[@]}" -eq 0 ]; then
+            echo "::error title=Missing program keypairs::deploy-keys/*-keypair.json is not present in this checkout. .gitignore ignores deploy-keys/, so the program keypairs must be committed (git add -f deploy-keys) or otherwise supplied. Without them Anchor would build against an auto-generated keypair and silently produce a program whose program ID nobody controls, so this job stops here. Nothing was verified."
+            exit 1
+          fi
+          mkdir -p "$CARGO_TARGET_DIR/deploy"
+          for k in "${keys[@]}"; do
+            cp -f "$k" "$CARGO_TARGET_DIR/deploy/$(basename "$k")"
+            echo "staged $(basename "$k")"
+          done
+
+      # Anchor.toml sets [provider] wallet = "~/.config/solana/id.json". This keypair is
+      # generated fresh on every run, holds no funds, signs nothing, and exists only so that
+      # the configured path resolves. It is not a secret and no secret is involved.
+      - name: Create a throwaway provider keypair
+        run: |
+          set -euo pipefail
+          solana-keygen new --no-bip39-passphrase --silent --force \
+            -o "$HOME/.config/solana/id.json"
+          solana address
+
+      - name: Build programs (SBPFv2)
+        run: anchor build --arch "$SBPF_ARCH"
+
+      - name: Verify declare_id! against deploy-keys
+        run: |
+          set -euo pipefail
+          status=0
+          for k in deploy-keys/*-keypair.json; do
+            name="$(basename "$k" -keypair.json)"
+            crate="${name//_/-}"
+            src="programs/${crate}/src/lib.rs"
+            if [ ! -f "$src" ]; then
+              echo "::error::no source file at $src for keypair $k"
+              status=1
+              continue
+            fi
+            want="$(solana-keygen pubkey "$k")"
+            got="$(sed -n 's/.*declare_id!("\([^"]*\)").*/\1/p' "$src" | head -1)"
+            if [ -z "$got" ]; then
+              echo "::error::no declare_id! found in $src"
+              status=1
+              continue
+            fi
+            if [ "$want" != "$got" ]; then
+              echo "::error::$name mismatch: keypair=$want declare_id!=$got"
+              status=1
+            else
+              echo "ok $name = $got"
+            fi
+          done
+          if [ "$status" -ne 0 ]; then
+            echo "::error title=Program ID mismatch::deploy-keys/ and declare_id! disagree. A program deployed at a different address than its compiled-in declare_id! refuses to run."
+            exit 1
+          fi
+
+      - name: Check formatting (rustfmt)
+        run: cargo fmt --all --check
+
+      - name: Lints (clippy)
+        run: cargo clippy --workspace --all-targets
+
+      # ---------------------------------------------------------------------------------
+      # Tests
+      # ---------------------------------------------------------------------------------
+
+      # The Rust tests load the compiled SBF artifacts through COMMIT_ONCE_DEPLOY_DIR and run
+      # them in LiteSVM. They do not contact a cluster and need no funds. A missing artifact
+      # is a hard failure inside the test harness, not a skip.
+      - name: Rust test suite (LiteSVM, real compiled SBF)
+        run: |
+          set -euo pipefail
+          export COMMIT_ONCE_DEPLOY_DIR="$CARGO_TARGET_DIR/deploy"
+          test -f "$COMMIT_ONCE_DEPLOY_DIR/commit_once.so"
+          cargo test --workspace
+
+      # Re-run with output visible so the measured overhead figures land in the job log,
+      # where they can be compared against README.md and EVIDENCE.md §6.
+      - name: Benchmarks (output visible)
+        run: |
+          set -euo pipefail
+          export COMMIT_ONCE_DEPLOY_DIR="$CARGO_TARGET_DIR/deploy"
+          cargo test -p commit-once --test benchmarks -- --nocapture
+
+  sdk:
+    name: sdk (typecheck, build, tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # The SDK suite is pure TypeScript and does not need the Solana toolchain or the
+      # compiled programs, so this job runs in parallel with the program job.
+      - name: Install pnpm (pinned by packageManager in package.json)
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.24.0
+
+      # Node 24 satisfies both engines constraints in the workspace (the SDK requires
+      # >= 20.18.0 because @solana/kit needs it; apps/demo declares >= 22.18.0).
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: SDK typecheck
+        run: pnpm --filter @commitonce/solana typecheck
+
+      - name: SDK build (ESM + CJS + types)
+        run: pnpm --filter @commitonce/solana build
+
+      - name: SDK tests
+        run: pnpm --filter @commitonce/solana test
+
+      # The golden vectors are recomputed here by an implementation that does not import the
+      # SDK. Its output is informational — the assertions live in the test above — but it
+      # makes a derivation change visible in the log instead of only as a red test.
+      - name: Golden vectors (independent recomputation)
+        run: pnpm --filter @commitonce/solana vectors
