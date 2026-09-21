@@ -151,7 +151,7 @@ Stated plainly, because a submission that only lists successes is not evidence.
 | Genuine durable-nonce transactions | Cannot be constructed in LiteSVM 0.10.0; the program's stricter behaviour is asserted instead, and the limitation is documented in `tests/security.rs`. |
 | Compute units on mainnet | Not measured. LiteSVM accounting matches the runtime's; that is an expectation, not a measurement. |
 | SBPFv3 build | Not verified, and deliberately not shipped, because LiteSVM cannot verify it. |
-| A recorded devnet demo run | The A/B is proven by the test suite; the standalone demo runner's devnet execution is not yet recorded in `EVIDENCE.md`. |
+| Concurrent claims of one key | Not tested. The suite covers sequential duplicates and many distinct keys; it does not race two claims of one key in the same slot. |
 
 ---
 

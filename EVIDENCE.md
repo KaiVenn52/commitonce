@@ -129,6 +129,40 @@ for it (see `RELEASE_RUNBOOK.md`).
 **Not verified:** mainnet deployment. Neither program has been deployed to mainnet, and no
 mainnet keypair or funding exists for it.
 
+### The A/B demo, run against devnet
+
+`apps/demo/commitonce-demo.ts` was executed against devnet on **2026-09-21**, against the
+deployed programs above. It sends the *same logical intent* twice, as two genuinely rebuilt
+transactions (fresh blockhash, 50× priority fee on attempt 2), once without the guard and once
+with it. Full output: [`submission/evidence/devnet-demo-run.log`](submission/evidence/devnet-demo-run.log).
+
+```
+  scenario          counter onchain  expected  result  attempts that executed
+  A  without-guard  2                2         PASS    2 of 2
+  B  with-guard     1                1         PASS    1 of 2
+
+  A1  first send                     success                    counter 1  JPq28VZBd56Y5P5fSEzdg9HuxczdVXR626F1Evm7TA2KvcjvJHz9gSfi58N3zoUxkJosFURxFyBkCVihK9MbrA9
+  A2  rebuilt (new blockhash + fee)  success                    counter 2  2ccU3YPhcHfMqa3kzi7iuFLU7rCfkz6upBrvuZuf3FaTFpepHZWs5QcvV2dtgph8qd73vGQV4hguLZjDoUaCDkgu
+  B1  first send                     success                    counter 1  5x94gsThRdov1HB7EsJ9jhFX8ZhFNvAdCm7ZizCSuuxg2L2KqfTKtFueTJLCs7K1Xv9wWvhh1GCdFVeQBw7UjsaD
+  B2  rebuilt (new blockhash + fee)  FAILED: already-committed  counter 1  4beKGRxVKN7WRNnP9FvmFqsnwZjc4scfwBNKaRmapzSYmvaoT6M4VGeDh9XfSUHwv9disHQn9nae2gdYys9H1rMU
+```
+
+Every signature above is a real transaction that reached devnet. The failing one is onchain
+too: it was submitted with `skipPreflight` enabled, so the runtime included it in a block and
+rejected it rather than simulation turning it away — which is the case that matters, because
+it shows the guard aborting an already-built transaction rather than merely discouraging it.
+
+Verify any of them independently:
+
+```bash
+solana confirm -v JPq28VZBd56Y5P5fSEzdg9HuxczdVXR626F1Evm7TA2KvcjvJHz9gSfi58N3zoUxkJosFURxFyBkCVihK9MbrA9 --url devnet
+solana confirm -v 4beKGRxVKN7WRNnP9FvmFqsnwZjc4scfwBNKaRmapzSYmvaoT6M4VGeDh9XfSUHwv9disHQn9nae2gdYys9H1rMU --url devnet
+```
+
+**What it does not prove:** this is one run of one intent shape on one cluster. It is not
+load testing, it does not exercise concurrent claims of the same key, and it says nothing
+about mainnet conditions.
+
 ---
 
 ## 4. Rust test suite — 40 passing, exit code 0
@@ -192,12 +226,21 @@ derivation in `programs/commit-once/tests/wire_format.rs`. Three implementations
 a much stronger signal than one suite agreeing with itself.
 
 Also verified: the package builds to `dist/esm`, `dist/cjs` and `dist/types`, and resolves
-correctly under **both** module systems:
+correctly under **both** module systems. This is checked by
+`pnpm --filter @commitonce/solana check:dual`, which imports the built package through the
+`import` condition and `require`s it through the `require` condition, then compares the two
+builds:
 
 ```
-ESM ok: function function function
-CJS ok: function function function
+ESM  ok  (11 exports, 6 constants)
+CJS  ok  (11 exports, 6 constants)
+
+dual-format check PASSED: both builds load and agree.
 ```
+
+The check asserts that every public export is present in **both** builds and that the pinned
+constants are equal across them, so a green result means the two builds are the same code, not
+merely that both are loadable.
 
 Dual-format output is verified by actually importing it both ways, not by inspecting the
 build output.
@@ -300,6 +343,7 @@ Listed explicitly, because a document that only lists successes is not evidence.
 | Third-party integration | **None.** No external project uses CommitOnce. |
 | Real users | **None.** |
 | Traction, revenue, waitlist | **None.** No such numbers exist and none are claimed. |
+| Concurrent claims of the same key | **Not tested.** The Rust suite covers sequential duplicates and many distinct keys; it does not race two claims of one key in the same slot. The invariant is enforced by PDA existence and would hold, but "would hold" is not "was measured". |
 | Transaction v1 (`VersionedTransaction` v1) | **Not tested.** v1 is live on mainnet as of epoch 1035, and it does not change message-hash deduplication, but the SDK and tests exercise legacy and v0 messages only. |
 | Address lookup tables / v0 messages | **Not tested end-to-end.** The guard is an ordinary instruction and is expected to work, but "expected" is not "verified". |
 | Non-Anchor callers | **Not tested.** The program is Anchor-built; the SDK encodes the wire format by hand, so a non-Anchor client can call it, but no such client has been written or run. |
@@ -316,5 +360,20 @@ bash verify.sh
 ```
 
 Runs prerequisite checks, the program build, program-ID verification, the Rust suite, the
-SDK typecheck/build/tests, and the benchmarks, then prints a PASS/FAIL summary with the true
-exit code. It fails loudly rather than silently skipping a step.
+benchmarks, and the SDK typecheck/build/tests/dual-format check plus a consumer typecheck —
+**ten steps** — then prints a PASS/FAIL summary with the true exit code. It fails loudly rather
+than silently skipping a step, and a step that could not run is reported as `NOT RUN`, which
+fails the run rather than being counted as a pass.
+
+Last full run: **`RESULT: PASS (10 steps ran and passed)`**, exit code 0.
+
+One caveat worth stating, because it is a property of this machine rather than of the project:
+the SDK steps are delegated to the Windows toolchain through WSL interop. This dependency tree
+contains win32-only native binaries — TypeScript 7 itself is a native executable, as are
+esbuild, rolldown and lightningcss — so `pnpm` inside WSL cannot run them. `verify.sh` detects
+that from the presence of those packages and routes the SDK steps to the toolchain that owns
+`node_modules`, reporting the mode it chose in its header. On a machine with a single
+toolchain it runs everything natively.
+
+The examples are typechecked as part of the workspace (`pnpm -r typecheck`), so a change to the
+SDK that breaks an integration example fails the build rather than rotting silently.

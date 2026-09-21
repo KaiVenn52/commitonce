@@ -362,6 +362,12 @@ fi
 run_step "SDK typecheck (pnpm --filter @commitonce/solana typecheck)" \
     sdk_run pnpm --filter @commitonce/solana typecheck
 
+# The demo and the examples consume the SDK, so they are the real test of whether its public
+# API still works. They live in the workspace precisely so that breaking one fails a build
+# instead of rotting silently in a directory nothing compiles.
+run_step "consumers typecheck (pnpm -r typecheck: demo and all four examples)" \
+    sdk_run pnpm -r typecheck
+
 run_step "SDK build (pnpm --filter @commitonce/solana build)" \
     sdk_run pnpm --filter @commitonce/solana build
 

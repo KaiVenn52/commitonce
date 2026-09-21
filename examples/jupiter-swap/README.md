@@ -250,6 +250,9 @@ locally with `@solana/kit`, contained no address lookup tables and no swap, and 
 was submitted. Treat the expected output above as the shape of the output, not as captured
 evidence, and treat the swap path as unproven against any real aggregator.
 
+It **does** typecheck: this example is part of the workspace, so `pnpm -r typecheck` compiles
+it against the real SDK. A change to the SDK that breaks this file fails the build.
+
 ## Security note
 
 **The guard protects only transactions that actually include it.** It is a property of a

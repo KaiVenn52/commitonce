@@ -231,6 +231,9 @@ clear error when `RPC_URL` or `KEYPAIR` is missing. No transaction was submitted
 here has been tested against a deployed CommitOnce program. Treat the expected output above
 as the shape of the output, not as captured evidence.
 
+It **does** typecheck: this example is part of the workspace, so `pnpm -r typecheck` compiles
+it against the real SDK. A change to the SDK that breaks this file fails the build.
+
 ## Security note
 
 **The guard protects only transactions that actually include it.** It is a property of a

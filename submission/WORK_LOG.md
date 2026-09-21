@@ -151,8 +151,8 @@ The largest day by artifact count.
 | TypeScript SDK `@commitonce/solana` v0.1.0 | `packages/sdk/` | built (ESM + CJS + types), 48 tests passing, **not published to npm** |
 | Rust test suite | `programs/commit-once/tests/` | 40 tests, exit 0, executing the real compiled artifact in LiteSVM |
 | SDK test suite | `packages/sdk/test/` | 48 tests, with golden vectors cross-checked by an independent implementation |
-| A/B demo CLI | `apps/demo/` | written; a devnet run is not yet recorded in `EVIDENCE.md` |
-| Integration examples | `examples/` | four examples written; none executed against a live cluster |
+| A/B demo CLI | `apps/demo/` | written and **executed against devnet**; output recorded in `submission/evidence/devnet-demo-run.log` and summarised in `EVIDENCE.md` |
+| Integration examples | `examples/` | four examples, typechecked as part of the workspace; none executed against a live cluster |
 | Verification | `verify.sh`, `scripts/` | one command, PASS/FAIL summary, non-zero exit on any step that did not run |
 | Documentation | `docs/`, `README.md`, `SECURITY.md`, `RELEASE_RUNBOOK.md` | architecture, security model, concepts, API reference, quickstart, integration playbook, developer FAQ, prior art, release runbook |
 | Submission package | `submission/` | this set of documents |
@@ -184,7 +184,7 @@ this log is more useful than the flattering one.
 | **No security audit** | The program is unaudited. |
 | **No npm publication** | The SDK exists and builds; it is not published. |
 | **No users, integrations, revenue** | None. See [`TRACTION.md`](TRACTION.md). |
-| **No recorded devnet demo run** | The A/B is proven by the test suite; the standalone demo runner's devnet execution is not yet recorded in `EVIDENCE.md`. |
+| **Concurrent claims of one key** | Not tested. The suite covers sequential duplicates and many distinct keys; it does not race two claims of one key in the same slot. |
 | **No examples executed against a live cluster** | The four examples are written and their READMEs say so. |
 | **Transaction v1 / address lookup tables** | Not tested. |
 | **Non-Anchor callers** | Not tested. |
