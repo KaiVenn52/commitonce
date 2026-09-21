@@ -233,7 +233,7 @@ Full detail, including the account-by-account and byte-by-byte layouts, is in
 ## Verification
 
 ```bash
-bash verify.sh          # everything: 11 steps, PASS/FAIL summary, true exit code
+bash verify.sh          # everything: 12 steps, PASS/FAIL summary, true exit code
 bash scripts/build.sh   # builds, then verifies declare_id! against deploy-keys/
 bash scripts/test.sh    # 42 tests, exit code 0
 ```
@@ -241,9 +241,10 @@ bash scripts/test.sh    # 42 tests, exit code 0
 `verify.sh` is the one to run. It checks prerequisites, builds both programs, verifies
 `declare_id!` against the committed keypairs, runs the Rust suite and the benchmarks, then
 typechecks, builds, tests and dual-imports the SDK, typechecks the demo and all four examples,
-and checks the brand assets against the site palette. It fails loudly rather than silently
-skipping a step, and a step that could not run counts as a failure, not a pass. Last full run:
-**`RESULT: PASS (11 steps ran and passed)`**.
+checks the brand assets against the site palette, and checks the documentation for broken links,
+unreadable evidence logs, impossible test counts and corrected claims that have crept back. It
+fails loudly rather than silently skipping a step, and a step that could not run counts as a
+failure, not a pass. Last full run: **`RESULT: PASS (12 steps ran and passed)`**.
 
 The tests execute the **real compiled SBF artifact** through LiteSVM — not a mock, not a
 reimplementation. They assert on observable onchain state: counter values, account

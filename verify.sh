@@ -15,7 +15,9 @@
 #   5. runs the benchmark test with its output visible
 #   6. runs the SDK typecheck, build, test suite and dual-format check
 #   7. checks the brand assets against the site palette
-#   8. prints a PASS/FAIL summary and exits non-zero if anything failed or did not run
+#   8. checks the documentation: links resolve, evidence logs are UTF-8, quoted test counts
+#      are counts that exist, and no corrected claim has crept back
+#   9. prints a PASS/FAIL summary and exits non-zero if anything failed or did not run
 #
 # What it does NOT do, and does not claim:
 #   * It does not deploy anything, to any cluster.
@@ -397,6 +399,17 @@ run_step "SDK resolves under both ESM and CJS (pnpm --filter @commitonce/solana 
 
 run_step "brand assets consistent (node scripts/check-brand.mjs)" \
     sdk_run node scripts/check-brand.mjs
+
+# ---------------------------------------------------------------------------------------
+# Documentation consistency. Most of this project's claims live in prose, and prose rots:
+# a file gets renamed, a test count is quoted after the suite grew, a claim that was found
+# to be false comes back. This checks the links (markdown AND html, since the markdown pass
+# cannot see `href`), that the evidence logs are readable UTF-8, that every quoted test count
+# is a count the suites actually produce, and that no retired claim has survived.
+# ---------------------------------------------------------------------------------------
+
+run_step "documentation consistent (node scripts/check-docs.mjs)" \
+    sdk_run node scripts/check-docs.mjs
 
 # ---------------------------------------------------------------------------------------
 # Summary and true exit code.
