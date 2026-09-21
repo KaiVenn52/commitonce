@@ -292,8 +292,10 @@ jobs:
 
       # The demo and the examples consume the SDK, so they are the real test of whether its
       # public API still works. They are in the workspace so that breaking one fails a build.
+      # Serialised because TypeScript 7 is a native executable and running several at once has
+      # been observed to abort under memory pressure; the parallel saving is negligible.
       - name: Consumers typecheck (demo and all four examples)
-        run: pnpm -r typecheck
+        run: pnpm -r --workspace-concurrency=1 typecheck
 
       - name: SDK build (ESM + CJS + types)
         run: pnpm --filter @commitonce/solana build

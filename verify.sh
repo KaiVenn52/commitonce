@@ -365,8 +365,13 @@ run_step "SDK typecheck (pnpm --filter @commitonce/solana typecheck)" \
 # The demo and the examples consume the SDK, so they are the real test of whether its public
 # API still works. They live in the workspace precisely so that breaking one fails a build
 # instead of rotting silently in a directory nothing compiles.
+#
+# Serialised deliberately. TypeScript 7 is a native executable, and letting pnpm run three of
+# them at once was observed to abort with SIGABRT (exit 134) on this machine under memory
+# pressure, which showed up as a flaky verification step. Typechecking three small projects in
+# parallel saves well under a second, so the trade is not worth a nondeterministic result.
 run_step "consumers typecheck (pnpm -r typecheck: demo and all four examples)" \
-    sdk_run pnpm -r typecheck
+    sdk_run pnpm -r --workspace-concurrency=1 typecheck
 
 run_step "SDK build (pnpm --filter @commitonce/solana build)" \
     sdk_run pnpm --filter @commitonce/solana build
