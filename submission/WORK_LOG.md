@@ -242,7 +242,8 @@ this log is more useful than the flattering one.
 | **One of the four examples is not executed** | All four are typechecked against the SDK on every build. `sol-transfer`, `spl-transfer` and `custom-program` **have** been executed against devnet — see `submission/evidence/devnet-sol-transfer-run.log`, `devnet-spl-transfer-run.log` and `devnet-custom-program-run.log`. The Jupiter-swap example has never submitted a transaction, and its README says so. |
 | **Transaction v1** | Not tested. |
 | **Address lookup tables / v0** | **Tested** in `programs/commit-once/tests/versioned.rs`. |
-| **Non-Anchor callers** | Not tested. |
+| **Non-Anchor clients** | **Verified.** The SDK has zero runtime dependencies and imports nothing from Anchor's JS library — it hand-encodes everything and runs against the deployed program. |
+| **CPI into `claim` from another program** | Not tested. |
 | **Compute units on mainnet** | Not measured. |
 
 The remaining work that is blocked on a credential, a payment or an account — Colosseum

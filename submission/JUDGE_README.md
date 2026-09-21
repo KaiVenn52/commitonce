@@ -147,7 +147,8 @@ Stated plainly, because a submission that only lists successes is not evidence.
 | **Team** | One founder, a university engineering student, no team. |
 | Transaction v1 messages | Not tested (v1 does not change message-hash deduplication, but that is an expectation, not a measurement). |
 | Address lookup tables / v0 end-to-end | **Tested** in `tests/versioned.rs`: the guard commits with all non-signer accounts loaded from a table, a rebuilt v0 retry is blocked, and a signer is never loaded from a table. |
-| Non-Anchor callers | The SDK hand-encodes the wire format so a non-Anchor client can call the program; no such client has been written. |
+| Non-Anchor clients | **Verified.** The SDK has zero runtime dependencies and imports nothing from Anchor's JS library; it hand-encodes everything and runs against the deployed program. |
+| CPI into `claim` from another program | Not tested — it is an ordinary instruction, but no program here calls it. |
 | Genuine durable-nonce transactions | Cannot be constructed in LiteSVM 0.10.0; the program's stricter behaviour is asserted instead, and the limitation is documented in `tests/security.rs`. |
 | Compute units on mainnet | Not measured. And the in-process harness does **not** match the runtime: devnet reported `claim` at 14,669 CU while the harness reports 9,283 (median). Budget from the devnet figure. |
 | SBPFv3 build | Not verified, and deliberately not shipped, because LiteSVM cannot verify it. |

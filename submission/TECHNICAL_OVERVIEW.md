@@ -708,7 +708,8 @@ successes is not evidence):
 | Real users, traction, revenue | **None.** No such numbers exist and none are claimed. |
 | Transaction v1 (`VersionedTransaction` v1) | **Not tested.** v1 is live on mainnet as of epoch 1035 and does not change message-hash deduplication, but the SDK and tests exercise legacy and v0 messages only. |
 | Address lookup tables / v0 messages | **Tested end-to-end** in `tests/versioned.rs` — see §9. Previously "expected to work, but not verified". |
-| Non-Anchor callers | **Not tested.** The SDK hand-encodes the wire format so a non-Anchor client can call the program, but no such client has been written or run. |
+| Non-Anchor clients | **Verified.** Zero runtime dependencies, nothing imported from Anchor's JS library; every "Anchor" in `packages/sdk/src/` is a comment naming the discriminator it reproduces. Run against the deployed program on devnet. |
+| CPI into `claim` from another program | **Not tested** — an ordinary instruction, but no program here calls it. |
 | Genuine durable-nonce transactions | **Cannot be tested in LiteSVM 0.10.0**, for the reason given in §9. |
 | SBPFv3 build | **Not verified**, and deliberately not shipped, because LiteSVM cannot verify it. |
 | Compute units on mainnet | **Not measured.** |

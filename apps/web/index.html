@@ -735,7 +735,7 @@ bash verify.sh          # everything, with a PASS/FAIL summary and the true exit
         <li>npm publication. The package is not published.</li>
         <li>Third-party integration, real users, traction, revenue, waitlist. None.</li>
         <li>Transaction v1 (<code>VersionedTransaction</code> v1). The SDK and tests exercise legacy and v0 messages only.</li>
-        <li>Non-Anchor callers. The SDK encodes the wire format by hand, so a non-Anchor client can call it, but no such client has been written or run.</li>
+        <li>CPI into <code>claim</code> from another onchain program. It is an ordinary instruction and a CPI should work, but no program here calls it.</li>
         <li>Genuine durable-nonce transactions. A real nonce transaction is inexpressible in LiteSVM 0.10.0, so the tests assert the program's stricter behaviour — that the presence of the marker triggers the policy.</li>
         <li>SBPFv3 builds. Deliberately not shipped, because the project's own test suite cannot verify one.</li>
         <li>Compute-unit figures on mainnet. Not measured.</li>
