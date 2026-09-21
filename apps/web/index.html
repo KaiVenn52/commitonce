@@ -421,7 +421,7 @@
           <tr><th scope="row"><code>claim</code> alone</th><td class="num">7,783 &ndash; 12,283</td></tr>
           <tr><th scope="row"><code>claim</code> + business action</th><td class="num">12,404 &ndash; 22,904</td></tr>
           <tr><th scope="row">duplicate blocked, rebuilt retry</th><td class="num">8,053 &ndash; 11,053</td></tr>
-          <tr><th scope="row"><code>close_receipt</code>, cleanup</th><td class="num">2,701 (no variance observed)</td></tr>
+          <tr><th scope="row"><code>close_receipt</code>, cleanup</th><td class="num">2,701</td></tr>
         </tbody>
       </table>
       </div>
@@ -435,7 +435,7 @@
         <tbody>
           <tr><th scope="row"><code>claim</code>, succeeded</th><td class="num">14,669</td></tr>
           <tr><th scope="row"><code>claim</code>, blocked a duplicate</th><td class="num">13,977</td></tr>
-          <tr><th scope="row">business increment</th><td class="num">4,067 and 7,067, same run</td></tr>
+          <tr><th scope="row">business increment</th><td class="num">4,067 / 7,067</td></tr>
         </tbody>
       </table>
       </div>
@@ -481,7 +481,8 @@
           <strong>Budget against the top of the range.</strong> ~23,000 CU for a guarded transaction is
           about 11% of the 200,000 CU default budget, and well under the 400,000 CU limit the demo
           transactions were granted on devnet. The baseline here is a trivial counter increment, so the
-          <em>relative</em> cost falls as the guarded action grows.
+          <em>relative</em> cost falls as the guarded action grows. Of every compute-unit figure, only
+          <code>close_receipt</code>'s 2,701 CU showed no variance at all.
         </li>
         <li>
           <strong>The account delta is usually +3, not +4.</strong> The four are the receipt PDA, the

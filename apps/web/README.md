@@ -119,3 +119,14 @@ layout measured from the live DOM:
 * all 7 copy buttons carry an accessible name;
 * all 10 relative link targets resolve to files that exist in this checkout;
 * no `lorem ipsum`, no `TODO`.
+
+**After the overhead tables were corrected** (the compute-unit figures became ranges, and a
+devnet table was added), the layout was re-checked by a narrower method, because headless Chrome
+would not launch in the environment where the correction was made. The check was a bound rather
+than a re-render: every `td.num` is `white-space: nowrap` inside a `.tablewrap` with
+`overflow-x: auto`, so the only way the edit could have introduced horizontal overflow is by
+making a cell wider than one that already passed. The widest rendered `.num` cell is
+`1,676,400 lamports` — 18 characters — which is exactly the widest cell in the version that was
+rendered at all five widths. The edit adds rows and a table, not width. If you have a browser,
+re-running the render is the better check, and the harness for it is three lines of
+`getBoundingClientRect` on `body *`.
