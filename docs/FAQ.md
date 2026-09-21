@@ -70,10 +70,21 @@ but in no case do both commit.
 
 The test `only_the_first_of_many_attempts_commits` builds five distinct, independently
 valid attempts (each with a different priority fee, so each is a distinct signed
-transaction) and asserts that exactly one succeeds and the business action executes once. It
-submits them sequentially, because the test harness accepts only one recent blockhash at a
-time — so the *simultaneous* case is reasoned about from account locking rather than
-directly exercised.
+transaction), all against **one** blockhash, and asserts that exactly one succeeds and the
+business action executes once. Because they share a blockhash they are processed at one slot,
+so that is the same-slot case.
+
+The simultaneous case is also exercised on a live cluster.
+[`apps/demo/concurrent-claim.ts`](../apps/demo/concurrent-claim.ts) fires 5–8 competing
+transactions at real devnet validators without awaiting any of them, and gets the same result:
+exactly one commits and the rest fail onchain with `AlreadyCommitted` (6000). The raw output is
+in [`submission/evidence/devnet-contention-run.log`](../submission/evidence/devnet-contention-run.log).
+
+One caveat, stated rather than buried: in every live run so far the attempts landed across
+**two or three slots**, not one — the winner lands alone in an earlier slot and the losers pack
+into the next. A slot's leader decides what to pack and a client cannot force two transactions
+into one slot, so the live test demonstrates contention on a real cluster, and the same-slot
+case rests on the in-process test. The two are not the same experiment.
 
 ### 4. Does CommitOnce replace Solana's own duplicate detection?
 

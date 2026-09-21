@@ -8,5 +8,5 @@
     // carry the real `.ts` extension, and TypeScript has to be told that is intentional.
     "allowImportingTsExtensions": true
   },
-  "include": ["commitonce-demo.ts", "src/**/*.ts"]
+  "include": ["commitonce-demo.ts", "concurrent-claim.ts", "src/**/*.ts"]
 }

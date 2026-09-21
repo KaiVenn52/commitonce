@@ -293,6 +293,37 @@ PAYER_KEYPAIR=~/.config/solana/id.json node apps/demo/commitonce-demo.ts
 The retry in scenario B did not fail for some unrelated reason: it failed with
 `AlreadyCommitted`, and the guarded increment never ran a second time.
 
+### Many claims of one key, at once
+
+The A/B above rebuilds one intent twice. [`apps/demo/concurrent-claim.ts`](apps/demo/concurrent-claim.ts)
+is the harder case: it puts **one idempotency key into several transactions at once and fires
+them at real devnet validators**. Each attempt is a genuinely distinct signed transaction (a
+different priority fee, so the runtime's message-hash deduplication cannot connect them), and
+they are all built against one blockhash, so they target the same slot.
+
+```bash
+PAYER_KEYPAIR=~/.config/solana/id.json node apps/demo/concurrent-claim.ts --attempts 5
+```
+
+```
+  #  priority fee  slot       outcome  error
+  0  1000          501956389  SUCCESS  succeeded
+  1  8000          501956391  FAILED   instruction 1 failed with custom program error 6000
+  2  15000         501956391  FAILED   instruction 1 failed with custom program error 6000
+  3  22000         501956391  FAILED   instruction 1 failed with custom program error 6000
+  4  29000         501956391  FAILED   instruction 1 failed with custom program error 6000
+
+  counter before 0   counter after 1   business action executions 1
+```
+
+Exactly one of five committed; the rest were rejected **onchain**, not in simulation. Raw output:
+[`submission/evidence/devnet-contention-run.log`](submission/evidence/devnet-contention-run.log).
+
+One caveat, stated rather than buried: those five attempts landed in **two** slots. A slot's
+leader decides what to pack and a client cannot force two transactions into one slot, so this
+proves contention on a live cluster — the **same-slot** case is proven in-process by
+`only_the_first_of_many_attempts_commits`. Both are real; they are not the same experiment.
+
 ---
 
 ## Prior art
@@ -351,7 +382,7 @@ programs/
   demo-counter/         a business program that knows nothing about CommitOnce
 packages/sdk/           @commitonce/solana — dual ESM/CJS, zero runtime dependencies
 apps/
-  demo/                 the A/B demo CLI, run against devnet
+  demo/                 the A/B demo CLI, and the live contention test — both run against devnet
   web/                  the product site — static, no build step
 examples/               SOL transfer, SPL transfer, custom program, Jupiter-style swap
 docs/                   architecture, security model, integration playbook, prior art
@@ -373,7 +404,7 @@ deploy-keys/            the program keypairs the program IDs are derived from
 | SDK tests | 71 passing |
 | Built for | SBPFv2, Anchor 1.2.0, Solana 4.x toolchain |
 | Mainnet | **not deployed** |
-| Devnet | see [`NEEDS_OWNER_ACTION.md`](NEEDS_OWNER_ACTION.md) |
+| Devnet | **deployed and verified live** — see [`EVIDENCE.md`](EVIDENCE.md) §3 |
 | Audited | **no** |
 | npm | **not published** |
 

@@ -159,9 +159,58 @@ solana confirm -v JPq28VZBd56Y5P5fSEzdg9HuxczdVXR626F1Evm7TA2KvcjvJHz9gSfi58N3zo
 solana confirm -v 4beKGRxVKN7WRNnP9FvmFqsnwZjc4scfwBNKaRmapzSYmvaoT6M4VGeDh9XfSUHwv9disHQn9nae2gdYys9H1rMU --url devnet
 ```
 
-**What it does not prove:** this is one run of one intent shape on one cluster. It is not
-load testing, it does not exercise concurrent claims of the same key, and it says nothing
-about mainnet conditions.
+**What it does not prove:** this is one run of one intent shape on one cluster. It is not load
+testing, and it says nothing about mainnet conditions. Concurrent claims of one key are covered
+separately, immediately below.
+
+### Live contention — many claims of one key at once
+
+`apps/demo/concurrent-claim.ts` is the test the Rust suite cannot be: it puts the same
+idempotency key into several transactions and fires them at **real validators**. The LiteSVM
+suite proves the invariant against the compiled program, but in-process and single-threaded;
+this measures what a live cluster does. Full output:
+[`submission/evidence/devnet-contention-run.log`](submission/evidence/devnet-contention-run.log).
+
+It mints a fresh authority, creates its counter, reads **one** blockhash, builds N transactions
+against it — all therefore targeting the same slot — gives each a different priority fee so each
+is a distinct signed transaction rather than a rebroadcast, fires them all without awaiting any
+of them, and then confirms them with a single batched status poll.
+
+```
+  #  priority fee  slot       outcome  error
+  0  1000          501956389  SUCCESS  succeeded
+  1  8000          501956391  FAILED   instruction 1 failed with custom program error 6000
+  2  15000         501956391  FAILED   instruction 1 failed with custom program error 6000
+  3  22000         501956391  FAILED   instruction 1 failed with custom program error 6000
+  4  29000         501956391  FAILED   instruction 1 failed with custom program error 6000
+
+  attempts                5
+  succeeded               1
+  blocked with AlreadyCommitted 4
+  distinct slots landed in 2  (501956389, 501956391)
+  counter before          0
+  counter after           1
+  business action executions 1
+  receipt exists          yes
+  event created_slot      501956389
+```
+
+Exactly one of five committed; the other four were rejected onchain with `AlreadyCommitted`
+(6000), not in simulation; the counter advanced by exactly one; and the decoded event's
+`created_slot` matches the winning transaction's slot.
+
+**What it does not prove — and this is the honest part.** The attempts landed in **two** slots,
+not one. Three runs (5, 8 and 5 attempts) all showed the same shape: the winner lands alone in an
+earlier slot and the losers pack into the following one. That is structural, not a flaw in the
+guard — a slot's leader decides what to pack, and a client cannot force two transactions into one
+slot. So this run demonstrates **live-cluster contention**, and the **same-slot** case rests on
+the LiteSVM test `only_the_first_of_many_attempts_commits`, where five claims built against one
+blockhash are processed at one slot. Between them the invariant is covered in-process and
+onchain, but the two are not the same experiment and the log does not claim they are.
+
+The run is also cheap to repeat: it sweeps the unspent balance back to the payer (0.0071 SOL of
+the 0.01 funded). The receipt's 0.0016764 SOL stays locked for the retention window, which is
+`close_receipt` refusing early by design rather than a leak.
 
 ---
 
@@ -379,13 +428,13 @@ Listed explicitly, because a document that only lists successes is not evidence.
 | Third-party integration | **None.** No external project uses CommitOnce. |
 | Real users | **None.** |
 | Traction, revenue, waitlist | **None.** No such numbers exist and none are claimed. |
-| Concurrent claims of the same key | **Partly tested.** `only_the_first_of_many_attempts_commits` builds five distinct signed transactions against one blockhash — i.e. one slot — and asserts exactly one commits while the other four each fail with `AlreadyCommitted`. A Solana slot executes its transactions sequentially, and the claims conflict on the same PDA, so that is the ordering the cluster imposes. What is **not** tested is contention against real validators: LiteSVM is in-process, so no test here exercises a real scheduler. |
+| Concurrent claims of the same key | **Tested, in two places, with a caveat.** In-process, `only_the_first_of_many_attempts_commits` builds five distinct signed transactions against one blockhash — i.e. one slot — and asserts exactly one commits while the other four each fail with `AlreadyCommitted`. On a live cluster, `apps/demo/concurrent-claim.ts` fires 5–8 competing transactions at real devnet validators and gets the same result (exactly one commits, the rest fail 6000). **The caveat:** the live runs spread across 2–3 slots rather than one, because a client cannot force a leader to pack its transactions together. So the same-slot case is proven in-process and the live case is proven across slots; neither experiment is the other. |
 | Transaction v1 (`VersionedTransaction` v1) | **Not tested.** v1 is live on mainnet as of epoch 1035, and it does not change message-hash deduplication, but the SDK and tests exercise legacy and v0 messages only. |
 | Address lookup tables / v0 messages | **Not tested end-to-end.** The guard is an ordinary instruction and is expected to work, but "expected" is not "verified". |
 | Non-Anchor callers | **Not tested.** The program is Anchor-built; the SDK encodes the wire format by hand, so a non-Anchor client can call it, but no such client has been written or run. |
 | Durable-nonce transactions, genuine | **Cannot be tested in LiteSVM 0.10.0.** A real nonce transaction is inexpressible there, because LiteSVM passes the transaction's own blockhash into the program environment, making the System Program's advance check and the runtime's nonce validation mutually exclusive. The tests assert the program's stricter behaviour — that the *presence* of the marker triggers the policy — and this limitation is documented at length in `tests/security.rs`. |
 | SBPFv3 build | **Not verified.** Deliberately not shipped, because LiteSVM cannot verify it. |
-| CU figures on mainnet | **Not measured.** LiteSVM compute accounting matches the runtime's, but no mainnet measurement was taken. |
+| CU figures on mainnet | **Not measured.** And the harness does not match the runtime: devnet reported `claim` at 14,669 CU against the harness's 9,283 median, so the in-process numbers are a lower bound. |
 
 ---
 

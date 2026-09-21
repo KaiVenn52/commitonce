@@ -67,6 +67,8 @@ document and section it draws on. The mapping:
 | 202 bytes, 1,676,400 lamports, 0.0016764 SOL, 144 bytes, 4 accounts | `EVIDENCE.md` §6 |
 | 5080 lamports/byte, stale crate 6960, “37% too high”, 128 + 276 byte decomposition, 200,000 CU budget, ~11% of budget | `EVIDENCE.md` §6 |
 | Program ids, deploy slots 501814672 / 501814798, upgrade authority | `EVIDENCE.md` §3 |
+| Live contention: one key in 5–8 transactions, one commits, the rest fail `AlreadyCommitted`, spread over 2–3 slots | `EVIDENCE.md` §3 (“Live contention”); `submission/evidence/devnet-contention-run.log` |
+| The harness/runtime compute gap (14,669 devnet vs 9,283 in-process) | `EVIDENCE.md` §6, §7 |
 | Unaudited, mainnet not deployed, not on npm, no users, no integrations | `EVIDENCE.md` §7 |
 | The “not verified” list | `EVIDENCE.md` §7 |
 | Known limitations | `README.md` § Known limitations; `docs/SECURITY_MODEL.md` §7 |

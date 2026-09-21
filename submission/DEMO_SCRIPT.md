@@ -205,6 +205,49 @@ refundable".]*
 
 ---
 
+## 2b. Optional insert — live contention (≈20s, only if you have room)
+
+The A/B above rebuilds one intent twice. This shows the harder case: **one key in several
+transactions at once, at real validators.** It is the single strongest thing to put on screen,
+because the A/B can be argued to be two sequential attempts while this cannot.
+
+```bash
+PAYER_KEYPAIR=~/.config/solana/id.json node apps/demo/concurrent-claim.ts --attempts 5
+```
+
+It mints a fresh authority, reads **one** blockhash so every attempt targets the same slot, gives
+each attempt a different priority fee so each is a genuinely distinct signed transaction, fires
+them all without awaiting any of them, then confirms them together.
+
+```
+  #  priority fee  slot       outcome  error
+  0  1000          501956389  SUCCESS  succeeded
+  1  8000          501956391  FAILED   instruction 1 failed with custom program error 6000
+  2  15000         501956391  FAILED   instruction 1 failed with custom program error 6000
+  3  22000         501956391  FAILED   instruction 1 failed with custom program error 6000
+  4  29000         501956391  FAILED   instruction 1 failed with custom program error 6000
+
+  counter before 0   counter after 1   business action executions 1
+```
+
+**What to say:**
+
+> Five transactions, one idempotency key, all built against the same blockhash, fired at once.
+> One committed. The other four reached a block and were rejected by the program — not stopped in
+> simulation. The counter went up by exactly one.
+
+**What you must also say, in the same breath.** The attempts landed in two slots, not one. A
+slot's leader decides what to pack and a client cannot force two transactions into one slot, so
+this demonstrates contention on a live cluster; the *same-slot* case is proven in-process by
+`only_the_first_of_many_attempts_commits`. If you show this and imply it is a same-slot proof, a
+judge who reads `EVIDENCE.md` §3 will find the caveat you skipped. Say it first and the run is
+stronger, not weaker.
+
+Run it **before** recording and check it lands in one or two slots; if it spreads over three,
+re-run — it is cheap, and the script sweeps the unspent balance back to the payer.
+
+---
+
 ## 3. What the demo deliberately does not show
 
 - **Live cleanup.** `close_receipt` cannot run inside a recording session: `MIN_RETENTION_SECONDS`

@@ -503,8 +503,10 @@
           accurate.
         </li>
         <li>
-          <strong>Not measured on mainnet.</strong> LiteSVM's compute accounting matches the runtime's,
-          but no mainnet measurement was taken — see the status section.
+          <strong>Not measured on mainnet, and the harness does not match the runtime.</strong> Devnet
+          reported <code>claim</code> at <strong>14,669 CU</strong> against the in-process median of
+          <strong>9,283</strong>, so the range above is a lower bound rather than a prediction. Budget from
+          the devnet figure — see the status section.
         </li>
       </ul>
       <p class="srcrow">Source: <a class="src" href="../../EVIDENCE.md">EVIDENCE.md §6, §7</a></p>
@@ -672,6 +674,15 @@ bash verify.sh          # everything, with a PASS/FAIL summary and the true exit
             </dd>
           </div>
           <div><dt>Rust tests</dt><dd>41 passing, exit 0, executing the real compiled SBF artifact through LiteSVM.</dd></div>
+          <div>
+            <dt>Live contention</dt>
+            <dd>
+              Five to eight transactions carrying <em>one</em> idempotency key, fired at real devnet
+              validators: exactly one commits, the rest are rejected onchain with
+              <code>AlreadyCommitted</code>. The attempts spread over two to three slots — a client cannot
+              force a leader to pack them together — so the same-slot case rests on the in-process test.
+            </dd>
+          </div>
           <div><dt>SDK tests</dt><dd>71 passing, pinning the derivation to golden hex vectors that a second implementation recomputes independently.</dd></div>
           <div><dt>Build integrity</dt><dd>The build verifies <code>declare_id!</code> against the program keypairs and exits 1 on mismatch rather than producing a silently broken artifact.</dd></div>
           <div><dt>Documentation</dt><dd>Architecture, security model with a threat model, integration playbook, prior-art survey with sources, and an evidence document listing what is <em>not</em> verified.</dd></div>

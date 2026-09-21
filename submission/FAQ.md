@@ -290,9 +290,9 @@ longest answer. The full list is [`EVIDENCE.md`](../EVIDENCE.md) §7.
 | Non-Anchor callers | **Not tested.** The SDK hand-encodes the wire format, so a non-Anchor client can call the program, but no such client has been written or run. |
 | Genuine durable-nonce transactions | **Cannot be tested in LiteSVM 0.10.0** — see question 5. |
 | SBPFv3 build | **Not verified**, and deliberately not shipped, because LiteSVM cannot verify it. |
-| Compute units on mainnet | **Not measured.** LiteSVM compute accounting matches the runtime's, but that is an expectation, not a measurement. |
-| Simultaneous duplicate submissions | **Reasoned about, not directly exercised.** `only_the_first_of_many_attempts_commits` builds five distinct valid attempts and asserts exactly one commits, but submits them sequentially because the harness accepts one recent blockhash at a time. The simultaneous case rests on account locking. |
-| A live devnet A/B demo run | The A/B is proven by tests executing the real compiled artifact; the standalone demo runner is the last piece of product surface to land. See the pre-flight gate in [`DEMO_SCRIPT.md`](DEMO_SCRIPT.md) §1. |
+| Compute units on mainnet | **Not measured.** And the harness does not match the runtime: devnet reported `claim` at 14,669 CU against the harness's 9,283 median, so the in-process numbers are a lower bound. Budget from the devnet figure. |
+| Simultaneous duplicate submissions | **Exercised, in two places.** In-process, `only_the_first_of_many_attempts_commits` builds five distinct valid attempts against one blockhash and asserts exactly one commits. Live, `apps/demo/concurrent-claim.ts` fires 5–8 competing transactions at real devnet validators with the same result — exactly one commits, the rest fail `AlreadyCommitted` onchain. Caveat: the live runs spread over 2–3 slots, because a client cannot force a leader to pack its transactions together, so the same-slot case rests on the in-process test. |
+| A live devnet A/B demo run | **Done.** `apps/demo/commitonce-demo.ts` was executed against the deployed devnet programs on 2026-09-21; the raw output is in [`evidence/devnet-demo-run.log`](evidence/devnet-demo-run.log). A live contention run is in [`evidence/devnet-contention-run.log`](evidence/devnet-contention-run.log). |
 
 **Also not claimed, anywhere:** that the mechanism is novel, that the program is production-ready,
 that it is safe for mainnet, that it has been reviewed by anyone other than its author, or that

@@ -151,7 +151,7 @@ Stated plainly, because a submission that only lists successes is not evidence.
 | Genuine durable-nonce transactions | Cannot be constructed in LiteSVM 0.10.0; the program's stricter behaviour is asserted instead, and the limitation is documented in `tests/security.rs`. |
 | Compute units on mainnet | Not measured. And the in-process harness does **not** match the runtime: devnet reported `claim` at 14,669 CU while the harness reports 9,283 (median). Budget from the devnet figure. |
 | SBPFv3 build | Not verified, and deliberately not shipped, because LiteSVM cannot verify it. |
-| Concurrent claims of one key | Partly tested. Five distinct signed transactions against one blockhash (one slot): exactly one commits, the other four fail `AlreadyCommitted`. Not tested against real validators. |
+| Concurrent claims of one key | Tested in two places. In-process: five transactions, one blockhash (one slot) — one commits, four fail `AlreadyCommitted`. Live on devnet: 5–8 competing transactions at real validators — same result. Caveat: the live runs spread over 2–3 slots, because a client cannot force a leader to pack them together. |
 
 ---
 

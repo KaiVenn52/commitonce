@@ -558,8 +558,9 @@ a range, and the top of the range is what to budget against.
   still ships an effective 6960 lamports/byte, so any estimate derived from it is **37% too
   high** — the test harness overrides the Rent sysvar to the real value so these figures are
   accurate.
-- Compute units have **not** been measured on mainnet. LiteSVM compute accounting matches the
-  runtime's, but that is an expectation, not a measurement.
+- Compute units have **not** been measured on mainnet. And the in-process harness does **not**
+  match the runtime: devnet reported `claim` at 14,669 CU against the harness's 9,283 median, so
+  the harness is a lower bound. Budget from the devnet figure.
 - Scaling: the deposit is held per live receipt, so N receipts inside their windows hold
   N × 1,676,400 lamports (1,000 ≈ 1.676 SOL). Permanent receipts hold it forever.
 
@@ -643,6 +644,10 @@ node packages/sdk/scripts/print-vectors.mjs                # vectors recomputed 
 # Confirm the devnet deployment is live:
 solana program show CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB --url devnet
 solana program show EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5 --url devnet
+
+# Live contention: one idempotency key in several transactions, fired at real validators.
+# Costs about 0.003 SOL net (it sweeps the unspent balance back to the payer).
+PAYER_KEYPAIR=~/.config/solana/id.json node apps/demo/concurrent-claim.ts --attempts 5
 ```
 
 Build artifacts produced by `scripts/build.sh` (sizes and SHA-256 recorded in `EVIDENCE.md` §2,

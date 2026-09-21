@@ -2,7 +2,7 @@
   "name": "@commitonce/demo",
   "version": "0.1.0",
   "private": true,
-  "description": "CommitOnce A/B demo CLI: the same rebuilt retry, with and without the guard, on devnet",
+  "description": "CommitOnce demos: the A/B rebuilt-retry demo, and a live same-slot contention test",
   "license": "Apache-2.0",
   "type": "module",
   "engines": {
@@ -11,6 +11,7 @@
   "scripts": {
     "demo": "node ./commitonce-demo.ts",
     "dev": "node ./commitonce-demo.ts",
+    "contention": "node ./concurrent-claim.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

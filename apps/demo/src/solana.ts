@@ -322,6 +322,185 @@ export async function fetchLamportBalance(rpc: DemoRpc, owner: Address): Promise
 }
 
 /**
+ * Submit many signed transactions at once, then confirm them with **one** batched poll.
+ *
+ * This exists because the per-transaction path in {@link submitAndConfirm} does not scale to a
+ * contention test. Five concurrent transactions means five concurrent `getSignatureStatuses`
+ * polling loops, and the public devnet endpoint rate-limits per method — the first run of the
+ * contention script died with HTTP 429 and `x-ratelimit-endpoint-remaining: -1821`.
+ *
+ * Three things make this gentler without weakening the test:
+ *
+ *   1. Every transaction is sent in the same tick, which is the whole point — they must reach
+ *      the leader together to have a chance of sharing a slot.
+ *   2. Confirmation is polled with a single `getSignatureStatuses` call carrying every
+ *      signature, instead of one call per transaction.
+ *   3. A 429 on send is retried with the server's own `retry-after` honoured, because losing
+ *      one attempt to a rate limit would silently turn a five-way race into a four-way one.
+ */
+export async function submitManyAndConfirm(
+    rpc: DemoRpc,
+    signed: readonly Awaited<ReturnType<typeof signTransactionMessageWithSigners>>[],
+    options: { readonly timeoutMs?: number; readonly pollMs?: number; readonly cluster?: string } = {},
+): Promise<SubmitResult[]> {
+    const timeoutMs = options.timeoutMs ?? 90_000;
+    const pollMs = options.pollMs ?? 1_500;
+    const cluster = options.cluster ?? 'devnet';
+
+    const signatures = signed.map((transaction) => getSignatureFromTransaction(transaction));
+
+    // ---------------------------------------------------------------------------------
+    // Phase 1: send everything at once.
+    // ---------------------------------------------------------------------------------
+    await Promise.all(
+        signed.map(async (transaction, index) => {
+            const base64 = getBase64EncodedWireTransaction(transaction);
+            const signature = signatures[index]!;
+            let lastError: unknown = null;
+            for (let attempt = 0; attempt < 8; attempt += 1) {
+                try {
+                    await rpc
+                        .sendTransaction(base64, {
+                            encoding: 'base64',
+                            skipPreflight: true,
+                            maxRetries: 3n,
+                            preflightCommitment: 'confirmed',
+                        })
+                        .send();
+                    return;
+                } catch (error) {
+                    lastError = error;
+                    if (!isRateLimitError(error)) {
+                        throw error;
+                    }
+                    // The endpoint is shared and rate limited. Wait it out rather than drop the
+                    // attempt, because a dropped attempt would make the race smaller than claimed.
+                    await sleep(retryAfterMs(error, attempt));
+                }
+            }
+            throw new Error(
+                `CommitOnce: could not submit ${signature} after 8 attempts; the RPC endpoint kept ` +
+                    `rate limiting us. Last error: ${lastError instanceof Error ? lastError.message : String(lastError)}`,
+            );
+        }),
+    );
+
+    // ---------------------------------------------------------------------------------
+    // Phase 2: one batched poll for every signature.
+    // ---------------------------------------------------------------------------------
+    const startedAt = Date.now();
+    const errors: unknown[] = signatures.map(() => null);
+    let pending = new Set(signatures.map((_signature, index) => index));
+
+    while (pending.size > 0) {
+        const { value } = await rpc
+            .getSignatureStatuses(signatures, { searchTransactionHistory: true })
+            .send();
+        for (const index of [...pending]) {
+            const status = value[index];
+            if (status === null || status === undefined) {
+                continue;
+            }
+            if (
+                status.confirmationStatus === 'confirmed' ||
+                status.confirmationStatus === 'finalized'
+            ) {
+                errors[index] = status.err ?? null;
+                pending.delete(index);
+            }
+        }
+        if (pending.size === 0) {
+            break;
+        }
+        if (Date.now() - startedAt > timeoutMs) {
+            const missing = [...pending].map((index) => signatures[index]).join(', ');
+            throw new Error(
+                `CommitOnce: ${pending.size} of ${signatures.length} transactions were submitted but ` +
+                    `never confirmed within ${timeoutMs}ms: ${missing}. They may have been dropped. ` +
+                    `Inspect them at ${explorerTxUrl(signatures[pending.values().next().value ?? 0]!, cluster)} ` +
+                    `before re-running.`,
+            );
+        }
+        await sleep(pollMs);
+    }
+
+    // ---------------------------------------------------------------------------------
+    // Phase 3: fetch each transaction for its logs. Paced, because this is N calls.
+    // ---------------------------------------------------------------------------------
+    const results: SubmitResult[] = [];
+    for (let index = 0; index < signatures.length; index += 1) {
+        const signature = signatures[index]!;
+        let detail: Awaited<ReturnType<ReturnType<DemoRpc['getTransaction']>['send']>> | null = null;
+        for (let attempt = 0; attempt < 12 && detail === null; attempt += 1) {
+            try {
+                detail = await rpc
+                    .getTransaction(signature, {
+                        encoding: 'json',
+                        commitment: 'confirmed',
+                        maxSupportedTransactionVersion: 0,
+                    })
+                    .send();
+            } catch (error) {
+                if (!isRateLimitError(error)) {
+                    throw error;
+                }
+                await sleep(retryAfterMs(error, attempt));
+                continue;
+            }
+            if (detail === null) {
+                await sleep(300);
+            }
+        }
+
+        const meta = detail?.meta ?? null;
+        const err = errors[index] ?? null;
+        results.push({
+            signature,
+            slot: detail?.slot ?? null,
+            failed: err !== null,
+            transactionError: err,
+            logs: meta?.logMessages ?? [],
+            computeUnitsConsumed: toBigIntOrNull(meta?.computeUnitsConsumed),
+            fee: toBigIntOrNull(meta?.fee),
+        });
+        if (index < signatures.length - 1) {
+            await sleep(150);
+        }
+    }
+
+    return results;
+}
+
+/** `true` when the RPC refused the call because we are over its rate limit. */
+function isRateLimitError(error: unknown): boolean {
+    if (isSolanaError(error, SOLANA_ERROR__RPC__TRANSPORT_HTTP_ERROR)) {
+        return error.context.statusCode === 429;
+    }
+    const message = error instanceof Error ? error.message : String(error);
+    return /429|Too Many Requests|rate limit/i.test(message);
+}
+
+/**
+ * How long to wait after a 429.
+ *
+ * The server's own `retry-after` is authoritative when present; otherwise back off
+ * exponentially. The public devnet endpoint returns `retry-after: 10`, so the default
+ * ceilings are set above that.
+ */
+function retryAfterMs(error: unknown, attempt: number): number {
+    if (isSolanaError(error, SOLANA_ERROR__RPC__TRANSPORT_HTTP_ERROR)) {
+        const header = error.context.headers?.get?.('retry-after');
+        if (header !== null && header !== undefined) {
+            const seconds = Number.parseInt(header, 10);
+            if (Number.isFinite(seconds) && seconds > 0) {
+                return Math.min(seconds * 1_000 + 500, 30_000);
+            }
+        }
+    }
+    return Math.min(1_000 * 2 ** attempt, 20_000) + Math.round(Math.random() * 500);
+}
+
+/**
  * Render an arbitrary transaction error as one readable line.
  *
  * Solana reports instruction failures as `{ InstructionError: [index, detail] }`, which

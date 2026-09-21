@@ -1,0 +1,87 @@
+
+============================================================================================
+CommitOnce — same-slot contention on a live cluster
+============================================================================================
+
+  5 transactions carrying ONE idempotency key, all built against one blockhash and fired
+  without awaiting each other. Exactly one may commit.
+
+--------------------------------------------------------------------------------------------
+Payer
+--------------------------------------------------------------------------------------------
+  source                  $PAYER_KEYPAIR (\\wsl.localhost\Ubuntu\home\dell2u\.config\solana\id.json)
+  address                 25TUohqYd5b6f97wc5CjMwj89ZVL8oX81nhkWVHimYpY
+  balance                 6.9888 SOL
+
+--------------------------------------------------------------------------------------------
+The intent under contention
+--------------------------------------------------------------------------------------------
+  authority               BUvayCEaNUoAdjecXUdXSm6kM6t76RcghkxiKsRrnRd8
+  counter PDA             Q94DhkXvaRfkMHH9pgEDEAVsxkcfmEHcRgHf82sZSKz
+  namespace               demo:counter
+  idempotency key         contention_1790002620979
+  intent fingerprint      dcbe2f8c98c767aabf3b7f11c58cfb127cf5217e8c9a0e9764ea25048c346b62
+  receipt PDA             HKuxbQyVQYxivRQChYfwPSMkHt1eecqVPgcjgv2gwLhE
+
+--------------------------------------------------------------------------------------------
+Setup
+--------------------------------------------------------------------------------------------
+  funded                  0.0100 SOL -> BUvayCEaNUoAdjecXUdXSm6kM6t76RcghkxiKsRrnRd8
+  counter created         Q94DhkXvaRfkMHH9pgEDEAVsxkcfmEHcRgHf82sZSKz  count=0
+
+--------------------------------------------------------------------------------------------
+Building the attempts
+--------------------------------------------------------------------------------------------
+  All 5 attempts share blockhash 2YojAM8TS75G4HviWBqYgag2rrXkMfrKL6r9FTbJnYma, so they all
+  target the same slot. Each carries a different priority fee, so each is a distinct signed
+  transaction rather than a rebroadcast.
+  distinct signed transactions 5 of 5
+
+--------------------------------------------------------------------------------------------
+Firing
+--------------------------------------------------------------------------------------------
+  All transactions are submitted concurrently with skipPreflight, so a transaction that is
+  expected to fail still reaches a block and produces inspectable logs. Confirmation is
+  polled with a single batched status call rather than one per transaction, because the
+  public devnet endpoint rate-limits per method.
+
+--------------------------------------------------------------------------------------------
+Result
+--------------------------------------------------------------------------------------------
+  #  priority fee  slot       outcome  error
+  -  ------------  ---------  -------  ----------------------------------------------------------
+  0  1000          501956389  SUCCESS  succeeded
+  1  8000          501956391  FAILED   instruction 1 failed with custom program error 6000 (6000)
+  2  15000         501956391  FAILED   instruction 1 failed with custom program error 6000 (6000)
+  3  22000         501956391  FAILED   instruction 1 failed with custom program error 6000 (6000)
+  4  29000         501956391  FAILED   instruction 1 failed with custom program error 6000 (6000)
+
+  attempts                5
+  succeeded               1
+  blocked with AlreadyCommitted 4
+  distinct slots landed in 2  (501956389, 501956391)
+  same-slot race?         no — spread across 2 slots (the leader chose; the script cannot force this)
+  counter before          0
+  counter after           1
+  business action executions 1
+  receipt exists          yes
+  event created_slot      501956389
+  event payload hash      dcbe2f8c98c767aabf3b7f11c58cfb127cf5217e8c9a0e9764ea25048c346b62
+
+  winning transaction     https://explorer.solana.com/tx/28b1MNvWiqwDSd3JCHDNCGv4Cf3tMN8HEnEhLz1ybhsEDTNKczamo1JomZBkuXv8psYzuZYN6uovsQrHNWTH6M2x?cluster=devnet
+
+--------------------------------------------------------------------------------------------
+Verdict
+--------------------------------------------------------------------------------------------
+  INVARIANT HOLDS. 5 transactions carried one idempotency key; exactly one committed, 4 were
+  rejected with AlreadyCommitted, and the business instruction ran once.
+  The attempts landed across 2 slots rather than one, so this run shows contention on a live
+  cluster but NOT the same-slot case. Re-run for a tighter race, or read the LiteSVM test
+  for the same-slot proof.
+
+--------------------------------------------------------------------------------------------
+Cleanup
+--------------------------------------------------------------------------------------------
+  unspent returned to payer 0.0071 SOL
+  receipt rent still locked 0.0016 SOL  (refundable after the retention window)
+
