@@ -25,14 +25,14 @@
 #   * No step reads any secret. There is nothing here that could be gated on a fork, because
 #     nothing here needs a credential.
 #
-# One known gap, stated rather than hidden: `.gitignore` lists `deploy-keys/`, while
-# scripts/build.sh and README.md both describe those keypairs as committed. A fresh clone may
-# therefore contain no program keypairs at all. Anchor reads the keypair from
-# $CARGO_TARGET_DIR/deploy/<name>-keypair.json and compares it with the compiled-in
-# declare_id!; with no keypair it would either fail or generate a fresh one, silently
-# producing an artifact whose program ID nobody controls. The "Stage program keypairs" step
-# below therefore fails the job loudly when the keypairs are missing instead of letting that
-# happen.
+# A note on the program keypairs, since committing a keypair deserves an explanation:
+# deploy-keys/*-keypair.json IS committed. A Solana program's address is derived from its
+# keypair and declare_id! is compiled into the program, so without the keypair a fresh clone
+# cannot build an artifact whose ID matches its own source. These are devnet keys; the upgrade
+# authority is a separate key that is not in this repository, and a mainnet deployment must
+# generate fresh keypairs rather than reuse these. See deploy-keys/README.md. The "Stage
+# program keypairs" step below fails the job loudly if they are missing, rather than letting
+# Anchor generate a fresh keypair and silently produce an artifact nobody controls.
 
 name: CI
 
@@ -178,7 +178,7 @@ jobs:
           shopt -s nullglob
           keys=(deploy-keys/*-keypair.json)
           if [ "${#keys[@]}" -eq 0 ]; then
-            echo "::error title=Missing program keypairs::deploy-keys/*-keypair.json is not present in this checkout. .gitignore ignores deploy-keys/, so the program keypairs must be committed (git add -f deploy-keys) or otherwise supplied. Without them Anchor would build against an auto-generated keypair and silently produce a program whose program ID nobody controls, so this job stops here. Nothing was verified."
+            echo "::error title=Missing program keypairs::deploy-keys/*-keypair.json is not present in this checkout. They are committed (deploy-keys/README.md explains why), so their absence means the checkout or the .gitignore is wrong. Without them Anchor would build against an auto-generated keypair and silently produce a program whose program ID nobody controls, so this job stops here. Nothing was verified."
             exit 1
           fi
           mkdir -p "$CARGO_TARGET_DIR/deploy"
@@ -290,11 +290,21 @@ jobs:
       - name: SDK typecheck
         run: pnpm --filter @commitonce/solana typecheck
 
+      # The demo and the examples consume the SDK, so they are the real test of whether its
+      # public API still works. They are in the workspace so that breaking one fails a build.
+      - name: Consumers typecheck (demo and all four examples)
+        run: pnpm -r typecheck
+
       - name: SDK build (ESM + CJS + types)
         run: pnpm --filter @commitonce/solana build
 
       - name: SDK tests
         run: pnpm --filter @commitonce/solana test
+
+      # "The build emitted dist/esm and dist/cjs" is not the same claim as "the package
+      # resolves in both module systems", and only the second one matters to a consumer.
+      - name: SDK resolves under both ESM and CJS
+        run: pnpm --filter @commitonce/solana check:dual
 
       # The golden vectors are recomputed here by an implementation that does not import the
       # SDK. Its output is informational — the assertions live in the test above — but it
