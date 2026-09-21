@@ -104,7 +104,7 @@ Do not change this default without also changing the test harness and recording 
 | What | Command |
 | --- | --- |
 | Build both programs + verify program IDs | `bash scripts/build.sh` |
-| Rust suite (45 tests, LiteSVM, real compiled artifact) | `bash scripts/test.sh` |
+| Rust suite (46 tests, LiteSVM, real compiled artifact) | `bash scripts/test.sh` |
 | SDK installs and works as a package (needs network) | `node scripts/check-package.mjs` |
 | One Rust test file | `cargo test -p commit-once --test invariant` |
 | Benchmarks with output visible | `cargo test -p commit-once --test benchmarks -- --nocapture` |

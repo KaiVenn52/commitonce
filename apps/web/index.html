@@ -605,8 +605,8 @@ isAlreadyCommitted(rpcError);                   // true — treat as success, do
           <p class="step-n">3</p>
           <h3>Then run the guard against a cluster you control</h3>
           <pre class="code"><code>bash scripts/build.sh   # builds, then verifies declare_id! against deploy-keys/
-bash scripts/test.sh    # 45 tests against the compiled SBF artifact, exit 0
-bash verify.sh          # everything, with a PASS/FAIL summary and the true exit code</code><button class="copy copy-block" type="button" data-copy="bash scripts/build.sh   # builds, then verifies declare_id! against deploy-keys/&#10;bash scripts/test.sh    # 45 tests against the compiled SBF artifact, exit 0&#10;bash verify.sh          # everything, with a PASS/FAIL summary and the true exit code">Copy</button></pre>
+bash scripts/test.sh    # 46 tests against the compiled SBF artifact, exit 0
+bash verify.sh          # everything, with a PASS/FAIL summary and the true exit code</code><button class="copy copy-block" type="button" data-copy="bash scripts/build.sh   # builds, then verifies declare_id! against deploy-keys/&#10;bash scripts/test.sh    # 46 tests against the compiled SBF artifact, exit 0&#10;bash verify.sh          # everything, with a PASS/FAIL summary and the true exit code">Copy</button></pre>
           <p class="step-note">
             The Rust suite needs no validator, no RPC and no funds — it runs the compiled program
             in-process through LiteSVM.
@@ -678,7 +678,7 @@ bash verify.sh          # everything, with a PASS/FAIL summary and the true exit
               <a href="https://explorer.solana.com/address/EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5?cluster=devnet" target="_blank" rel="noopener noreferrer">demo_counter <span class="ext" aria-hidden="true">↗</span></a>
             </dd>
           </div>
-          <div><dt>Rust tests</dt><dd>45 passing, exit 0, executing the real compiled SBF artifact through LiteSVM.</dd></div>
+          <div><dt>Rust tests</dt><dd>46 passing, exit 0, executing the real compiled SBF artifact through LiteSVM.</dd></div>
           <div>
             <dt>Live contention</dt>
             <dd>
@@ -698,6 +698,19 @@ bash verify.sh          # everything, with a PASS/FAIL summary and the true exit
               because it needs Jupiter's live API, and says so.
             </dd>
           </div>
+          <div>
+            <dt>A defect found, and fixed</dt>
+            <dd>
+              Writing a test found a real one: a receipt address is derived from
+              <code>(authority, namespace, key)</code>, and those are semi-public — an order id, a job id —
+              so an attacker could compute a victim's receipt PDA and send it <strong>one lamport</strong>.
+              That made <code>claim</code> take the create path against an account that already held
+              lamports, which fails, and would have denied the victim that key permanently. Reading the
+              code did not surface it; the test failed on its first run. <code>claim</code> now tops such
+              an account up and then allocates and assigns it under the PDA's own seeds. Written up as
+              T2b in <a class="src" href="../../docs/SECURITY_MODEL.md">the threat model</a>.
+            </dd>
+          </div>
           <div><dt>SDK tests</dt><dd>71 passing, pinning the derivation to golden hex vectors that a second implementation recomputes independently.</dd></div>
           <div><dt>Build integrity</dt><dd>The build verifies <code>declare_id!</code> against the program keypairs and exits 1 on mismatch rather than producing a silently broken artifact.</dd></div>
           <div><dt>Documentation</dt><dd>Architecture, security model with a threat model, integration playbook, prior-art survey with sources, and an evidence document listing what is <em>not</em> verified.</dd></div>
@@ -710,7 +723,7 @@ bash verify.sh          # everything, with a PASS/FAIL summary and the true exit
       <div class="addrow">
         <span class="addrow-k">commit_once</span>
         <code class="addr">CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB</code>
-        <span class="addrow-m">deploy slot 501995361</span>
+        <span class="addrow-m">deploy slot 502020368</span>
         <button class="copy" type="button" data-copy="CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB">Copy</button>
       </div>
       <div class="addrow">
@@ -873,7 +886,7 @@ bash verify.sh          # everything, with a PASS/FAIL summary and the true exit
       <p class="foot-head">On chain — devnet</p>
       <a href="https://explorer.solana.com/address/CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB?cluster=devnet" target="_blank" rel="noopener noreferrer">commit_once program <span class="ext" aria-hidden="true">↗</span></a>
       <a href="https://explorer.solana.com/address/EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5?cluster=devnet" target="_blank" rel="noopener noreferrer">demo_counter program <span class="ext" aria-hidden="true">↗</span></a>
-      <a href="https://explorer.solana.com/tx/3YsTFBpCenHgYb3pPCNPusvznRsF8gLGEarStQ59dqHjxKchSCjFkh1fjuGZ5RqTcZzKau6Ts2P1yUgX4MNEuRcb?cluster=devnet" target="_blank" rel="noopener noreferrer">commit_once deploy transaction <span class="ext" aria-hidden="true">↗</span></a>
+      <a href="https://explorer.solana.com/tx/65gkC1p7XVQhQixacnudm9ZTpCQRFmESdMjDwu5AFTiiV4Po5gqj4oToEsjNpf2pVKFbttMFH4DjoPhqDTrHFBnX?cluster=devnet" target="_blank" rel="noopener noreferrer">commit_once deploy transaction <span class="ext" aria-hidden="true">↗</span></a>
       <p class="foot-note">
         Explorer links are devnet-scoped (<code>?cluster=devnet</code>). There is no mainnet link because
         there is no mainnet deployment.

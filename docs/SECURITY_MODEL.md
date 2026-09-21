@@ -91,6 +91,53 @@ authority-scoped.
 
 ---
 
+### T2b — Blocking a key by pre-funding its receipt PDA
+
+**Threat.** A receipt address is derived from `(authority, namespace, key)`. The authority
+keeps an attacker from *claiming* the victim's key, but it does not keep them from *finding*
+the address — and a namespace and key are usually semi-public, because they are an order id,
+a job id, or a checkout reference.
+
+So an attacker who learns them can compute the victim's receipt PDA and **send it one
+lamport**. That creates a system-owned account holding lamports and no data. `claim` decides a
+receipt is absent with `data_is_empty()`, which is true for such an account, so it takes the
+create path — and `SystemInstruction::CreateAccount` refuses an account that already holds
+lamports. One lamport plus a fee would therefore have permanently denied the victim that
+idempotency key, with a failure about account creation that has nothing to do with their
+intent.
+
+**This was a real defect, found by writing the test rather than by reading the code.** The
+first version of `claim` had exactly the behaviour described above, and the test failed
+against it with:
+
+```
+Create Account: account ... already in use
+Program 11111111111111111111111111111111 failed: custom program error: 0x0
+```
+
+**Mitigation.** `claim` now handles a PDA that already holds lamports: it tops the account up
+to rent-exempt with a transfer paid by the authority, then `Allocate`s and `Assign`s it with
+`invoke_signed` under the PDA's own seeds. That is the same sequence `CreateAccount` performs
+internally, split so the first step can be paid by the authority and the last two can be
+signed by the PDA. `Allocate` must precede `Assign`, because the System Program only allocates
+for an account it still owns.
+
+**Why this is the whole of the attack.** An attacker cannot go further than sending lamports.
+`CreateAccount`, `Allocate` and `Assign` all require the *account's own signature*, and only
+this program can produce one for its own PDA. So no third party can create the account with a
+foreign owner, assign it to another program, or give it data. Sending lamports is the only
+lever available, and the fix absorbs it.
+
+**Residual cost.** The victim pays `rent_exempt − funded` instead of the full deposit, so an
+attacker who sends lamports is donating to the victim; any excess stays in the account and is
+refunded to `refund_destination` on close. There is no griefing value left in the vector.
+
+**Test:** `a_prefunded_receipt_pda_does_not_block_the_intent` — an attacker funds the victim's
+receipt PDA with one lamport, the victim's claim still commits, the counter advances once, and
+the receipt is then a *real* receipt: a rebuilt retry is blocked with `AlreadyCommitted`.
+
+---
+
 ### T3 — Receipt substitution / account confusion
 
 **Threats.** Passing someone else's receipt PDA to your own `claim`; planting an account at

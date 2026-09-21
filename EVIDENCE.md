@@ -38,7 +38,7 @@ Produced by `bash scripts/build.sh`.
 
 | Artifact | Size | SHA-256 |
 | --- | --- | --- |
-| `target/deploy/commit_once.so` | 154,416 bytes | `d6a465a7541c0b954519f5b5eb4b99a960389e43e454cf690fbeeb6f62643108` |
+| `target/deploy/commit_once.so` | 160,008 bytes | `afc54451cdd62de80d20f54093198733bdcbd3fedb6b681e755cf36f7419d6bb` |
 | `target/deploy/demo_counter.so` | 138,064 bytes | `13b2b469276cafe298a511b01c67bc4e7601b37316c1b24b3364fb31f84e04f4` |
 | `target/idl/commit_once.json` | 14,841 bytes | — |
 | `target/idl/demo_counter.json` | 3,778 bytes | — |
@@ -89,13 +89,13 @@ Program Id:            CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB
 Owner:                 BPFLoaderUpgradeab1e11111111111111111111111
 ProgramData Address:   29tT1XTCZ9bPCvBP93S4z9oxt9EChWv3hWWmLzpSED5x
 Authority:             25TUohqYd5b6f97wc5CjMwj89ZVL8oX81nhkWVHimYpY
-Last Deployed In Slot: 501995361
+Last Deployed In Slot: 502020368
 Data Length:           163712 (0x27f80) bytes
 Balance:               0.8325358 SOL
 ```
 
 Deploy signature:
-`3YsTFBpCenHgYb3pPCNPusvznRsF8gLGEarStQ59dqHjxKchSCjFkh1fjuGZ5RqTcZzKau6Ts2P1yUgX4MNEuRcb`
+`65gkC1p7XVQhQixacnudm9ZTpCQRFmESdMjDwu5AFTiiV4Po5gqj4oToEsjNpf2pVKFbttMFH4DjoPhqDTrHFBnX`
 
 This is the **second** deployment of `commit_once`; the first was at slot `501814672`. It was
 redeployed after the durable-nonce scan was changed to fail closed (§4), so that the live program
@@ -124,7 +124,7 @@ Deploy signature:
 export HOME=/home/dell2u
 solana program show CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB --url devnet
 solana program show EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5 --url devnet
-solana confirm -v 3YsTFBpCenHgYb3pPCNPusvznRsF8gLGEarStQ59dqHjxKchSCjFkh1fjuGZ5RqTcZzKau6Ts2P1yUgX4MNEuRcb --url devnet
+solana confirm -v 65gkC1p7XVQhQixacnudm9ZTpCQRFmESdMjDwu5AFTiiV4Po5gqj4oToEsjNpf2pVKFbttMFH4DjoPhqDTrHFBnX --url devnet
 ```
 
 Both programs are **upgradeable**, with `25TUohqYd5b6f97wc5CjMwj89ZVL8oX81nhkWVHimYpY` as
@@ -291,18 +291,18 @@ Jupiter's live API.
 
 ---
 
-## 4. Rust test suite — 45 passing, exit code 0
+## 4. Rust test suite — 46 passing, exit code 0
 
 Run: `bash scripts/test.sh`
 
 ```
 test result: ok. 11 passed; 0 failed    (invariant)
 test result: ok.  9 passed; 0 failed    (retention)
-test result: ok. 11 passed; 0 failed    (security)
+test result: ok. 12 passed; 0 failed    (security)
 test result: ok.  3 passed; 0 failed    (versioned)
 test result: ok. 10 passed; 0 failed    (wire_format)
 test result: ok.  1 passed; 0 failed    (benchmarks)
-REAL_EXIT=0   TOTAL_PASSED=45   TOTAL_FAILED=0
+REAL_EXIT=0   TOTAL_PASSED=46   TOTAL_FAILED=0
 ```
 
 The tests execute the **real compiled SBF artifact** through LiteSVM — not a mock and not a
@@ -329,8 +329,40 @@ an error message string, because message text is not a stable contract.
 | Malformed state | `malformed_receipt_data_is_rejected`, `unsupported_receipt_version_is_rejected` | fail-closed |
 | Expiry | `receipt_cannot_be_closed_before_expiry` | both deadlines independently enforced |
 | **Durable-nonce scan bound** | `scan_bound_sits_above_the_runtime_instruction_ceiling` | discovers the runtime's own instruction ceiling by probing, then asserts `MAX_INSTRUCTION_SCAN` sits above it — see below |
+| **Pre-funded receipt PDA** | `a_prefunded_receipt_pda_does_not_block_the_intent` | one lamport sent to a victim's receipt PDA cannot deny them the key — **this test found a real defect**; see below |
 | **v0 + lookup tables** | `guarded_transaction_commits_in_a_v0_message_with_a_lookup_table`, `rebuilt_v0_retry_is_blocked_and_the_business_action_runs_once` | the invariant holds for the transaction shape production clients actually build |
 | **Signer not loaded** | `a_signer_in_a_lookup_table_stays_in_the_static_keys` | a loaded address cannot satisfy a signature, so a signer must stay static |
+
+### A defect this suite found: the pre-funded receipt PDA
+
+The most useful thing a test did in this project was fail.
+
+`claim` decides whether a receipt exists with `data_is_empty()`. A receipt address is derived
+from `(authority, namespace, key)`, and those are usually semi-public — an order id, a job id —
+so an attacker who learns them can compute the victim's PDA and **send it one lamport**. That
+creates a system-owned account holding lamports and no data, which `data_is_empty()` reports as
+absent, so `claim` took the create path. `SystemInstruction::CreateAccount` refuses an account
+that already holds lamports:
+
+```
+Create Account: account ... already in use
+Program 11111111111111111111111111111111 failed: custom program error: 0x0
+```
+
+One lamport plus a fee would have permanently denied the victim that idempotency key, and their
+retries would have failed forever with an error about account creation that has nothing to do
+with their intent.
+
+**Reading the code did not surface this. Writing the test did, on its first run.** `claim` now
+tops such an account up to rent-exempt and then `Allocate`s and `Assign`s it with
+`invoke_signed` under the PDA's own seeds — the sequence `CreateAccount` performs internally,
+split so the authority can pay and the PDA can sign. An attacker cannot go further than sending
+lamports, because `CreateAccount`, `Allocate` and `Assign` all require the account's own
+signature, and only this program can produce one for its own PDA.
+
+Full write-up: [`docs/SECURITY_MODEL.md`](docs/SECURITY_MODEL.md) §3, T2b. The fix is deployed
+to devnet: the program was redeployed at slot `502020368` so the live artifact matches the
+source this document describes.
 
 ### v0 messages and address lookup tables
 

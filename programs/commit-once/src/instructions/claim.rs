@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::{program::invoke_signed, system_instruction};
+use anchor_lang::solana_program::{program::invoke, program::invoke_signed, system_instruction};
 
 use crate::{constants::*, error::CommitOnceError, events::IntentCommitted, state::IntentReceipt};
 
@@ -175,17 +175,68 @@ fn create_receipt<'info>(
         &[bump],
     ];
 
-    invoke_signed(
-        &system_instruction::create_account(
-            &authority,
-            receipt_info.key,
-            lamports,
-            space as u64,
-            &crate::ID,
-        ),
-        &[authority_info, receipt_info.clone(), system_program_info],
-        &[seeds],
-    )?;
+    let funded = receipt_info.lamports();
+
+    if funded == 0 {
+        invoke_signed(
+            &system_instruction::create_account(
+                &authority,
+                receipt_info.key,
+                lamports,
+                space as u64,
+                &crate::ID,
+            ),
+            &[authority_info, receipt_info.clone(), system_program_info],
+            &[seeds],
+        )?;
+    } else {
+        // Somebody sent lamports to this PDA before it was ever claimed.
+        //
+        // This is not hypothetical and it is not expensive: a receipt address is derived from
+        // `(authority, namespace, key)`, and a namespace and key are usually semi-public — an
+        // order id, a job id, a checkout reference. Anyone who learns them can compute the
+        // address and send it a single lamport, which creates a system-owned account holding
+        // lamports and *no data*. `handle_claim` sees `data_is_empty() == true` and takes this
+        // path, and `CreateAccount` refuses an account that already holds lamports — so without
+        // the branch below, one lamport plus a fee would permanently deny that idempotency key,
+        // and the victim's retries would fail forever with an error about account creation that
+        // has nothing to do with their intent.
+        //
+        // The sequence below is exactly what `CreateAccount` does internally, split so the
+        // first step can be paid by the authority and the last two can be signed by the PDA:
+        //
+        //   transfer  — tops the account up to rent-exempt. Does not need the PDA's signature.
+        //   allocate  — sets the data length. Needs it, so it goes through `invoke_signed`.
+        //   assign    — hands ownership to this program. Also needs it.
+        //
+        // `allocate` must precede `assign`, because the System Program only allocates for an
+        // account it still owns.
+        //
+        // A third party cannot pre-empt this by assigning the PDA elsewhere: `Allocate`,
+        // `Assign` and `CreateAccount` all require the account's own signature, and only this
+        // program can produce one for its own PDA. Sending lamports is the whole of the attack,
+        // and this branch absorbs it.
+        if funded < lamports {
+            invoke(
+                &system_instruction::transfer(
+                    &authority,
+                    receipt_info.key,
+                    lamports.saturating_sub(funded),
+                ),
+                &[authority_info, receipt_info.clone(), system_program_info.clone()],
+            )?;
+        }
+        invoke_signed(
+            &system_instruction::allocate(receipt_info.key, space as u64),
+            &[receipt_info.clone(), system_program_info.clone()],
+            &[seeds],
+        )?;
+        invoke_signed(
+            &system_instruction::assign(receipt_info.key, &crate::ID),
+            &[receipt_info.clone(), system_program_info],
+            &[seeds],
+        )?;
+    }
 
     let (expires_at_slot, expires_at_unix_ts) = if retention_seconds == PERMANENT_RETENTION {
         (0u64, 0i64)

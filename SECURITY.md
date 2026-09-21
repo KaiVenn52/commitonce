@@ -8,7 +8,7 @@ unreviewed code written by its own authors.
 
 What that means concretely:
 
-* Nothing here has been independently reviewed. The 45 Rust tests and 71 SDK tests in this
+* Nothing here has been independently reviewed. The 46 Rust tests and 71 SDK tests in this
   repository were written by the same authors as the code they test. They are evidence that
   the code does what its authors intended, not evidence that the intent is correct.
 * `commit_once` is **not deployed to mainnet**. Neither program holds user value.
@@ -153,6 +153,27 @@ see [`docs/SECURITY_MODEL.md`](docs/SECURITY_MODEL.md). That document is the rig
 start before writing a report: if the behaviour you found is listed there as a known
 limitation, say so in your report and explain why you think the limitation is worse than
 documented.
+
+### What has already been found and fixed
+
+One defect has been found and fixed since the first deployment. It is recorded here rather
+than quietly patched, because a security policy that only lists intentions is not much use.
+
+**A receipt PDA could be blocked by pre-funding it (T2b).** A receipt address is derived from
+`(authority, namespace, key)`, and those are usually semi-public — an order id, a job id. An
+attacker who learned them could send the victim's receipt PDA **one lamport**, creating a
+system-owned account with no data. `claim` treats that as "receipt absent" and calls
+`CreateAccount`, which refuses an account that already holds lamports. One lamport plus a fee
+would have permanently denied the victim that idempotency key.
+
+It was found by writing `a_prefunded_receipt_pda_does_not_block_the_intent` rather than by
+reading the code, and it failed against the deployed program exactly as described. `claim` now
+tops such an account up to rent-exempt and then `Allocate`s and `Assign`s it under the PDA's
+own seeds — the same sequence `CreateAccount` performs internally. The vector is closed:
+sending lamports to a PDA now donates to the victim.
+
+Full write-up, including why sending lamports is the only lever an attacker has:
+[`docs/SECURITY_MODEL.md`](docs/SECURITY_MODEL.md) §3, T2b.
 
 ---
 

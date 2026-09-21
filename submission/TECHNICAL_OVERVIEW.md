@@ -645,7 +645,7 @@ bash verify.sh
 
 # Or the same steps individually:
 bash scripts/build.sh                                     # builds both programs, verifies declare_id! against deploy-keys/
-bash scripts/test.sh                                      # 45 tests, expect exit 0
+bash scripts/test.sh                                      # 46 tests, expect exit 0
 bash scripts/test.sh --test benchmarks -- --nocapture      # the overhead table
 pnpm --filter @commitonce/solana test                      # 71 tests
 node packages/sdk/scripts/print-vectors.mjs                # vectors recomputed without importing the SDK
@@ -664,7 +664,7 @@ and reproduced against `target/deploy/` when this document was written):
 
 | Artifact | Size | SHA-256 |
 | --- | --- | --- |
-| `commit_once.so` | 154,416 bytes | `d6a465a7541c0b954519f5b5eb4b99a960389e43e454cf690fbeeb6f62643108` |
+| `commit_once.so` | 160,008 bytes | `afc54451cdd62de80d20f54093198733bdcbd3fedb6b681e755cf36f7419d6bb` |
 | `demo_counter.so` | 138,064 bytes | `13b2b469276cafe298a511b01c67bc4e7601b37316c1b24b3364fb31f84e04f4` |
 
 Both are built for SBPFv2 (`readelf -h` reports `Flags: 0x2`).

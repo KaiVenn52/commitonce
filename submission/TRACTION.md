@@ -39,9 +39,9 @@ lose credibility. What exists is verifiable work:
 
 | Artifact | Status |
 | --- | --- |
-| Guard program, deployed on **devnet** | live and executable; deploy slot `501995361`; signature `3YsTFBpCenHgYb3pPCNPusvznRsF8gLGEarStQ59dqHjxKchSCjFkh1fjuGZ5RqTcZzKau6Ts2P1yUgX4MNEuRcb` |
+| Guard program, deployed on **devnet** | live and executable; deploy slot `502020368`; signature `65gkC1p7XVQhQixacnudm9ZTpCQRFmESdMjDwu5AFTiiV4Po5gqj4oToEsjNpf2pVKFbttMFH4DjoPhqDTrHFBnX` |
 | Demo counter program, devnet | `EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5`, slot `501814798` |
-| Rust test suite | **45 passing, exit 0**, executing the real compiled SBF artifact through LiteSVM |
+| Rust test suite | **46 passing, exit 0**, executing the real compiled SBF artifact through LiteSVM |
 | SDK test suite | **71 passing**, golden vectors cross-checked by an independent implementation |
 | Measured overhead | +404 bytes, +4 accounts (usually +3); `claim` ~14,000 CU on devnet |
 | Receipt | 202 bytes, 1,676,400 lamports, fully refundable |

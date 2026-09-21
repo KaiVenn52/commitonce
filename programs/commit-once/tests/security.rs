@@ -290,6 +290,59 @@ fn durable_nonce_transaction_is_allowed_for_permanent_retention() {
     assert!(env.read_receipt(&claim.receipt()).is_permanent());
 }
 
+/// **A pre-funded receipt PDA must not permanently block an intent.**
+///
+/// The attack is cheap and needs nothing secret. A receipt PDA is derived from
+/// `(authority, namespace, key)`, and a namespace and key are typically semi-public — an
+/// order id, a job id, a checkout reference. So an attacker who learns them can compute the
+/// victim's receipt address and send it **one lamport**.
+///
+/// That creates a system-owned account with lamports and *no data*. `claim` decides a receipt
+/// is absent with `data_is_empty()`, which is true for such an account, so it takes the
+/// create path — and `SystemInstruction::CreateAccount` refuses an account that already holds
+/// lamports. If that were the end of it, one lamport plus a fee would permanently deny the
+/// victim that idempotency key, and the victim's retries would fail forever with an error that
+/// has nothing to do with their intent.
+///
+/// `claim` therefore has to cope with a pre-funded PDA: top it up to rent-exempt, then
+/// `Allocate` and `Assign` it, all signed by the PDA itself.
+#[test]
+fn a_prefunded_receipt_pda_does_not_block_the_intent() {
+    banner("griefing: a pre-funded receipt PDA must not block the intent");
+    let mut env = Env::new();
+    let victim = env.authority_pubkey();
+    assert_success(&env.send(&[initialize_counter_ix(victim)]));
+
+    let attacker = env.fresh_funded(10);
+    let attacker_pubkey = attacker.pubkey();
+
+    // The attacker knows the victim's namespace and key and derives the same PDA.
+    let namespace = "payments:transfer";
+    let key = "order_928";
+    let victim_claim = ClaimArgs::new(victim, namespace, key, sha256(b"payload"));
+
+    // One lamport. This is the whole attack.
+    assert_success(&env.send_as(
+        &attacker,
+        &[transfer_ix(attacker_pubkey, victim_claim.receipt(), 1)],
+        &[],
+    ));
+    assert!(
+        env.account_exists(&victim_claim.receipt()),
+        "the attack must actually have created the account, or this test proves nothing"
+    );
+
+    // The victim's intent must still commit.
+    let res = env.send(&[victim_claim.instruction(), increment_ix(victim)]);
+    assert_success(&res);
+    assert_eq!(env.counter_value(&victim), 1);
+
+    // And the guard must work normally afterwards: the receipt is real, not just present.
+    let replay = env.send_distinct(&[victim_claim.instruction(), increment_ix(victim)], 1);
+    assert_custom_error(&replay, E_ALREADY_COMMITTED);
+    assert_eq!(env.counter_value(&victim), 1);
+}
+
 /// The nonce scan must not fire on ordinary transactions. This guards against an
 /// over-eager check that would break every normal integration.
 #[test]

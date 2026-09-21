@@ -342,6 +342,15 @@ Because none of them require trust, and the ones that are weakest are labelled.
   the deposit by **37%**.
 - The prior-art survey quotes primary sources, and its first section argues against the project's
   own novelty claim.
+- **The security model contains a defect the project found in itself.** A receipt PDA is derived
+  from `(authority, namespace, key)`, and those are semi-public — an order id, a job id — so an
+  attacker could compute a victim's address and send it one lamport, which made `claim` take the
+  create path against an account that already held lamports and would have denied the victim that
+  key permanently. Reading the code did not surface it; the test
+  `a_prefunded_receipt_pda_does_not_block_the_intent` failed against the deployed program on its
+  first run. It is fixed, redeployed, and written up as T2b in
+  [`../docs/SECURITY_MODEL.md`](../docs/SECURITY_MODEL.md). A submission whose threat model lists
+  only intentions is not evidence that anyone looked.
 - [`EVIDENCE.md`](../EVIDENCE.md) §7 lists what is not verified, and
   [`TRACTION.md`](TRACTION.md) opens with a table of zeros.
 

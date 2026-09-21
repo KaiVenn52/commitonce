@@ -88,13 +88,13 @@ console.log(`html links:     ${htmlLinks} checked`);
 // 3. Claims that were previously found to be false, and must not come back.
 //
 // Each of these was true of an earlier revision and was corrected. If one reappears, the
-// correction was lost â€” which is the failure mode this whole script exists for.
+// correction was lost â€?which is the failure mode this whole script exists for.
 //
 // The patterns are deliberately precise rather than plain substrings. Several corrected
 // claims are now *correctly* mentioned in their negated form ("there is no `--scenario`
 // flag", "three of the four examples have been executed"), and a naive substring match
 // flags those as regressions. A check that cries wolf gets disabled, so precision here is
-// not fussiness â€” it is what keeps the check alive.
+// not fussiness â€?it is what keeps the check alive.
 // ---------------------------------------------------------------------------------------
 const RETIRED_CLAIMS = [
     { pattern: /accounting matches/, why: 'LiteSVM compute accounting does not match the runtime' },
@@ -149,7 +149,7 @@ for (const file of files) {
         if (match === null) continue;
         retired += 1;
         const line = text.slice(0, match.index).split('\n').length;
-        problems.push(`${path}:${line}  "${match[0]}"  â€” ${why}`);
+        problems.push(`${path}:${line}  "${match[0]}"  â€?${why}`);
     }
 }
 console.log(`retired claims: ${retired} found`);
@@ -174,7 +174,7 @@ console.log(`evidence logs:  ${logs.length} checked`);
 // `submission/WORK_LOG.md` is a dated history, so it legitimately records the counts as they
 // were on each day. Everywhere else, a test count is a claim about the present.
 // ---------------------------------------------------------------------------------------
-const CURRENT_COUNTS = new Set([45, 71]);
+const CURRENT_COUNTS = new Set([46, 71]);
 const HISTORY_FILE = 'submission/WORK_LOG.md';
 let counts = 0;
 for (const file of files.filter((f) => extname(f) === '.md')) {

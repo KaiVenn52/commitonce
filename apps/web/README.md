@@ -64,13 +64,13 @@ document and section it draws on. The mapping:
 
 | On the page | Source |
 | --- | --- |
-| 45 Rust tests, exit 0; per-file counts 11/9/11/3/10/1 | `EVIDENCE.md` §4 |
+| 46 Rust tests, exit 0; per-file counts 11/9/12/3/10/1 | `EVIDENCE.md` §4 |
 | 71 SDK tests | `EVIDENCE.md` §5 |
 | +404 bytes / +4 accounts (exact); compute units as a range | `EVIDENCE.md` §6 |
 | Compute-unit ranges, and devnet's 14,669 / 13,977 / 4,067 / 7,067 | `EVIDENCE.md` §6 |
 | 202 bytes, 1,676,400 lamports, 0.0016764 SOL, 144 bytes, 4 accounts | `EVIDENCE.md` §6 |
 | 5080 lamports/byte, stale crate 6960, “37% too high”, 128 + 276 byte decomposition, 200,000 CU budget, ~11% of budget | `EVIDENCE.md` §6 |
-| Program ids, deploy slots 501995361 / 501814798, upgrade authority | `EVIDENCE.md` §3 |
+| Program ids, deploy slots 502020368 / 501814798, upgrade authority | `EVIDENCE.md` §3 |
 | Live contention: one key in 5–8 transactions, one commits, the rest fail `AlreadyCommitted`, spread over 2–3 slots | `EVIDENCE.md` §3 (“Live contention”); `submission/evidence/devnet-contention-run.log` |
 | The harness/runtime compute gap (14,669 devnet vs 9,283 in-process) | `EVIDENCE.md` §6, §7 |
 | Unaudited, mainnet not deployed, not on npm, no users, no integrations | `EVIDENCE.md` §7 |

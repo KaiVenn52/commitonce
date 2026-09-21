@@ -49,7 +49,7 @@ Individual steps, if you prefer:
 
 ```bash
 bash scripts/build.sh                                  # build + verify program IDs
-bash scripts/test.sh                                   # 45 Rust tests, expect exit 0
+bash scripts/test.sh                                   # 46 Rust tests, expect exit 0
 bash scripts/test.sh --test benchmarks -- --nocapture   # the overhead table
 pnpm --filter @commitonce/solana test                   # 71 SDK tests
 ```
@@ -61,8 +61,8 @@ solana program show CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB --url devnet
 solana program show EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5 --url devnet
 ```
 
-Expect `Last Deployed In Slot` **501995361** and **501814798**. The guard's deploy signature is
-`3YsTFBpCenHgYb3pPCNPusvznRsF8gLGEarStQ59dqHjxKchSCjFkh1fjuGZ5RqTcZzKau6Ts2P1yUgX4MNEuRcb`,
+Expect `Last Deployed In Slot` **502020368** and **501814798**. The guard's deploy signature is
+`65gkC1p7XVQhQixacnudm9ZTpCQRFmESdMjDwu5AFTiiV4Po5gqj4oToEsjNpf2pVKFbttMFH4DjoPhqDTrHFBnX`,
 visible on any devnet explorer.
 
 **See the A/B for yourself** (devnet, needs a funded throwaway key):
@@ -122,8 +122,8 @@ verified).
 | | |
 | --- | --- |
 | Program ID (identical on all clusters) | `CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB` |
-| Devnet deployment | **live and executable**, deploy slot `501995361` |
-| Rust tests | **45 passing, exit 0**, executing the real compiled SBF artifact in LiteSVM |
+| Devnet deployment | **live and executable**, deploy slot `502020368` |
+| Rust tests | **46 passing, exit 0**, executing the real compiled SBF artifact in LiteSVM |
 | SDK tests | **71 passing**, golden vectors cross-checked by an independent implementation |
 | Measured overhead | +404 bytes, +4 accounts (usually +3); `claim` ~14,000 CU on devnet |
 | Receipt | 202 bytes, 1,676,400 lamports rent, fully refundable on cleanup |
