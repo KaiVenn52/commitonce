@@ -411,6 +411,45 @@ compares the results, so a module added to one entry point and not the other fai
 Dual-format output is verified by actually importing it both ways, not by inspecting the
 build output.
 
+### And the package installs, which nothing else here proves
+
+Every check above runs inside the workspace, where the SDK is reached through a pnpm symlink.
+**A symlink hides exactly the faults that break a real install**: a missing `files` entry, an
+`exports` map that does not resolve, a `types` path pointing at nothing, a runtime dependency
+that was only present because the monorepo hoisted it to the root. Nobody outside this
+repository has ever installed the package, so `scripts/check-package.mjs` stands in for the
+first person who does. It packs the SDK, installs the tarball into a throwaway project in the
+OS temp directory, and asserts:
+
+```
+1/6  cleaning the sandbox
+2/6  packing the SDK
+     commitonce-solana-0.1.0.tgz  51191 bytes
+3/6  installing into a project outside the workspace
+     installed to ...\Temp\commitonce-sdk-consumer\node_modules\@commitonce\solana
+4/6  checking what the tarball actually ships
+     contents: LICENSE README.md dist package.json
+5/6  running the consumer under ESM and CJS
+     ESM consumer: all assertions passed
+     CJS consumer: all assertions passed
+6/6  typechecking a consumer against the shipped types
+     (no type errors)
+```
+
+The assertions are not smoke tests. The consumer reproduces the **golden PDA vector** pinned in
+`test/vectors.test.ts`, reads the pinned rent and account-size constants, and classifies a real
+error string — under both module systems — and then TypeScript resolves the shipped `.d.ts`
+with the monorepo absent. The check also fails if the install resolves back into the workspace,
+because that would make every assertion vacuous, and if the tarball ships `src/`, `test/`,
+`scripts/` or `tsconfig.json`.
+
+**This one needs the network**, since `npm install` fetches `@solana/kit`. That is why it is
+not part of `verify.sh`, which is deliberately hermetic. Run it with
+`node scripts/check-package.mjs`.
+
+The `LICENSE` file in the tarball is worth noting: it is shipped because npm includes it
+automatically, not because it is listed in `files`.
+
 ---
 
 ## 6. Measured overhead

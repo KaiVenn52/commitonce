@@ -25,6 +25,8 @@
 #     this machine. It is not evidence that the program is safe, and the program is unaudited.
 #   * It does not verify anything it did not run: a step that could not run is reported as
 #     NOT RUN, never as a pass, and NOT RUN also produces a non-zero exit code.
+#   * It does not check that the SDK works as an installed package. That needs the network,
+#     and this script is deliberately hermetic. Run `node scripts/check-package.mjs` for it.
 #
 # Environment. Rust and the Solana/Anchor toolchains for this project run under WSL2 Ubuntu,
 # where scripts/build.sh and scripts/test.sh force HOME=/home/dell2u because that is where
