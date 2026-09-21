@@ -40,9 +40,11 @@ import { readFile } from 'node:fs/promises';
 
 import {
     address,
+    appendTransactionMessageInstructions,
     createKeyPairSignerFromBytes,
     createSolanaRpc,
     createSolanaRpcSubscriptions,
+    createTransactionMessage,
     getBase64Encoder,
     getCompiledTransactionMessageDecoder,
     getSignatureFromTransaction,
@@ -104,13 +106,23 @@ function requireEnv(name: string): string {
 }
 
 const RPC_URL = requireEnv('RPC_URL');
-const KEYPAIR_PATH = process.env.KEYPAIR ?? process.env.WALLET_PATH;
-if (KEYPAIR_PATH === undefined || KEYPAIR_PATH.trim() === '') {
-    throw new Error(
-        'CommitOnce example: set KEYPAIR (or WALLET_PATH) to the path of a Solana CLI ' +
-            'keypair JSON file — a JSON array of 64 byte values.',
-    );
-}
+
+/**
+ * Resolved in an immediately-invoked function so the validated value is typed `string`. A
+ * plain `const path = process.env.KEYPAIR ?? process.env.WALLET_PATH` followed by a throwing
+ * check does narrow at the point of the check, but TypeScript does not carry that narrowing
+ * into `main()`, because a function body may run at any time.
+ */
+const KEYPAIR_PATH: string = (() => {
+    const path = process.env.KEYPAIR ?? process.env.WALLET_PATH;
+    if (path === undefined || path.trim() === '') {
+        throw new Error(
+            'CommitOnce example: set KEYPAIR (or WALLET_PATH) to the path of a Solana CLI ' +
+                'keypair JSON file — a JSON array of 64 byte values.',
+        );
+    }
+    return path.trim();
+})();
 const RPC_WS_URL = process.env.RPC_WS_URL ?? RPC_URL.replace(/^http/, 'ws');
 
 const ORDER_ID = process.env.ORDER_ID ?? 'order_928';
@@ -312,33 +324,43 @@ async function submitGuardedSwap(args: GuardedSwapArgs): Promise<SubmissionOutco
             retention: RETENTION,
         });
 
-        // Prepend, never reorder: the swap's own instructions keep their relative order and
-        // their contents. Prepending is two passes so that the compute budget instruction
-        // ends up before the guard rather than after it.
-        const message = pipe(
-            swap.message,
-            // Rebuild the lifetime on every attempt. A retry must not carry the blockhash the
-            // swap API computed minutes ago: an expired blockhash fails before the guard is
-            // ever reached, so a stale lifetime turns retries into guaranteed failures.
-            // In a real integration this step is where a fresh quote also arrives.
-            (m) => setTransactionMessageLifetimeUsingBlockhash(latestBlockhash, m),
-            (m) => prependTransactionMessageInstruction(guard.instruction, m),
-            (m) => prependTransactionMessageInstruction(setComputeUnitPriceInstruction(priorityFeeMicroLamports), m),
-            (m) => setTransactionMessageFeePayerSigner(authority, m),
-        );
-
         // The guard requires `authority` to sign, so the fee payer must be that same signer
         // here. A relayer that pays the fee instead would make this a two-signer transaction.
-        if (message.feePayer.address !== authority.address) {
+        // Checked against the swap's own message, before we replace its fee payer below.
+        if (swap.message.feePayer.address !== authority.address) {
             throw new Error(
-                `CommitOnce example: the supplied transaction is paid for by ${message.feePayer.address}, ` +
+                `CommitOnce example: the supplied transaction is paid for by ${swap.message.feePayer.address}, ` +
                     `but this example signs with ${authority.address}. The guard's authority must ` +
                     'sign, so either supply a transaction fee-paid by that key or extend this ' +
                     'example to collect both signatures.',
             );
         }
 
-        const transaction = await signTransactionMessageWithSigners(message);
+        // Prepend, never reorder: the swap's own instructions keep their relative order and
+        // their contents. Prepending is two passes so that the compute budget instruction
+        // ends up before the guard rather than after it.
+        //
+        // The message is rebuilt rather than mutated in place. Jupiter's decoder types the fee
+        // payer address as a plain `string`, while kit brands addresses as `Address`, so
+        // `setTransactionMessageFeePayerSigner` cannot be applied to the decoded message
+        // directly. Rebuilding is lossless here because
+        // `decompileTransactionMessageFetchingLookupTables` has already resolved every address
+        // lookup table: the instruction list is complete and self-contained, so the rebuilt
+        // message carries the same instructions in the same order, with our own fee payer.
+        const message = pipe(
+            createTransactionMessage({ version: 0 }),
+            (m) => setTransactionMessageFeePayerSigner(authority, m),
+            // Rebuild the lifetime on every attempt. A retry must not carry the blockhash the
+            // swap API computed minutes ago: an expired blockhash fails before the guard is
+            // ever reached, so a stale lifetime turns retries into guaranteed failures.
+            // In a real integration this step is where a fresh quote also arrives.
+            (m) => setTransactionMessageLifetimeUsingBlockhash(latestBlockhash, m),
+            (m) => appendTransactionMessageInstructions(swap.message.instructions, m),
+            (m) => prependTransactionMessageInstruction(guard.instruction, m),
+            (m) => prependTransactionMessageInstruction(setComputeUnitPriceInstruction(priorityFeeMicroLamports), m),
+        );
+
+        const transaction = asBlockhashTransaction(await signTransactionMessageWithSigners(message));
         const signature = getSignatureFromTransaction(transaction);
         const instructionLines = describeInstructions(message);
 
@@ -397,6 +419,43 @@ async function submitGuardedSwap(args: GuardedSwapArgs): Promise<SubmissionOutco
         }
     }
     throw new Error('unreachable: the attempt loop always returns or throws');
+}
+
+// ---------------------------------------------------------------------------------------
+// Transaction lifetime narrowing
+// ---------------------------------------------------------------------------------------
+
+/**
+ * The parameter type `sendAndConfirmTransactionFactory` actually accepts. Derived from the
+ * factory rather than written out, so this keeps compiling if its requirements change.
+ */
+type ConfirmableTransaction = Parameters<ReturnType<typeof sendAndConfirmTransactionFactory>>[0];
+
+/**
+ * Narrow a signed transaction to the blockhash-lifetime variant.
+ *
+ * `signTransactionMessageWithSigners` declares its return type as the *union*
+ * `TransactionWithLifetime` — blockhash or durable nonce — so the blockhash lifetime that
+ * `setTransactionMessageLifetimeUsingBlockhash` established is erased before the value reaches
+ * `sendAndConfirmTransactionFactory`, which requires the blockhash variant.
+ *
+ * Every transaction in this file sets a blockhash lifetime and nothing afterwards can change
+ * that, so the narrowing is accurate. The runtime check keeps it honest rather than a blind
+ * cast: if the lifetime were ever something else, this throws instead of sending a transaction
+ * whose confirmation behaviour would be wrong. CommitOnce would reject such a transaction
+ * anyway — a durable nonce cannot be combined with an expiring receipt, which is
+ * `DurableNonceUnsupported`.
+ */
+function asBlockhashTransaction(
+    signed: Awaited<ReturnType<typeof signTransactionMessageWithSigners>>,
+): ConfirmableTransaction {
+    if (!('lastValidBlockHeight' in signed.lifetimeConstraint)) {
+        throw new Error(
+            'CommitOnce example: expected a blockhash lifetime but got a durable-nonce ' +
+                'transaction. CommitOnce rejects durable nonces when retention is not permanent.',
+        );
+    }
+    return signed as ConfirmableTransaction;
 }
 
 // ---------------------------------------------------------------------------------------

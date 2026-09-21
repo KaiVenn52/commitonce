@@ -44,7 +44,6 @@ import {
     signTransactionMessageWithSigners,
     SOLANA_ERROR__BLOCK_HEIGHT_EXCEEDED,
     SOLANA_ERROR__TRANSACTION_ERROR__ALREADY_PROCESSED,
-    type Address,
     type Instruction,
     type KeyPairSigner,
 } from '@solana/kit';
@@ -99,14 +98,22 @@ const RPC_URL = requireEnv('RPC_URL');
  * The signer is both the fee payer and the intent authority. The authority is part of the
  * receipt PDA seeds, so a third party who learns your namespace and key derives a different
  * receipt and cannot consume or block your intent.
+ *
+ * Resolved in an immediately-invoked function so the validated value is typed `string`. A
+ * plain `const path = process.env.KEYPAIR ?? process.env.WALLET_PATH` followed by a throwing
+ * check does narrow at the point of the check, but TypeScript does not carry that narrowing
+ * into `main()`, because a function body may run at any time.
  */
-const KEYPAIR_PATH = process.env.KEYPAIR ?? process.env.WALLET_PATH;
-if (KEYPAIR_PATH === undefined || KEYPAIR_PATH.trim() === '') {
-    throw new Error(
-        'CommitOnce example: set KEYPAIR (or WALLET_PATH) to the path of a Solana CLI ' +
-            'keypair JSON file — a JSON array of 64 byte values.',
-    );
-}
+const KEYPAIR_PATH: string = (() => {
+    const path = process.env.KEYPAIR ?? process.env.WALLET_PATH;
+    if (path === undefined || path.trim() === '') {
+        throw new Error(
+            'CommitOnce example: set KEYPAIR (or WALLET_PATH) to the path of a Solana CLI ' +
+                'keypair JSON file — a JSON array of 64 byte values.',
+        );
+    }
+    return path.trim();
+})();
 
 /** Subscriptions are only needed by sendAndConfirm. Derive ws:// from http:// unless told otherwise. */
 const RPC_WS_URL = process.env.RPC_WS_URL ?? RPC_URL.replace(/^http/, 'ws');
@@ -248,7 +255,7 @@ async function submitGuardedTransfer(args: GuardedTransferArgs): Promise<Submiss
             (m) => setTransactionMessageLifetimeUsingBlockhash(latestBlockhash, m),
         );
 
-        const transaction = await signTransactionMessageWithSigners(message);
+        const transaction = asBlockhashTransaction(await signTransactionMessageWithSigners(message));
         const signature = getSignatureFromTransaction(transaction);
 
         line(
@@ -309,6 +316,43 @@ async function submitGuardedTransfer(args: GuardedTransferArgs): Promise<Submiss
         }
     }
     throw new Error('unreachable: the attempt loop always returns or throws');
+}
+
+// ---------------------------------------------------------------------------------------
+// Transaction lifetime narrowing
+// ---------------------------------------------------------------------------------------
+
+/**
+ * The parameter type `sendAndConfirmTransactionFactory` actually accepts. Derived from the
+ * factory rather than written out, so this keeps compiling if its requirements change.
+ */
+type ConfirmableTransaction = Parameters<ReturnType<typeof sendAndConfirmTransactionFactory>>[0];
+
+/**
+ * Narrow a signed transaction to the blockhash-lifetime variant.
+ *
+ * `signTransactionMessageWithSigners` declares its return type as the *union*
+ * `TransactionWithLifetime` — blockhash or durable nonce — so the blockhash lifetime that
+ * `setTransactionMessageLifetimeUsingBlockhash` established is erased before the value reaches
+ * `sendAndConfirmTransactionFactory`, which requires the blockhash variant.
+ *
+ * Every transaction in this file sets a blockhash lifetime and nothing afterwards can change
+ * that, so the narrowing is accurate. The runtime check keeps it honest rather than a blind
+ * cast: if the lifetime were ever something else, this throws instead of sending a transaction
+ * whose confirmation behaviour would be wrong. CommitOnce would reject such a transaction
+ * anyway — a durable nonce cannot be combined with an expiring receipt, which is
+ * `DurableNonceUnsupported`.
+ */
+function asBlockhashTransaction(
+    signed: Awaited<ReturnType<typeof signTransactionMessageWithSigners>>,
+): ConfirmableTransaction {
+    if (!('lastValidBlockHeight' in signed.lifetimeConstraint)) {
+        throw new Error(
+            'CommitOnce example: expected a blockhash lifetime but got a durable-nonce ' +
+                'transaction. CommitOnce rejects durable nonces when retention is not permanent.',
+        );
+    }
+    return signed as ConfirmableTransaction;
 }
 
 // ---------------------------------------------------------------------------------------
