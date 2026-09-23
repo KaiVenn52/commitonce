@@ -37,16 +37,41 @@ done
 # ---------------------------------------------------------------------------
 # SBPF architecture
 #
-# `anchor build` defaults to `--arch v3`, but the resulting ELF carries
-# `e_flags = 0x3` (CPU version 3), which LiteSVM 0.10.0 cannot verify: `add_program`
-# rejects it with `Instruction(InvalidAccountData)`. LiteSVM is Anchor 1.2.0's own
-# recommended test path, so building for v3 would mean shipping a program that the
-# project's test suite cannot execute.
+# v2, and the reason is a chain rather than a preference.
 #
-# SBPFv2 is accepted by LiteSVM, by devnet and by mainnet. The cost of choosing v2 is a
-# marginal difference in compute units and code size; the cost of choosing v3 is losing
-# the ability to run the program in a local test harness at all. Override with
-# SBPF_ARCH=v3 once the test harness supports it.
+# **A real Agave validator rejects a v2 artifact.** Running the program against
+# `solana-test-validator` 4.2.2 — not a harness, the actual runtime — fails at deploy with:
+#
+#     Detected sbpf_version required by the executable which are not enabled
+#     Program BPFLoaderUpgradeab1e11111111111111111111111111111111 failed
+#
+# and the same validator accepts a v3 artifact. A fresh validator activates every feature the
+# binary knows about, so it runs ahead of devnet; that is why the v2 deployment on devnet works
+# and why this was invisible until the program was run somewhere real.
+#
+# **The harness limitation that forced v2 is gone.** v2 was chosen because LiteSVM 0.10.0 could
+# not verify a v3 ELF (`e_flags = 0x3`) — `add_program` rejected it with
+# `Instruction(InvalidAccountData)` — and the test suite is the only thing that executes the
+# compiled artifact. LiteSVM **0.16.0 accepts both v2 and v3**, verified directly. So the
+# capability is there.
+#
+# **What blocks the switch is a dependency chain, not a capability.** Moving to 0.16.0 forces
+# `solana-hash ~4.5.0`, which conflicts with `solana-address-lookup-table-interface 4.0.0`
+# (`solana-hash ^4.6.0`); dropping that dev-dependency to 3.0.0 resolves the conflict, but
+# litesvm 0.16's tree then pulls `solana-syscalls 4.2.2`, which **does not compile for the host
+# at all** with stable Rust:
+#
+#     error[E0658]: use of unstable library feature `maybe_uninit_write_slice`
+#     --> solana-syscalls-4.2.2/src/lib.rs:2531:29
+#
+# That is still unstable on Rust 1.98.0, so this is not a `rustup update` away. It is a real
+# piece of work and it is the next thing to do here.
+#
+# **What this means today.** v2 is loadable on devnet (verified by running against it) and its
+# deploy succeeded there. The exposure is that a *future upgrade deploy* would be rejected once
+# the feature that gates v2 activates on the target cluster. A program already deployed keeps
+# running; it is the deploy path that breaks. `SBPF_ARCH=v3` builds the artifact a
+# current-feature-set runtime wants, for testing that claim directly.
 # ---------------------------------------------------------------------------
 ARCH="${SBPF_ARCH:-v2}"
 

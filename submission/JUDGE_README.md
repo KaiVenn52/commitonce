@@ -152,7 +152,7 @@ Stated plainly, because a submission that only lists successes is not evidence.
 | CPI into `claim` from another program | **Tested** in `tests/cpi.rs` — seven tests, including a **PDA authority signed through `invoke_signed`**, which is what a Squads vault needs. |
 | Genuine durable-nonce transactions | **Tested against devnet** in `apps/demo/nonce-policy.ts` — real nonce account, real nonce transaction, policy confirmed both ways. The harness cannot express one, which is why the Rust test injects the marker instead. |
 | Compute units on mainnet | Not measured. And the in-process harness does **not** match the runtime: devnet reported `claim` at 14,669 CU while the harness reports 9,283 (median). Budget from the devnet figure. |
-| SBPFv3 build | Not verified, and deliberately not shipped, because LiteSVM cannot verify it. |
+| SBPFv3 build | **Not shipped, and now known to matter**: a real `solana-test-validator` rejects the v2 artifact we ship and accepts v3. The harness limitation that forced v2 is gone (LiteSVM 0.16 accepts both); a dependency chain blocks the switch. Deployed programs keep running — it is the *deploy* path that would break. |
 | Concurrent claims of one key | Tested in two places. In-process: five transactions, one blockhash (one slot) — one commits, four fail `AlreadyCommitted`. Live on devnet: 5–8 competing transactions at real validators — same result. Caveat: the live runs spread over 2–3 slots, because a client cannot force a leader to pack them together. |
 
 ---

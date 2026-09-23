@@ -377,6 +377,41 @@ CommitOnce does **not**:
 
 ---
 
+## 8. Deployment risk: the artifact a current-feature-set runtime will load
+
+This is not a failure mode of the invariant, but it would stop the program from being
+deployed, so it belongs next to one.
+
+The project ships an **SBPFv2** artifact, because LiteSVM 0.10.0 could not verify a v3 ELF
+and the test suite is the only thing that executes the compiled artifact. Running the
+program against a **real Agave validator** (`solana-test-validator` 4.2.2) shows the cost:
+
+```
+Detected sbpf_version required by the executable which are not enabled
+Program BPFLoaderUpgradeab1e11111111111111111111111111111111 failed: invalid account data for instruction
+```
+
+The same validator accepts a v3 artifact. A fresh validator activates every feature the
+binary knows about, so it runs ahead of devnet — which is why the v2 deployment on devnet
+succeeded and why this was not visible there.
+
+**What is and is not exposed.**
+
+* A program already deployed **keeps running**. The check happens at load time.
+* The **deploy path** breaks: a future upgrade deploy of a v2 artifact would be rejected
+  once the feature that gates v2 activates on the target cluster.
+* Nothing about the invariant, the receipt layout or the SDK changes. This is a
+  build-target question, not a protocol one.
+
+**The fix is known and the blocker is recorded.** LiteSVM **0.16.0 accepts both v2 and v3**
+(verified directly), so the harness limitation that forced v2 is gone. Switching is blocked
+by a dependency chain: 0.16 forces `solana-hash ~4.5.0`, conflicting with
+`solana-address-lookup-table-interface 4.0.0`; that dev-dependency resolves at 3.0.0, after which
+litesvm 0.16 pulls `solana-syscalls 4.2.2`, which does not compile for the host on stable Rust.
+The chain is written out in `scripts/build.sh` so it does not have to be rediscovered.
+
+---
+
 ## 8. Failure modes that would break the guarantee
 
 These are the conditions under which the invariant would not hold. They are listed so that
