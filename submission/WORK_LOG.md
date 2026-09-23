@@ -220,7 +220,7 @@ working tree:
 | Overhead (structural, exact) | +404 bytes, +4 accounts | 2026-09-21 |
 | Overhead (compute units) | reported as a range: the earlier single figures were not reproducible | 2026-09-21 |
 | A/B demo executed against devnet | A reached counter 2 without the guard, B reached 1 with it; four signatures in [`EVIDENCE.md`](../EVIDENCE.md) and [`evidence/devnet-demo-run.log`](evidence/devnet-demo-run.log) | 2026-09-21 |
-| `verify.sh` full run | `RESULT: PASS (12 steps ran and passed)`, exit 0 | 2026-09-22 |
+| `verify.sh` full run | `RESULT: PASS (13 steps ran and passed)`, exit 0 | 2026-09-22 |
 | A/B demo executed against devnet | A reached counter 2 without the guard, B reached 1 with it; four signatures in [`EVIDENCE.md`](../EVIDENCE.md) and [`evidence/devnet-demo-run.log`](evidence/devnet-demo-run.log) | 2026-09-21 |
 | Live contention run | 5 attempts on one key: exactly 1 commit, 4 rejected onchain with `AlreadyCommitted`; spread over 2 slots | 2026-09-21 |
 | `sol-transfer` example executed | phase 1 committed, phase 2 blocked; recipient gained exactly one transfer | 2026-09-22 |

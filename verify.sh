@@ -17,7 +17,8 @@
 #   7. checks the brand assets against the site palette
 #   8. checks the documentation: links resolve, evidence logs are UTF-8, quoted test counts
 #      are counts that exist, and no corrected claim has crept back
-#   9. prints a PASS/FAIL summary and exits non-zero if anything failed or did not run
+#   9. checks that every tracked text file is valid UTF-8 and free of mojibake
+#  10. prints a PASS/FAIL summary and exits non-zero if anything failed or did not run
 #
 # What it does NOT do, and does not claim:
 #   * It does not deploy anything, to any cluster.
@@ -410,6 +411,15 @@ run_step "brand assets consistent (node scripts/check-brand.mjs)" \
 
 run_step "documentation consistent (node scripts/check-docs.mjs)" \
     sdk_run node scripts/check-docs.mjs
+
+# ---------------------------------------------------------------------------------------
+# Encoding. A file that is not valid UTF-8 is unreadable on Linux and binary to git; a
+# mojibake file is valid UTF-8 describing garbage, which no encoding validator alone sees.
+# This caught a real defect — three truncated em-dashes in scripts/check-docs.mjs.
+# ---------------------------------------------------------------------------------------
+
+run_step "text files are valid UTF-8 (node scripts/check-encoding.mjs)" \
+    sdk_run node scripts/check-encoding.mjs
 
 # ---------------------------------------------------------------------------------------
 # Summary and true exit code.
