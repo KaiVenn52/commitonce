@@ -1,0 +1,24 @@
+CommitOnce — is rent-exemption enforced by the runtime, or only by the harness?
+  rpc      http://127.0.0.1:8899
+  payer    25TUohqYd5b6f97wc5CjMwj89ZVL8oX81nhkWVHimYpY
+  version  4.2.2
+
+  receipt PDA  9aTbvo2gUNqN5v6gtuQ5EAjBf41n8xWVPrBd4ob6haKz
+
+1. an attacker sends the receipt PDA one lamport
+   attacker funded: 5U6nBoLTuBBirjxy… balance 10000000
+   REJECTED  {"InsufficientFundsForRent":{"account_index":"1n"}}
+     Program 11111111111111111111111111111111 invoke [1]
+     Program 11111111111111111111111111111111 success
+   account   does not exist
+
+2. the victim submits `claim` for that key
+   ACCEPTED  2zExufwJ9E2Acgz49Vn5AutYURnksnayaYFwBZERSKZyKvvZmCpbr67bL4bGqK6emKHpc1hEXs81BoRTP5nXCixU
+   explorer  https://explorer.solana.com/tx/2zExufwJ9E2Acgz49Vn5AutYURnksnayaYFwBZERSKZyKvvZmCpbr67bL4bGqK6emKHpc1hEXs81BoRTP5nXCixU?cluster=custom
+
+Interpretation:
+  If step 2 was ACCEPTED, the runtime does NOT refuse a non-rent-exempt writable
+  account, the one-lamport griefing attack is constructible, and the top-up path
+  in `claim` is the thing that defeats it.
+  If step 2 was REJECTED with InsufficientFundsForRent, the runtime refuses the
+  transaction before `claim` runs and the attack cannot be set up at all.

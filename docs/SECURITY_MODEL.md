@@ -140,13 +140,28 @@ transfer is rejected** and they pay the fee for nothing. An attacker who funds a
 threshold is absorbed by the top-up path above. LiteSVM 0.10 did not implement that check, which
 is why the test passed with one lamport for most of the project's life and does not now.
 
-The check is asserted in the test rather than described here, and one thing about it is **not
-established**: whether real Agave enforces it outside a harness is untested. LiteSVM 0.16
-implements it, and LiteSVM's purpose is to match Agave, but that is inference. If it does not,
-the top-up path is the only defence and this is exactly the residual above — the victim is
-donated to rather than blocked, so the guarantee still holds either way. It is recorded as open
-because "the attack cannot be constructed" and "the attack is absorbed" are different claims and
-only the second is proven here.
+The check is asserted in the test rather than described here, and it has been **confirmed against
+a real Agave validator** rather than only against the harness. `apps/demo/rent-exemption-check.ts`
+runs the scenario against `solana-test-validator` 4.2.2 — deploy both programs, fund an attacker,
+have it send the victim's receipt PDA one lamport, then have the victim submit `claim`. The
+attacker's transfer is refused by the runtime:
+
+```
+REJECTED  {"InsufficientFundsForRent":{"account_index":"1n"}}
+  Program 11111111111111111111111111111111 invoke [1]
+  Program 11111111111111111111111111111111 success
+account   does not exist
+```
+
+and the victim's claim then succeeds. So the rule is **Agave's, not LiteSVM's**, and the cheap
+form of this attack cannot be constructed on the real runtime either. Raw output:
+[`submission/evidence/validator-rent-exemption-check.log`](../submission/evidence/validator-rent-exemption-check.log).
+
+This matters because it is the difference between "the attack is absorbed by our code" and "the
+attack cannot be built". Both are true here, and they are different claims: the first is a
+property of `claim`, the second a property of the cluster. Only the first is guaranteed on a
+runtime that does not enforce the rule — which is why the top-up path stays, and why the residual
+below is a donation rather than a block.
 
 **Test:** `a_prefunded_receipt_pda_does_not_block_the_intent` — an attacker funds the victim's
 receipt PDA with one lamport, the victim's claim still commits, the counter advances once, and
