@@ -332,6 +332,10 @@ an error message string, because message text is not a stable contract.
 | **Pre-funded receipt PDA** | `a_prefunded_receipt_pda_does_not_block_the_intent` | one lamport sent to a victim's receipt PDA cannot deny them the key — **this test found a real defect**; see below |
 | **v0 + lookup tables** | `guarded_transaction_commits_in_a_v0_message_with_a_lookup_table`, `rebuilt_v0_retry_is_blocked_and_the_business_action_runs_once` | the invariant holds for the transaction shape production clients actually build |
 | **Signer not loaded** | `a_signer_in_a_lookup_table_stays_in_the_static_keys` | a loaded address cannot satisfy a signature, so a signer must stay static |
+| Rent | `close_returns_rent_deposit_to_the_configured_destination`, `close_requires_the_configured_refund_destination` | deposit cannot be redirected |
+| Reopen (documented cost) | `closing_frees_the_key_for_a_new_claim` | the window is finite, asserted not just described |
+| Nonce policy | `durable_nonce_transaction_is_rejected_for_finite_retention`, `..._allowed_for_permanent_retention`, `ordinary_transactions_are_not_mistaken_for_nonce_transactions` | policy holds in both directions |
+| Wire format | `receipt_account_layout_is_exactly_202_bytes`, `counter_account_layout_is_exactly_88_bytes`, `rent_deposit_matches_the_mainnet_rate` | layout and rent pinning |
 
 ### A defect this suite found: the pre-funded receipt PDA
 
@@ -422,10 +426,13 @@ than silently reopening the hole.
 
 The same test confirms the largest transaction the runtime allows is still scanned to completion,
 so the bound does not cause spurious refusals at the ceiling.
-| Rent | `close_returns_rent_deposit_to_the_configured_destination`, `close_requires_the_configured_refund_destination` | deposit cannot be redirected |
-| Reopen (documented cost) | `closing_frees_the_key_for_a_new_claim` | the window is finite, asserted not just described |
-| Nonce policy | `durable_nonce_transaction_is_rejected_for_finite_retention`, `..._allowed_for_permanent_retention`, `ordinary_transactions_are_not_mistaken_for_nonce_transactions` | policy holds in both directions |
-| Wire format | `receipt_account_layout_is_exactly_202_bytes`, `counter_account_layout_is_exactly_88_bytes`, `rent_deposit_matches_the_mainnet_rate` | layout and rent pinning |
+
+**Corroborated by an independent source.** Solana's versioned-transactions documentation states
+that the v1 message format's instruction count is a fixed-width `u8` field with a **maximum of
+64** (<https://solana.com/docs/core/transactions/versioned-transactions>). That is a different
+mechanism — a wire-format field width rather than the runtime's invocation trace — but it lands
+on the same number the probe discovers empirically, which is reassuring rather than
+load-bearing. The assertion is still the probe, not the document.
 
 ---
 
@@ -640,7 +647,7 @@ Listed explicitly, because a document that only lists successes is not evidence.
 | Real users | **None.** |
 | Traction, revenue, waitlist | **None.** No such numbers exist and none are claimed. |
 | Concurrent claims of the same key | **Tested, in two places, with a caveat.** In-process, `only_the_first_of_many_attempts_commits` builds five distinct signed transactions against one blockhash — i.e. one slot — and asserts exactly one commits while the other four each fail with `AlreadyCommitted`. On a live cluster, `apps/demo/concurrent-claim.ts` fires 5–8 competing transactions at real devnet validators and gets the same result (exactly one commits, the rest fail 6000). **The caveat:** the live runs spread across 2–3 slots rather than one, because a client cannot force a leader to pack its transactions together. So the same-slot case is proven in-process and the live case is proven across slots; neither experiment is the other. |
-| Transaction v1 (`VersionedTransaction` v1) | **Not tested.** v1 is live on mainnet as of epoch 1035, and it does not change message-hash deduplication, but the SDK and tests exercise legacy and v0 messages only. |
+| Transaction v1 (`VersionedTransaction` v1) | **Not tested.** v1 is active on mainnet, devnet and testnet, per Solana's own versioned-transactions documentation (<https://solana.com/docs/core/transactions/versioned-transactions>). It raises the size limit to 4,096 bytes, moves resource limits into a message config, and **removes address lookup tables** — so a v1 transaction inlines up to 64 addresses instead. The SDK and tests exercise legacy and v0 messages only. Whether v1 changes message-hash deduplication is an *expectation* rather than a measurement: the program reads the Instructions sysvar and depends on instruction data, account addresses and account ownership rather than on the message format, but that is reasoning, not a test. |
 | Address lookup tables / v0 messages | **Tested end-to-end, in `tests/versioned.rs`.** Three tests: the guard commits when the receipt PDA, the Instructions sysvar, the System Program and the business program all arrive through a lookup table; a rebuilt v0 retry is blocked with `AlreadyCommitted` and the counter stays at 1; and a signer listed in a table is *not* loaded from it, staying in the static keys. This was previously recorded as "expected to work, but not verified" — the guard reads the Instructions sysvar by transaction index rather than by account, so the read should be indifferent to how accounts resolved, but "should be" was not evidence. |
 | Non-Anchor clients | **Verified, and the limitation was previously overstated.** The SDK has **zero runtime dependencies**, imports nothing from Anchor's JavaScript library — every mention of "Anchor" in `packages/sdk/src/` is a comment explaining which discriminator is being reproduced — and hand-encodes the instruction discriminator, the Borsh body and the base64 event decoding. It has been executed against the deployed program on devnet repeatedly. What is **not** tested is a **CPI into `claim` from a non-Anchor on-chain program**; that needs a second program, and none has been written. |
 | CPI from another program | **Not tested.** `claim` is an ordinary instruction and a CPI should work, but no program in this repository calls it. |

@@ -207,7 +207,69 @@ for (const file of files.filter((f) => extname(f) === '.md')) {
 console.log(`test counts:    ${counts} quoted (outside ${HISTORY_FILE})`);
 
 // ---------------------------------------------------------------------------------------
-// 6. Every evidence log must be referenced by at least one document, or it is dead weight
+// 6. Orphaned markdown table rows.
+//
+// A row that has drifted away from its table renders as a paragraph of pipes, which looks like
+// a formatting accident to a reader and hides real content. It is also easy to create by hand:
+// inserting a section between a table and its last few rows leaves those rows stranded below.
+// That happened in EVIDENCE.md, where four rows ended up after two prose sections.
+//
+// Distinguishing an orphan from a legitimate table header needs the *next* line, not the
+// previous one: a header row is followed by a `|---|` separator, an orphan is not.
+//
+// Fenced code blocks are skipped. A TypeScript union type is written as a leading pipe
+// (`| null`, `| { readonly kind: ... }`), which is indistinguishable from a table row without
+// tracking the fence — and a check that flags five lines of a code sample gets switched off.
+// ---------------------------------------------------------------------------------------
+const isTableRow = (line) => /^\s*\|/.test(line);
+const isSeparator = (line) => /^\s*\|[\s:|-]+\|\s*$/.test(line) && line.includes('-');
+const isFence = (line) => /^\s*(```|~~~)/.test(line);
+
+let orphans = 0;
+for (const file of files.filter((f) => extname(f) === '.md')) {
+    const lines = readFileSync(file, 'utf8').split('\n');
+    let inFence = false;
+
+    for (let i = 0; i < lines.length; i += 1) {
+        if (isFence(lines[i])) {
+            inFence = !inFence;
+            continue;
+        }
+        if (inFence) continue;
+        if (!isTableRow(lines[i])) continue;
+
+        // The previous non-blank line, which must also be outside a fence.
+        let previous = null;
+        for (let j = i - 1; j >= 0; j -= 1) {
+            if (lines[j].trim() === '') continue;
+            if (isFence(lines[j])) break;
+            previous = lines[j];
+            break;
+        }
+        if (previous !== null && isTableRow(previous)) continue; // mid-table, fine
+        if (previous !== null && isSeparator(previous)) continue; // separator under a header
+
+        // Starting a table. Legitimate only if the next non-blank line is a separator.
+        let next = null;
+        for (let j = i + 1; j < lines.length; j += 1) {
+            if (lines[j].trim() === '') continue;
+            if (isFence(lines[j])) break;
+            next = lines[j];
+            break;
+        }
+        if (next !== null && isSeparator(next)) continue;
+
+        orphans += 1;
+        problems.push(
+            `${rel(file)}:${i + 1}  table row is not attached to a table: ` +
+                `"${lines[i].trim().slice(0, 60)}"`,
+        );
+    }
+}
+console.log(`table rows:     ${orphans} orphaned`);
+
+// ---------------------------------------------------------------------------------------
+// 7. Every evidence log must be referenced by at least one document, or it is dead weight
 //    that nobody will ever find.
 // ---------------------------------------------------------------------------------------
 for (const log of logs) {
