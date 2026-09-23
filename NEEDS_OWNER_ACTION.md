@@ -25,6 +25,10 @@ reading the actual failure. Where an attempt succeeded, the item is not listed h
 | 6 | Security audit | production trust | $15k–$60k | weeks |
 | 7 | Legal / entity | pre-seed, token, or paid contracts | varies | — |
 
+**Done, and no longer blocked:** the repository is published. It is public at
+**<https://github.com/KaiVenn52/commitonce>**, default branch `main`, Apache-2.0, with CI
+configured to run on every push.
+
 Items 1 and 2 are the highest leverage by a wide margin: the Colosseum FAQ states the pitch
 video is *"the most important element"* of a submission, and products are judged **only on
 work completed during the Contest Period**.
@@ -58,26 +62,29 @@ Winners announced by **2026-12-05**.
 
 **Actions required:**
 
-1. **Push the repository to GitHub.** It is a local git repository with commits, but it has no
-   remote and has never been pushed, so there is currently **no repo link to submit**. The
-   intended name is `commitonce-dev/commitonce` (the GitHub *user* handle `@CommitOnce` is taken
-   by a dormant account, hence the org-style name):
+1. ~~**Push the repository to GitHub.**~~ **Done.** It is public at
+   **<https://github.com/KaiVenn52/commitonce>**, default branch `main`, Apache-2.0. The
+   repository link to submit is:
 
-   ```bash
-   gh auth login                                     # or use a personal access token
-   gh repo create commitonce-dev/commitonce --public --source . --remote origin --push
-   # without the gh CLI:
-   #   git remote add origin git@github.com:commitonce-dev/commitonce.git
-   #   git push -u origin master
+   ```
+   https://github.com/KaiVenn52/commitonce
    ```
 
-   Check the push before submitting: `git ls-remote origin` should list the branch, and the
-   repository page should render `README.md`.
+   Verified after pushing: the local and remote `HEAD` match, an **anonymous** request to the
+   API returns `200` (so it is readable by a judge who is not signed in), all 133 tracked files
+   are present, and `README.md` renders.
+
+   The name is `KaiVenn52/commitonce` rather than the `commitonce-dev/commitonce` this file
+   previously suggested: the authenticated GitHub account is `KaiVenn52`, and creating an
+   organisation was not necessary to publish. If an organisation is created later, GitHub
+   redirects the old URL, so a link already submitted keeps working.
+
+   Before the submission, re-check it in a **private browser window** to prove it resolves for
+   someone who is not you.
 2. Record the two videos (item 2 below) and upload them; get the URLs.
-3. If the repository is private, grant read access to **`hackathon@colosseum.com`**.
-4. Confirm the repository is public or access is granted, then open the repo link in a
-   private browser window to prove it works for someone who is not you.
-5. Fill the form at <https://colosseum.com> and submit **before 11:59pm PT on 2026-10-12**.
+3. If the repository is ever made private, grant read access to **`hackathon@colosseum.com`**.
+   It is public today, so nothing is needed.
+4. Fill the form at <https://colosseum.com> and submit **before 11:59pm PT on 2026-10-12**.
 
 **Two compliance points that are easy to get wrong:**
 

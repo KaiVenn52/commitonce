@@ -313,3 +313,29 @@ jobs:
       # makes a derivation change visible in the log instead of only as a red test.
       - name: Golden vectors (independent recomputation)
         run: pnpm --filter @commitonce/solana vectors
+
+      # ---------------------------------------------------------------------------------
+      # Repository consistency
+      #
+      # These three are dependency-free Node scripts, so they need nothing installed. They are
+      # the same checks verify.sh runs locally, and they are the reason a renamed file, a
+      # stale test count or a mis-encoded file cannot reach main unnoticed.
+      # ---------------------------------------------------------------------------------
+
+      # Asserts every brand SVG colour comes from the site's CSS palette, that the compact
+      # mark has not regained the duplicate that is invisible below 48px, and that every
+      # exported PNG exists and is really a PNG.
+      - name: Brand assets consistent
+        run: node scripts/check-brand.mjs
+
+      # Asserts every relative link in every markdown AND html file resolves, that each
+      # evidence log is referenced by a document, that quoted test counts are counts the
+      # suites actually produce, and that no corrected claim has crept back.
+      - name: Documentation consistent
+        run: node scripts/check-docs.mjs
+
+      # Asserts every tracked text file is valid UTF-8 and free of mojibake. A file that is
+      # not valid UTF-8 is unreadable on Linux and binary to git; mojibake is valid UTF-8
+      # describing garbage, which an encoding validator alone cannot see.
+      - name: Text files are valid UTF-8
+        run: node scripts/check-encoding.mjs
