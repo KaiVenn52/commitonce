@@ -4,6 +4,13 @@ resolver = "2"
 
 [workspace.package]
 edition = "2021"
+# The *program* builds with the Solana platform-tools rustc, which is 1.95.0-dev, so this cannot
+# be raised past that — declaring 1.98.0 makes `cargo-build-sbf` refuse the workspace outright.
+#
+# The *test suite* needs 1.98.0, because litesvm 0.16 pulls solana-syscalls, which uses an
+# unstable standard-library feature that is still unstable on 1.89.0. That requirement lives in
+# `rust-toolchain.toml`, which pins the host toolchain, and is deliberately not expressed here:
+# the two toolchains are different and only one of them is under our control.
 rust-version = "1.89.0"
 
 [profile.release]

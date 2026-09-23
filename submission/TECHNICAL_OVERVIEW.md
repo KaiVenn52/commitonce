@@ -666,8 +666,8 @@ and reproduced against `target/deploy/` when this document was written):
 
 | Artifact | Size | SHA-256 |
 | --- | --- | --- |
-| `commit_once.so` | 160,008 bytes | `7e18f4d0c9cd17db6c03b3f2fe0bcb511d9264f9d0cf06ca5b8afc479035a0` |
-| `demo_counter.so` | 169,240 bytes | `a4d377e0fa54706779d032c64023b7c8ebee6c7e09fb8dd3d2b4a04fb7e95112` |
+| `commit_once.so` | 148,640 bytes | `af31807802e6f82e917e93e4f42172c23bbdda0dc1b2d609281d045364f6df45` |
+| `demo_counter.so` | 158,432 bytes | `dc524ce0d166eaf5305951fc41e97004c4c0b37ffee00c1c84c3f5f37df583c7` |
 
 Both are built for SBPFv2 (`readelf -h` reports `Flags: 0x2`).
 
@@ -713,7 +713,7 @@ successes is not evidence):
 | Non-Anchor clients | **Verified.** Zero runtime dependencies, nothing imported from Anchor's JS library; every "Anchor" in `packages/sdk/src/` is a comment naming the discriminator it reproduces. Run against the deployed program on devnet. |
 | CPI into `claim` from another program | **Tested** in `tests/cpi.rs` — seven tests, including a PDA authority via `invoke_signed`. See §9. |
 | Genuine durable-nonce transactions | **Tested against devnet** in `apps/demo/nonce-policy.ts`. The harness cannot express one — see §9 — so the Rust test injects the marker, and the live script closes that gap. |
-| SBPFv3 build | **Not shipped, and now known to matter** — a real Agave validator **rejects the v2 artifact this project ships**. Running the program against `solana-test-validator` 4.2.2 — the actual runtime, not a harness — fails at deploy with *"Detected sbpf_version required by the executable which are not enabled"*, and the same validator accepts a v3 artifact. A fresh validator activates every feature the binary knows about, so it runs ahead of devnet, which is why the v2 deployment on devnet works and why this was invisible until the program was run somewhere real. The harness limitation that originally forced v2 is gone — LiteSVM 0.16.0 accepts both, verified directly — so the capability exists; what blocks the switch is a dependency chain. Moving to 0.16.0 forces `solana-hash ~4.5.0`, which conflicts with `solana-address-lookup-table-interface 4.0.0`; dropping that to 3.0.0 resolves it, but litesvm 0.16's tree then pulls `solana-syscalls 4.2.2`, which does not compile for the host at all with stable Rust 1.98.0 (`maybe_uninit_write_slice` is still unstable). **Exposure today:** a program already deployed keeps running; it is the *deploy* path that breaks, so a future upgrade deploy would be rejected once that feature activates on the target cluster. |
+| SBPFv3 build | **Ships SBPFv3, and it was worth the work.** The artifact is `e_flags = 0x3`. It was v2 for most of the project, because LiteSVM 0.10.0 could not verify a v3 ELF and the test suite is the only thing that executes the compiled artifact. A real Agave validator (`solana-test-validator` 4.2.2) then showed that **it rejects a v2 artifact** — *"Detected sbpf_version required by the executable which are not enabled"* — and accepts v3. LiteSVM 0.16.0 accepts both, and the blocker I first recorded (litesvm 0.16's dependency tree) was wrong: the tree resolves once the dev-dependencies are pinned to litesvm's own requirements, and the `solana-syscalls` build failure came from this repository pinning Rust 1.89.0. On 1.98.0 it compiles with no flags. Both programs are redeployed as v3 on devnet. |
 | Compute units on mainnet | **Not measured.** |
 
 **Known limitations** (`docs/ARCHITECTURE.md` §11): the window is finite unless `permanent` is

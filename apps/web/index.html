@@ -726,13 +726,13 @@ bash verify.sh          # everything, with a PASS/FAIL summary and the true exit
       <div class="addrow">
         <span class="addrow-k">commit_once</span>
         <code class="addr">CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB</code>
-        <span class="addrow-m">deploy slot 503101216</span>
+        <span class="addrow-m">deploy slot 503174994</span>
         <button class="copy" type="button" data-copy="CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB">Copy</button>
       </div>
       <div class="addrow">
         <span class="addrow-k">demo_counter</span>
         <code class="addr">EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5</code>
-        <span class="addrow-m">deploy slot 503118191</span>
+        <span class="addrow-m">deploy slot 503175063</span>
         <button class="copy" type="button" data-copy="EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5">Copy</button>
       </div>
       <p class="deployed-note">
@@ -752,7 +752,7 @@ bash verify.sh          # everything, with a PASS/FAIL summary and the true exit
         <li>Third-party integration, real users, traction, revenue, waitlist. None.</li>
         <li>Transaction v1 (<code>VersionedTransaction</code> v1), and not for want of testing: the newest <em>stable</em> <code>@solana/kit</code> is 8.3.0, which is what this project pins, and v1 message support is canary-only. The SDK and tests exercise legacy and v0 messages.</li>
         <li>Genuine durable-nonce transactions in the <em>harness</em>. A real nonce transaction is inexpressible in LiteSVM 0.10.0, so the Rust tests assert the program's stricter behaviour — that the presence of the marker triggers the policy. They have since been exercised for real against devnet, where finite retention is refused and <code>permanent</code> is allowed.</li>
-        <li>SBPFv3 builds. Not shipped, and now known to matter: a real <code>solana-test-validator</code> <em>rejects</em> the v2 artifact this project ships and accepts v3. The harness limitation that forced v2 is gone — LiteSVM 0.16 accepts both — but a dependency chain blocks the switch. A deployed program keeps running; it is the deploy path that would break.</li>
+        <li>SBPFv3 is what ships (<code>e_flags = 0x3</code>). A real Agave validator <em>rejects</em> a v2 artifact and accepts v3, and LiteSVM 0.16 accepts both — so the artifact the runtime wants is also the one the test suite executes.</li>
         <li>Compute-unit figures on mainnet. Not measured.</li>
       </ul>
       <p class="srcrow">Source: <a class="src" href="../../EVIDENCE.md">EVIDENCE.md §7</a></p>

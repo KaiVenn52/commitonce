@@ -132,6 +132,22 @@ lever available, and the fix absorbs it.
 attacker who sends lamports is donating to the victim; any excess stays in the account and is
 refunded to `refund_destination` on close. There is no griefing value left in the vector.
 
+**And a runtime rule narrows the vector further.** A runtime refuses any transaction carrying a
+writable account that is not rent-exempt, *before executing anything*, with
+`InsufficientFundsForRent`. Rent-exempt for zero bytes is `128 × lamports_per_byte`, so the
+cheap version of this attack — one lamport — cannot even be set up: **the attacker's own
+transfer is rejected** and they pay the fee for nothing. An attacker who funds above the
+threshold is absorbed by the top-up path above. LiteSVM 0.10 did not implement that check, which
+is why the test passed with one lamport for most of the project's life and does not now.
+
+The check is asserted in the test rather than described here, and one thing about it is **not
+established**: whether real Agave enforces it outside a harness is untested. LiteSVM 0.16
+implements it, and LiteSVM's purpose is to match Agave, but that is inference. If it does not,
+the top-up path is the only defence and this is exactly the residual above — the victim is
+donated to rather than blocked, so the guarantee still holds either way. It is recorded as open
+because "the attack cannot be constructed" and "the attack is absorbed" are different claims and
+only the second is proven here.
+
 **Test:** `a_prefunded_receipt_pda_does_not_block_the_intent` — an attacker funds the victim's
 receipt PDA with one lamport, the victim's claim still commits, the counter advances once, and
 the receipt is then a *real* receipt: a rebuilt retry is blocked with `AlreadyCommitted`.
@@ -377,42 +393,44 @@ CommitOnce does **not**:
 
 ---
 
-## 8. Deployment risk: the artifact a current-feature-set runtime will load
+## 8. The artifact a current-feature-set runtime will load — resolved
 
-This is not a failure mode of the invariant, but it would stop the program from being
-deployed, so it belongs next to one.
+This was a live deployment risk and is now closed. It is kept because how it was found, and
+how the first diagnosis of it was wrong, are both instructive.
 
-The project ships an **SBPFv2** artifact, because LiteSVM 0.10.0 could not verify a v3 ELF
-and the test suite is the only thing that executes the compiled artifact. Running the
-program against a **real Agave validator** (`solana-test-validator` 4.2.2) shows the cost:
+The project shipped an **SBPFv2** artifact for most of its life, because LiteSVM 0.10.0 could
+not verify a v3 ELF and the test suite is the only thing that executes the compiled artifact.
+Running the program against a **real Agave validator** (`solana-test-validator` 4.2.2) showed
+the cost:
 
 ```
 Detected sbpf_version required by the executable which are not enabled
 Program BPFLoaderUpgradeab1e11111111111111111111111111111111 failed: invalid account data for instruction
 ```
 
-The same validator accepts a v3 artifact. A fresh validator activates every feature the
-binary knows about, so it runs ahead of devnet — which is why the v2 deployment on devnet
-succeeded and why this was not visible there.
+The same validator accepts v3. A fresh validator activates every feature the binary knows
+about, so it runs ahead of devnet — which is why the v2 deployment on devnet succeeded and why
+this was not visible there. The exposure was the **deploy path**: an already-deployed program
+keeps running, but a future upgrade deploy of a v2 artifact would have been rejected once that
+feature activated on the target cluster.
 
-**What is and is not exposed.**
+**The first diagnosis was wrong, and that is the part worth recording.** The upgrade was
+recorded as blocked by litesvm 0.16's dependency tree — a `solana-hash` conflict leading to
+`solana-syscalls` failing to compile for the host. The tree resolves fine once the
+dev-dependencies are pinned to litesvm's own requirements (it deliberately mixes 3.x and 4.x,
+which "bump everything to 4" gets wrong), and the `solana-syscalls` failure came from this
+repository pinning **Rust 1.89.0** in `rust-toolchain.toml`. On 1.98.0 the same crate compiles
+with no flags at all. A blocker that survives one round of investigation is not necessarily a
+blocker.
 
-* A program already deployed **keeps running**. The check happens at load time.
-* The **deploy path** breaks: a future upgrade deploy of a v2 artifact would be rejected
-  once the feature that gates v2 activates on the target cluster.
-* Nothing about the invariant, the receipt layout or the SDK changes. This is a
-  build-target question, not a protocol one.
-
-**The fix is known and the blocker is recorded.** LiteSVM **0.16.0 accepts both v2 and v3**
-(verified directly), so the harness limitation that forced v2 is gone. Switching is blocked
-by a dependency chain: 0.16 forces `solana-hash ~4.5.0`, conflicting with
-`solana-address-lookup-table-interface 4.0.0`; that dev-dependency resolves at 3.0.0, after which
-litesvm 0.16 pulls `solana-syscalls 4.2.2`, which does not compile for the host on stable Rust.
-The chain is written out in `scripts/build.sh` so it does not have to be rediscovered.
+**What changed.** `rust-toolchain.toml` pins 1.98.0, the dev-dependencies match litesvm 0.16's
+pins, `scripts/build.sh` builds `--arch v3`, and both programs are redeployed as v3 on devnet.
+The test suite runs against the v3 artifact, so the bytes that are verified are the bytes a
+current-feature-set runtime will load.
 
 ---
 
-## 8. Failure modes that would break the guarantee
+## 9. Failure modes that would break the guarantee
 
 These are the conditions under which the invariant would not hold. They are listed so that
 they can be watched for — and so that a reviewer can check them rather than trust the
@@ -446,7 +464,7 @@ rather than on an error string.
 
 ---
 
-## 9. Verification
+## 10. Verification
 
 ```bash
 bash scripts/build.sh   # builds both programs, verifies program IDs against deploy-keys/

@@ -34,7 +34,7 @@ Nothing here is optional. Every item on this list has cost someone a retake.
 
 - [ ] `bash verify.sh` completes and prints PASS. If it does not, fix that before recording.
 - [ ] `solana program show CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB --url devnet` shows
-      `Last Deployed In Slot: 503101216`; the demo counter shows `503118191`.
+      `Last Deployed In Slot: 503174994`; the demo counter shows `503175063`.
 - [ ] Throwaway devnet payer keypair funded with at least **0.1 SOL** (`export PAYER_KEYPAIR=…`).
       The runner funds two fresh authorities with 0.05 SOL each.
 - [ ] `node apps/demo/commitonce-demo.ts --help` runs.

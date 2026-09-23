@@ -37,43 +37,37 @@ done
 # ---------------------------------------------------------------------------
 # SBPF architecture
 #
-# v2, and the reason is a chain rather than a preference.
+# v3, which is also `anchor build`'s default. v2 was used for most of the project's life, for a
+# reason that turned out to be wrong twice over, and both corrections are worth keeping.
 #
-# **A real Agave validator rejects a v2 artifact.** Running the program against
-# `solana-test-validator` 4.2.2 — not a harness, the actual runtime — fails at deploy with:
+# **First correction: a real Agave validator rejects a v2 artifact.** Running the program against
+# `solana-test-validator` 4.2.2 — the actual runtime, not a harness — failed at deploy with
 #
 #     Detected sbpf_version required by the executable which are not enabled
 #     Program BPFLoaderUpgradeab1e11111111111111111111111111111111 failed
 #
-# and the same validator accepts a v3 artifact. A fresh validator activates every feature the
-# binary knows about, so it runs ahead of devnet; that is why the v2 deployment on devnet works
-# and why this was invisible until the program was run somewhere real.
+# while the same validator accepted v3. A fresh validator activates every feature the binary
+# knows about, so it runs ahead of devnet. That is why the v2 devnet deployment worked and why
+# this was invisible until the program was run somewhere real. The exposure was the *deploy*
+# path: an already-deployed program keeps running, but a future upgrade deploy of a v2 artifact
+# would be rejected once that feature activated on the target cluster.
 #
-# **The harness limitation that forced v2 is gone.** v2 was chosen because LiteSVM 0.10.0 could
-# not verify a v3 ELF (`e_flags = 0x3`) — `add_program` rejected it with
+# **Second correction: the blocker was the toolchain pin, not a dependency chain.** v2 existed
+# because LiteSVM 0.10.0 could not verify a v3 ELF — `add_program` rejected it with
 # `Instruction(InvalidAccountData)` — and the test suite is the only thing that executes the
-# compiled artifact. LiteSVM **0.16.0 accepts both v2 and v3**, verified directly. So the
-# capability is there.
+# compiled artifact. LiteSVM 0.16.0 accepts both. I first recorded the upgrade as blocked by
+# litesvm 0.16's dependency tree, and that was wrong: the tree resolves fine once the dev-deps
+# are pinned to litesvm's own requirements (it deliberately mixes 3.x and 4.x), and the
+# `solana-syscalls` build failure came from this repository pinning **Rust 1.89.0** in
+# `rust-toolchain.toml`. On the newer toolchain that crate compiles without any flags.
 #
-# **What blocks the switch is a dependency chain, not a capability.** Moving to 0.16.0 forces
-# `solana-hash ~4.5.0`, which conflicts with `solana-address-lookup-table-interface 4.0.0`
-# (`solana-hash ^4.6.0`); dropping that dev-dependency to 3.0.0 resolves the conflict, but
-# litesvm 0.16's tree then pulls `solana-syscalls 4.2.2`, which **does not compile for the host
-# at all** with stable Rust:
+# So the pin moved to 1.98.0, the dev-dependencies were matched to litesvm 0.16's own pins, and
+# v3 is now what ships. `SBPF_ARCH=v2` still builds the old artifact.
 #
-#     error[E0658]: use of unstable library feature `maybe_uninit_write_slice`
-#     --> solana-syscalls-4.2.2/src/lib.rs:2531:29
-#
-# That is still unstable on Rust 1.98.0, so this is not a `rustup update` away. It is a real
-# piece of work and it is the next thing to do here.
-#
-# **What this means today.** v2 is loadable on devnet (verified by running against it) and its
-# deploy succeeded there. The exposure is that a *future upgrade deploy* would be rejected once
-# the feature that gates v2 activates on the target cluster. A program already deployed keeps
-# running; it is the deploy path that breaks. `SBPF_ARCH=v3` builds the artifact a
-# current-feature-set runtime wants, for testing that claim directly.
+# If the toolchain pin is ever moved back, the test suite stops building — that is the load-
+# bearing part of this change, not the arch flag.
 # ---------------------------------------------------------------------------
-ARCH="${SBPF_ARCH:-v2}"
+ARCH="${SBPF_ARCH:-v3}"
 
 echo "=== anchor build (sbpf ${ARCH}) ==="
 anchor build --arch "$ARCH" "$@"

@@ -294,17 +294,30 @@ fn durable_nonce_transaction_is_allowed_for_permanent_retention() {
 /// The attack is cheap and needs nothing secret. A receipt PDA is derived from
 /// `(authority, namespace, key)`, and a namespace and key are typically semi-public — an
 /// order id, a job id, a checkout reference. So an attacker who learns them can compute the
-/// victim's receipt address and send it **one lamport**.
+/// victim's receipt address and send it lamports.
 ///
 /// That creates a system-owned account with lamports and *no data*. `claim` decides a receipt
 /// is absent with `data_is_empty()`, which is true for such an account, so it takes the
 /// create path — and `SystemInstruction::CreateAccount` refuses an account that already holds
-/// lamports. If that were the end of it, one lamport plus a fee would permanently deny the
-/// victim that idempotency key, and the victim's retries would fail forever with an error that
-/// has nothing to do with their intent.
+/// lamports. `claim` therefore tops the account up to rent-exempt and then `Allocate` +
+/// `Assign`s it, all signed by the PDA itself.
 ///
-/// `claim` therefore has to cope with a pre-funded PDA: top it up to rent-exempt, then
-/// `Allocate` and `Assign` it, all signed by the PDA itself.
+/// **The amount matters, and the reason is a runtime rule rather than a program one.** A
+/// runtime rejects any transaction with a writable account that is not rent-exempt *before it
+/// executes anything* — `InsufficientFundsForRent`. Rent-exempt for zero bytes is
+/// `128 * lamports_per_byte`, so at the harness's 6,960 that is 890,880 lamports: a PDA funded
+/// with 1 lamport cannot even be handed to `claim`. LiteSVM 0.10 did not implement that check,
+/// which is why this test used to pass with 1 lamport and does not now.
+///
+/// This test covers both, because they are different claims:
+///
+/// 1. **A rent-exempt pre-fund is absorbed.** The account is a legitimate writable account, the
+///    transaction executes, and the intent commits — the program's defence, working.
+/// 2. **A dust pre-fund is refused by the runtime**, before `claim` runs. That is worth
+///    asserting rather than hiding: it means the top-up path cannot help against an attacker
+///    who funds below the threshold, and the exposure is the *cluster's* rule rather than the
+///    program's logic. Whether Agave enforces it outside a harness is **not established here**
+///    and is recorded as open in `docs/SECURITY_MODEL.md`.
 #[test]
 fn a_prefunded_receipt_pda_does_not_block_the_intent() {
     banner("griefing: a pre-funded receipt PDA must not block the intent");
@@ -320,10 +333,14 @@ fn a_prefunded_receipt_pda_does_not_block_the_intent() {
     let key = "order_928";
     let victim_claim = ClaimArgs::new(victim, namespace, key, sha256(b"payload"));
 
-    // One lamport. This is the whole attack.
+    // --- 1. The rent-exempt pre-fund: the program absorbs it. --------------------------
     assert_success(&env.send_as(
         &attacker,
-        &[transfer_ix(attacker_pubkey, victim_claim.receipt(), 1)],
+        &[transfer_ix(
+            attacker_pubkey,
+            victim_claim.receipt(),
+            PREFUND_RENT_EXEMPT,
+        )],
         &[],
     ));
     assert!(
@@ -339,6 +356,37 @@ fn a_prefunded_receipt_pda_does_not_block_the_intent() {
     // And the guard must work normally afterwards: the receipt is real, not just present.
     let replay = env.send_distinct(&[victim_claim.instruction(), increment_ix(victim)], 1);
     assert_custom_error(&replay, E_ALREADY_COMMITTED);
+    assert_eq!(env.counter_value(&victim), 1);
+
+    // --- 2. The dust pre-fund: the ATTACK ITSELF is refused by the runtime. ------------
+    //
+    // This is stronger than "the victim survives". A transfer that would leave the PDA holding
+    // one lamport and no data is rejected on its own terms, so the attacker cannot set the trap
+    // up: their transaction fails and they pay the fee for nothing. The griefing vector this
+    // test was written for cannot be constructed on a runtime that enforces rent-exemption.
+    let mut env = Env::new();
+    let victim = env.authority_pubkey();
+    assert_success(&env.send(&[initialize_counter_ix(victim)]));
+    let attacker = env.fresh_funded(10);
+    let dust_claim = ClaimArgs::new(victim, namespace, "order_929", sha256(b"payload"));
+
+    let dusting = env.send_as(
+        &attacker,
+        &[transfer_ix(attacker.pubkey(), dust_claim.receipt(), 1)],
+        &[],
+    );
+    let refused = format!("{:?}", dusting.err());
+    assert!(
+        refused.contains("InsufficientFundsForRent"),
+        "a transfer leaving the PDA non-rent-exempt must be refused by the runtime; got {refused}"
+    );
+    assert!(
+        !env.account_exists(&dust_claim.receipt()),
+        "the dust account must not have been created"
+    );
+
+    // And with the trap unsettable, the victim's intent is unaffected.
+    assert_success(&env.send(&[dust_claim.instruction(), increment_ix(victim)]));
     assert_eq!(env.counter_value(&victim), 1);
 }
 

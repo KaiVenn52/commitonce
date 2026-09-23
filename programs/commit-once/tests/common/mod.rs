@@ -48,12 +48,26 @@ pub const MAINNET_LAMPORTS_PER_BYTE: u64 = 5080;
 /// Mainnet rent burn percentage.
 pub const MAINNET_BURN_PERCENT: u8 = 50;
 
+/// A pre-fund large enough to be rent-exempt for zero bytes.
+///
+/// A runtime refuses any transaction carrying a writable account that is not rent-exempt, so an
+/// attacker who wants their target's transaction to even *execute* has to fund above this line.
+/// At the harness's 6,960 lamports/byte that is `128 * 6960 = 890,880`; this is set comfortably
+/// above it. See `a_prefunded_receipt_pda_does_not_block_the_intent`.
+pub const PREFUND_RENT_EXEMPT: u64 = 1_000_000;
+
 /// A `Rent` sysvar matching live mainnet.
-#[allow(deprecated)] // the crate fields are deprecated in favour of a v4 rename
+///
+/// The field names changed in `solana-rent` 4.x: `lamports_per_byte_year` is now
+/// `lamports_per_byte`, and `exemption_threshold` is a little-endian `f64` in a byte array
+/// rather than an `f64`. The *values* are unchanged — `lamports_per_byte = 5080` with a
+/// threshold of `1.0` still gives the same rent-exempt minimum, which is what
+/// `mainnet_rent_exempt_minimum` computes independently and the tests assert against.
+#[allow(deprecated)] // the crate fields are deprecated in favour of `minimum_balance()`
 pub fn mainnet_rent() -> solana_rent::Rent {
     let mut rent = solana_rent::Rent::default();
-    rent.lamports_per_byte_year = MAINNET_LAMPORTS_PER_BYTE;
-    rent.exemption_threshold = 1.0;
+    rent.lamports_per_byte = MAINNET_LAMPORTS_PER_BYTE;
+    rent.exemption_threshold = 1.0f64.to_le_bytes();
     rent.burn_percent = MAINNET_BURN_PERCENT;
     rent
 }

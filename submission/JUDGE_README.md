@@ -61,7 +61,7 @@ solana program show CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB --url devnet
 solana program show EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5 --url devnet
 ```
 
-Expect `Last Deployed In Slot` **503101216** and **503118191**. The guard's deploy signature is
+Expect `Last Deployed In Slot` **503174994** and **503175063**. The guard's deploy signature is
 `274PANsUJf4N9jtP8arkuSmzP15TctKk4vgHHJupYHt14JsgwieEYhm1pYmtYVxcwfFUbdUcdFzvNH1cfRTWpui9`,
 visible on any devnet explorer.
 
@@ -122,7 +122,7 @@ verified).
 | | |
 | --- | --- |
 | Program ID (identical on all clusters) | `CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB` |
-| Devnet deployment | **live and executable**, deploy slot `503101216` |
+| Devnet deployment | **live and executable**, deploy slot `503174994` |
 | Rust tests | **54 passing, exit 0**, executing the real compiled SBF artifact in LiteSVM |
 | Composability, executed | System Program, SPL Token + Associated Token, **Token-2022**, an arbitrary Anchor program, a CPI from another program, and a **PDA authority via `invoke_signed`** |
 | SDK tests | **71 passing**, golden vectors cross-checked by an independent implementation |
@@ -152,7 +152,7 @@ Stated plainly, because a submission that only lists successes is not evidence.
 | CPI into `claim` from another program | **Tested** in `tests/cpi.rs` — seven tests, including a **PDA authority signed through `invoke_signed`**, which is what a Squads vault needs. |
 | Genuine durable-nonce transactions | **Tested against devnet** in `apps/demo/nonce-policy.ts` — real nonce account, real nonce transaction, policy confirmed both ways. The harness cannot express one, which is why the Rust test injects the marker instead. |
 | Compute units on mainnet | Not measured. And the in-process harness does **not** match the runtime: devnet reported `claim` at 14,669 CU while the harness reports 9,283 (median). Budget from the devnet figure. |
-| SBPFv3 build | **Not shipped, and now known to matter**: a real `solana-test-validator` rejects the v2 artifact we ship and accepts v3. The harness limitation that forced v2 is gone (LiteSVM 0.16 accepts both); a dependency chain blocks the switch. Deployed programs keep running — it is the *deploy* path that would break. |
+| SBPFv3 build | **Ships SBPFv3** (`e_flags = 0x3`). A real Agave validator rejects a v2 artifact and accepts v3; LiteSVM 0.16 accepts both. Redeployed as v3 on devnet. |
 | Concurrent claims of one key | Tested in two places. In-process: five transactions, one blockhash (one slot) — one commits, four fail `AlreadyCommitted`. Live on devnet: 5–8 competing transactions at real validators — same result. Caveat: the live runs spread over 2–3 slots, because a client cannot force a leader to pack them together. |
 
 ---
