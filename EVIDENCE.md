@@ -567,8 +567,8 @@ Run: `bash scripts/test.sh --test benchmarks -- --nocapture`
 
 | Operation | Compute units reported by the cluster |
 | --- | --- |
-| `claim` (succeeded) | 14,669 |
-| `claim` (blocked a duplicate) | 13,977 |
+| `claim` (succeeded) | 9,292 |
+| `claim` (blocked a duplicate) | 8,407 |
 | Business increment | 4,067 and 7,067 in the same run |
 
 **Provenance of each number, stated precisely:**
@@ -663,7 +663,7 @@ Listed explicitly, because a document that only lists successes is not evidence.
 | CPI from another program | **Tested, in `tests/cpi.rs`.** `demo-counter` gained `increment_guarded`, which calls `commit_once::claim` itself with the transaction signer as the authority (four tests), and `increment_guarded_by_vault`, which does the same with a **PDA** authority signed through `invoke_signed` (three tests). Seven in total. This was previously recorded as "should work, but no program here calls it", which is the difference between a claim and a measurement. |
 | Durable-nonce transactions, genuine | **Tested against a live cluster.** The harness cannot express one — LiteSVM 0.10.0 passes the transaction's own blockhash into the program environment, which makes the System Program's advance check and the runtime's nonce validation mutually exclusive — so `tests/security.rs` asserts the program's stricter behaviour by injecting the marker. `apps/demo/nonce-policy.ts` closes that gap for real: it creates a genuine nonce account on devnet, builds transactions whose blockhash *is* the stored nonce with `AdvanceNonceAccount` first, and simulates them. Finite retention is refused with `DurableNonceUnsupported` (6002); `permanent` is accepted. Raw output: [`submission/evidence/devnet-nonce-policy-run.log`](submission/evidence/devnet-nonce-policy-run.log). |
 | SBPFv3 build | **Ships SBPFv3, and it was worth the work.** The artifact is `e_flags = 0x3`. It was v2 for most of the project, because LiteSVM 0.10.0 could not verify a v3 ELF and the test suite is the only thing that executes the compiled artifact. A real Agave validator (`solana-test-validator` 4.2.2) then showed that **it rejects a v2 artifact** — *"Detected sbpf_version required by the executable which are not enabled"* — and accepts v3. LiteSVM 0.16.0 accepts both, and the blocker I first recorded (litesvm 0.16's dependency tree) was wrong: the tree resolves once the dev-dependencies are pinned to litesvm's own requirements, and the `solana-syscalls` build failure came from this repository pinning Rust 1.89.0. On 1.98.0 it compiles with no flags. Both programs are redeployed as v3 on devnet. |
-| CU figures on mainnet | **Not measured.** And the harness does not match the runtime: devnet reported `claim` at 14,669 CU against the harness's 9,283 median, so the in-process numbers are a lower bound. |
+| CU figures on mainnet | **Still not measured on mainnet** — no mainnet deployment. The "harness does not match the runtime" half of this row was wrong: **Measured on two real runtimes: `claim` costs 9,292 CU.** devnet (4.3.0-rc.0) and a local `solana-test-validator` (4.2.2) report the identical figure, and the harness median is 9,283 CU — within 0.1%. The 14,669 CU figure this row used to quote was taken on a build from before the pre-funded-PDA fix and the CPI instruction, and was never re-measured. Raw output: [`submission/evidence/devnet-cu-measurement.log`](submission/evidence/devnet-cu-measurement.log), [`submission/evidence/validator-cu-measurement.log`](submission/evidence/validator-cu-measurement.log). |
 
 ---
 

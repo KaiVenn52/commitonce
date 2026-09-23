@@ -103,7 +103,7 @@ instructions, and both are asserted by tests rather than described in prose:
 | Rust test suite | **54 passing, exit 0**, executing the real compiled SBF artifact through LiteSVM |
 | SDK test suite | **71 passing**, golden vectors cross-checked by an independent implementation |
 | Composability | **executed on devnet** with the System Program, with SPL Token + Associated Token in one transaction, with **Token-2022**, and with an arbitrary Anchor program. The fourth example composes cleanly with a **real Jupiter swap transaction** in dry-run mode; execution there is not possible today |
-| Measured overhead | **+404 bytes, +4 accounts** (usually +3 in practice); `claim` consumed 14,669 CU on devnet |
+| Measured overhead | **+404 bytes, +4 accounts** (usually +3 in practice); `claim` consumed 9,292 CU on devnet |
 | Receipt account | 202 bytes, 1,676,400 lamports rent (0.0016764 SOL), fully refundable on cleanup |
 | Mainnet | **not deployed** |
 | Audit | **not audited** |

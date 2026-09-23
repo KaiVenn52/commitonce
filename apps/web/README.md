@@ -71,12 +71,12 @@ document and section it draws on. The mapping:
 | 54 Rust tests, exit 0; per-file counts 11/10/12/3/7/10/1 | `EVIDENCE.md` §4 |
 | 71 SDK tests | `EVIDENCE.md` §5 |
 | +404 bytes / +4 accounts (exact); compute units as a range | `EVIDENCE.md` §6 |
-| Compute-unit ranges, and devnet's 14,669 / 13,977 / 4,067 / 7,067 | `EVIDENCE.md` §6 |
+| Compute-unit ranges, and the measured 9,292 / 8,407 / 4,067 / 7,067 |
 | 202 bytes, 1,676,400 lamports, 0.0016764 SOL, 144 bytes, 4 accounts | `EVIDENCE.md` §6 |
 | 5080 lamports/byte, stale crate 6960, “37% too high”, 128 + 276 byte decomposition, 200,000 CU budget, ~11% of budget | `EVIDENCE.md` §6 |
 | Program ids, deploy slots 503174994 / 503175063, upgrade authority | `EVIDENCE.md` §3 |
 | Live contention: one key in 5–8 transactions, one commits, the rest fail `AlreadyCommitted`, spread over 2–3 slots | `EVIDENCE.md` §3 (“Live contention”); `submission/evidence/devnet-contention-run.log` |
-| The harness/runtime compute gap (14,669 devnet vs 9,283 in-process) | `EVIDENCE.md` §6, §7 |
+| The harness/runtime compute agreement (9,292 on devnet and on a local validator vs 9,283 in-process) |
 | Unaudited, mainnet not deployed, not on npm, no users, no integrations | `EVIDENCE.md` §7 |
 | The “not verified” list | `EVIDENCE.md` §7 |
 | Known limitations | `README.md` § Known limitations; `docs/SECURITY_MODEL.md` §7 |

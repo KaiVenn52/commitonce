@@ -68,8 +68,8 @@ run, so they are given as a range (see `EVIDENCE.md` §6).
 | With the guard | 12,404 – 22,904 | 677 | 7 |
 | **Guard delta** | **+8,337 – +12,837** | **+404** | **+4** |
 
-On devnet the `claim` instruction itself consumed **14,669 CU** when it succeeded and
-**13,977 CU** when it rejected a duplicate. Budget ~23,000 CU for a guarded transaction.
+On devnet the `claim` instruction itself consumed **9,292 CU** when it succeeded and
+**8,407 CU** when it rejected a duplicate. Budget ~23,000 CU for a guarded transaction.
 
 The receipt account is 202 bytes and costs **0.0016764 SOL** in rent, which is **fully
 refundable** — `closeReceiptInstruction()` returns all of it once the retention window has

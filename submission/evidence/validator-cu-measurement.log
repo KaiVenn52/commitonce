@@ -1,0 +1,17 @@
+CommitOnce — what does `claim` cost on a real Agave runtime?
+  rpc      http://127.0.0.1:8899
+  version  4.2.2
+
+the runtime's own figures:
+  claim (creates receipt)    ok        commit_once    9292 CU   transaction total    9292 CU
+  claim (blocked duplicate)  rejected  commit_once    8359 CU   transaction total    8359 CU
+      err  {"InstructionError":["0n",{"Custom":"6000n"}]}
+      Program CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB invoke [1]
+      Program log: Instruction: Claim
+      Program log: CommitOnce: duplicate intent blocked (already committed at slot 677)
+      Program log: AnchorError thrown in programs/commit-once/src/instructions/claim.rs:146. Error Code: AlreadyCommitted. Error Number: 6000. Error Message: This intent has already been committed.
+      Program CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB consumed 8359 of 200000 compute units
+      Program CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB failed: custom program error: 0x1770
+
+Compare against the harness in EVIDENCE.md: claim alone reports a 9,283 median
+over nine environments, with a 12,283 maximum.

@@ -142,8 +142,8 @@ deterministic and are the numbers that actually determine the wire cost and the 
 
 | Compute units, per operation | Observed on devnet | In-process harness (median) |
 | --- | --- | --- |
-| `claim` alone | 14,669 | 9,283 |
-| `claim` blocked as a duplicate | 13,977 | 8,053 |
+| `claim` alone | 9,292 | 9,283 |
+| `claim` blocked as a duplicate | 8,407 | 8,053 |
 | `close_receipt` (cleanup) | not measured | 2,701 (no variance observed) |
 | Business action alone | 4,067 / 7,067 | 5,567 |
 
@@ -164,7 +164,7 @@ practice it is usually +3. That is the whole cost, and it is exact.
 *The compute cost is the weaker claim, so it is stated as a range.* The same unmodified test
 binary, running the same byte-identical `.so`, has reported a bare counter increment anywhere
 from 4,067 to 10,067 CU and the guard delta from 8,337 to 12,837. On devnet the `claim`
-instruction consumed 14,669 CU when it succeeded and 13,977 CU when it rejected a duplicate —
+instruction consumed 9,292 CU when it succeeded and 8,407 CU when it rejected a duplicate —
 higher than the in-process harness reports, which is one more reason to trust the cluster over
 the harness. **Budget ~23,000 CU for a guarded transaction**, which is about 11% of the
 200,000 CU default budget and well under the 400,000 CU limit the demo transactions were
