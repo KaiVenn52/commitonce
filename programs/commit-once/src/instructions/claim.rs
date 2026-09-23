@@ -223,7 +223,11 @@ fn create_receipt<'info>(
                     receipt_info.key,
                     lamports.saturating_sub(funded),
                 ),
-                &[authority_info, receipt_info.clone(), system_program_info.clone()],
+                &[
+                    authority_info,
+                    receipt_info.clone(),
+                    system_program_info.clone(),
+                ],
             )?;
         }
         invoke_signed(
@@ -245,7 +249,9 @@ fn create_receipt<'info>(
             clock
                 .slot
                 .saturating_add(retention_seconds.saturating_mul(SLOTS_PER_SECOND)),
-            clock.unix_timestamp.saturating_add(retention_seconds as i64),
+            clock
+                .unix_timestamp
+                .saturating_add(retention_seconds as i64),
         )
     };
 

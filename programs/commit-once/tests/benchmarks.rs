@@ -159,11 +159,18 @@ fn measured_receipt_deposit(env: &mut Env, claim: &ClaimArgs) -> (u64, usize) {
 
     let meta = match env.send(&[claim.instruction()]) {
         Ok(meta) => meta,
-        Err(failed) => panic!("claim failed: {:?}\n{}", failed.err, failed.meta.pretty_logs()),
+        Err(failed) => panic!(
+            "claim failed: {:?}\n{}",
+            failed.err,
+            failed.meta.pretty_logs()
+        ),
     };
 
     let after = env.lamports(&authority);
-    let account = env.svm.get_account(&claim.receipt()).expect("receipt exists");
+    let account = env
+        .svm
+        .get_account(&claim.receipt())
+        .expect("receipt exists");
 
     // The authority pays both the deposit and the transaction fee, so the account balance
     // alone would conflate the two. Assert the decomposition instead of assuming it.
@@ -243,8 +250,8 @@ fn guard_overhead_is_measured() {
     let authority = env.authority_pubkey();
     let blockhash = env.svm.latest_blockhash();
 
-    let claim = ClaimArgs::new(authority, "bench", "order-1", sha256(b"payload"))
-        .retention(MIN_RETENTION);
+    let claim =
+        ClaimArgs::new(authority, "bench", "order-1", sha256(b"payload")).retention(MIN_RETENTION);
     let bare_ixs = [increment_ix(authority)];
     let guarded_ixs = [claim.instruction(), increment_ix(authority)];
 
@@ -253,8 +260,8 @@ fn guard_overhead_is_measured() {
     let guarded_size = legacy_wire_size(&guarded_ixs, &authority, &blockhash);
     let guarded_accounts = account_count(&guarded_ixs, &authority, &blockhash);
 
-    let deposit_claim = ClaimArgs::new(authority, "bench", "deposit", sha256(b"p"))
-        .retention(MIN_RETENTION);
+    let deposit_claim =
+        ClaimArgs::new(authority, "bench", "deposit", sha256(b"p")).retention(MIN_RETENTION);
     let (deposit, receipt_len) = measured_receipt_deposit(&mut env, &deposit_claim);
 
     // ------------------------------------------------------------------
@@ -263,11 +270,19 @@ fn guard_overhead_is_measured() {
     println!("\n================ CommitOnce guard overhead ================");
 
     println!("\n-- Compute units: min / median / max over {RUNS} fresh environments --");
-    println!("   (LiteSVM's compute accounting is not reproducible run to run; see the module docs)");
+    println!(
+        "   (LiteSVM's compute accounting is not reproducible run to run; see the module docs)"
+    );
     println!("  business action alone .............. {}", bare.render());
     println!("  claim alone ........................ {}", solo.render());
-    println!("  claim + business action (first) .... {}", guarded.render());
-    println!("  duplicate blocked (rebuild) ........ {}", duplicate.render());
+    println!(
+        "  claim + business action (first) .... {}",
+        guarded.render()
+    );
+    println!(
+        "  duplicate blocked (rebuild) ........ {}",
+        duplicate.render()
+    );
     println!("  close_receipt (cleanup) ............ {}", close.render());
     println!(
         "  guard delta vs bare (medians) ...... {:>7}",
@@ -275,7 +290,9 @@ fn guard_overhead_is_measured() {
     );
 
     println!("\n-- Transaction wire size, legacy format (computed from the wire layout; exact) --");
-    println!("  business action alone .............. {bare_size:>7} bytes, {bare_accounts} accounts");
+    println!(
+        "  business action alone .............. {bare_size:>7} bytes, {bare_accounts} accounts"
+    );
     println!("  claim + business action ............ {guarded_size:>7} bytes, {guarded_accounts} accounts");
     println!(
         "  guard delta ........................ {:>7} bytes, {} accounts",
@@ -286,19 +303,38 @@ fn guard_overhead_is_measured() {
     println!("\n-- Receipt account (measured; exact) --");
     println!("  data length ........................ {receipt_len:>7} bytes");
     println!("  rent deposit ....................... {deposit:>7} lamports");
-    println!("  rent deposit ....................... {:>7.7} SOL", deposit as f64 / 1e9);
-    println!("  mainnet rate applied ............... {:>7} lamports/byte", MAINNET_LAMPORTS_PER_BYTE);
+    println!(
+        "  rent deposit ....................... {:>7.7} SOL",
+        deposit as f64 / 1e9
+    );
+    println!(
+        "  mainnet rate applied ............... {:>7} lamports/byte",
+        MAINNET_LAMPORTS_PER_BYTE
+    );
 
     println!("\n-- Instruction data (measured; exact) --");
-    println!("  claim data length .................. {:>7} bytes", claim.instruction().data.len());
-    println!("  claim accounts ..................... {:>7}", claim.instruction().accounts.len());
+    println!(
+        "  claim data length .................. {:>7} bytes",
+        claim.instruction().data.len()
+    );
+    println!(
+        "  claim accounts ..................... {:>7}",
+        claim.instruction().accounts.len()
+    );
 
     println!("\n===========================================================\n");
 
     // Structural assertions: these are exact, so drift must fail the suite.
     assert_eq!(receipt_len, 202, "receipt account size changed");
-    assert_eq!(deposit, RECEIPT_RENT_LAMPORTS, "receipt rent deposit changed");
-    assert_eq!(claim.instruction().data.len(), 144, "claim instruction size changed");
+    assert_eq!(
+        deposit, RECEIPT_RENT_LAMPORTS,
+        "receipt rent deposit changed"
+    );
+    assert_eq!(
+        claim.instruction().data.len(),
+        144,
+        "claim instruction size changed"
+    );
     assert_eq!(bare_size, 273, "bare wire size changed");
     assert_eq!(guarded_size, 677, "guarded wire size changed");
     assert_eq!(bare_accounts, 3, "bare account count changed");

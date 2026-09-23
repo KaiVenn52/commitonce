@@ -51,7 +51,10 @@ fn commit_once_discriminators_are_well_formed() {
 
     assert_eq!(claim.len(), 8);
     assert_ne!(claim, close, "instruction names must not collide");
-    assert_ne!(claim, receipt, "instruction and account namespaces must not collide");
+    assert_ne!(
+        claim, receipt,
+        "instruction and account namespaces must not collide"
+    );
 }
 
 #[test]

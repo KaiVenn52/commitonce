@@ -169,8 +169,8 @@ fn unsupported_receipt_version_is_rejected() {
 fn refund_destination_cannot_be_the_default_pubkey() {
     let mut env = Env::new();
     let authority = env.authority_pubkey();
-    let claim = ClaimArgs::new(authority, "ns", "k", sha256(b"payload"))
-        .refund_to(Pubkey::default());
+    let claim =
+        ClaimArgs::new(authority, "ns", "k", sha256(b"payload")).refund_to(Pubkey::default());
 
     let res = env.send(&[claim.instruction()]);
     assert_custom_error(&res, E_INVALID_REFUND_DESTINATION);
@@ -257,8 +257,8 @@ fn durable_nonce_transaction_is_rejected_for_finite_retention() {
     let authority = env.authority_pubkey();
     assert_success(&env.send(&[initialize_counter_ix(authority)]));
 
-    let claim = ClaimArgs::new(authority, "ns", "nonce_case", sha256(b"payload"))
-        .retention(MIN_RETENTION);
+    let claim =
+        ClaimArgs::new(authority, "ns", "nonce_case", sha256(b"payload")).retention(MIN_RETENTION);
 
     let ixs = durable_nonce_ixs(&mut env, &[claim.instruction(), increment_ix(authority)]);
     let res = env.send(&ixs);
@@ -279,8 +279,7 @@ fn durable_nonce_transaction_is_allowed_for_permanent_retention() {
     let authority = env.authority_pubkey();
     assert_success(&env.send(&[initialize_counter_ix(authority)]));
 
-    let claim =
-        ClaimArgs::new(authority, "ns", "nonce_permanent", sha256(b"payload")).retention(0);
+    let claim = ClaimArgs::new(authority, "ns", "nonce_permanent", sha256(b"payload")).retention(0);
 
     let ixs = durable_nonce_ixs(&mut env, &[claim.instruction(), increment_ix(authority)]);
     let res = env.send(&ixs);
@@ -353,8 +352,8 @@ fn ordinary_transactions_are_not_mistaken_for_nonce_transactions() {
 
     // A transaction containing a *different* System Program instruction, plus a
     // CommitOnce guard, must be accepted.
-    let claim = ClaimArgs::new(authority, "ns", "no_nonce", sha256(b"payload"))
-        .retention(MIN_RETENTION);
+    let claim =
+        ClaimArgs::new(authority, "ns", "no_nonce", sha256(b"payload")).retention(MIN_RETENTION);
     let res = env.send(&[
         claim.instruction(),
         transfer_ix(authority, recipient, 1_000_000),
@@ -372,11 +371,7 @@ fn ordinary_transactions_are_not_mistaken_for_nonce_transactions() {
 /// the relationship that actually matters.
 ///
 /// Returns the largest instruction count that executed successfully.
-fn discover_instruction_ceiling(
-    env: &mut Env,
-    authority: Pubkey,
-    recipient: Pubkey,
-) -> usize {
+fn discover_instruction_ceiling(env: &mut Env, authority: Pubkey, recipient: Pubkey) -> usize {
     let mut largest_ok = 0usize;
 
     // 2 instructions is the floor: the guard plus one business instruction. 120 is well
@@ -447,8 +442,8 @@ fn scan_bound_sits_above_the_runtime_instruction_ceiling() {
 
     // And the largest transaction the runtime allows must still be scanned to completion,
     // so the bound does not cause spurious refusals at the ceiling.
-    let claim = ClaimArgs::new(authority, "ns", "at_ceiling", sha256(b"payload"))
-        .retention(MIN_RETENTION);
+    let claim =
+        ClaimArgs::new(authority, "ns", "at_ceiling", sha256(b"payload")).retention(MIN_RETENTION);
     let mut ixs: Vec<solana_instruction::Instruction> = (0..ceiling - 2)
         .map(|_| transfer_ix(authority, recipient, 0))
         .collect();

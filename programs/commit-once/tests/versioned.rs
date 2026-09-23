@@ -45,7 +45,11 @@ fn guarded_transaction_commits_in_a_v0_message_with_a_lookup_table() {
     ];
     let table = env.create_lookup_table(&looked_up);
 
-    let res = env.send_v0(&[claim.instruction(), increment_ix(authority)], table, &looked_up);
+    let res = env.send_v0(
+        &[claim.instruction(), increment_ix(authority)],
+        table,
+        &looked_up,
+    );
 
     assert_success(&res);
     assert_eq!(env.counter_value(&authority), 1);

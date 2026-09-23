@@ -81,10 +81,16 @@ fn with_guard_rebuilt_retry_is_blocked_and_business_action_runs_once() {
     let tx_a = env.build(&guarded, &[], blockhash_a);
     let sig_a = tx_a.signatures[0];
 
-    let meta_a = env.svm.send_transaction(tx_a).expect("first attempt must succeed");
+    let meta_a = env
+        .svm
+        .send_transaction(tx_a)
+        .expect("first attempt must succeed");
     assert_eq!(meta_a.signature, sig_a);
     assert_eq!(env.counter_value(&authority), 1, "business action ran once");
-    assert!(env.account_exists(&receipt), "receipt must exist after commit");
+    assert!(
+        env.account_exists(&receipt),
+        "receipt must exist after commit"
+    );
 
     // Same fault injection as the baseline test: response lost, fresh blockhash.
     env.svm.expire_blockhash();
@@ -140,7 +146,11 @@ fn downstream_failure_rolls_back_the_receipt() {
 
     // The transfer cannot succeed: it exceeds the authority's balance.
     let doomed_transfer = transfer_ix(authority, stranger, 1_000_000 * LAMPORTS_PER_SOL);
-    let res = env.send(&[claim.instruction(), increment_ix(authority), doomed_transfer]);
+    let res = env.send(&[
+        claim.instruction(),
+        increment_ix(authority),
+        doomed_transfer,
+    ]);
     let failed = match res {
         Ok(_) => panic!("the transaction must fail"),
         Err(failed) => failed,
@@ -185,13 +195,27 @@ fn same_key_different_payload_is_an_idempotency_conflict() {
 
     assert_success(&env.send(&[initialize_counter_ix(authority)]));
 
-    let first = ClaimArgs::new(authority, "payments:transfer", "order_928", sha256(b"send 10 USDC to Alice"));
+    let first = ClaimArgs::new(
+        authority,
+        "payments:transfer",
+        "order_928",
+        sha256(b"send 10 USDC to Alice"),
+    );
     let receipt = first.receipt();
     assert_success(&env.send(&[first.instruction(), increment_ix(authority)]));
     assert_eq!(env.counter_value(&authority), 1);
 
-    let second = ClaimArgs::new(authority, "payments:transfer", "order_928", sha256(b"send 100 USDC to Bob"));
-    assert_eq!(second.receipt(), receipt, "same key resolves to the same receipt");
+    let second = ClaimArgs::new(
+        authority,
+        "payments:transfer",
+        "order_928",
+        sha256(b"send 100 USDC to Bob"),
+    );
+    assert_eq!(
+        second.receipt(),
+        receipt,
+        "same key resolves to the same receipt"
+    );
 
     let res = env.send(&[second.instruction(), increment_ix(authority)]);
     assert_custom_error(&res, E_IDEMPOTENCY_CONFLICT);
@@ -255,7 +279,11 @@ fn same_textual_key_under_different_authorities_does_not_collide() {
 
     assert_success(&env.send(&[mine.instruction(), increment_ix(authority)]));
     // A different authority reusing the identical textual key is not blocked.
-    assert_success(&env.send_as(&other, &[theirs.instruction(), increment_ix(other_pubkey)], &[]));
+    assert_success(&env.send_as(
+        &other,
+        &[theirs.instruction(), increment_ix(other_pubkey)],
+        &[],
+    ));
 
     assert_eq!(env.counter_value(&authority), 1);
     assert_eq!(env.counter_value(&other_pubkey), 1);
@@ -443,9 +471,18 @@ fn identical_rebroadcast_still_rejected_by_the_runtime() {
     let authority = env.authority_pubkey();
     assert_success(&env.send(&[initialize_counter_ix(authority)]));
 
-    let claim = ClaimArgs::new(authority, "demo:counter", "rebroadcast", sha256(b"increment"));
+    let claim = ClaimArgs::new(
+        authority,
+        "demo:counter",
+        "rebroadcast",
+        sha256(b"increment"),
+    );
     let blockhash = env.svm.latest_blockhash();
-    let tx = env.build(&[claim.instruction(), increment_ix(authority)], &[], blockhash);
+    let tx = env.build(
+        &[claim.instruction(), increment_ix(authority)],
+        &[],
+        blockhash,
+    );
 
     // Byte-for-byte identical: same message, same signature. This is what a client that
     // correctly re-submits the *same* transaction does.

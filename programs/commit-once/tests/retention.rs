@@ -68,7 +68,10 @@ fn retention_boundaries_are_accepted() {
     let (mut env, claim, _) = claim_with_retention(0);
     assert_success(&env.send(&[claim.instruction()]));
     let stored = env.read_receipt(&claim.receipt());
-    assert!(stored.is_permanent(), "retention 0 must produce a permanent receipt");
+    assert!(
+        stored.is_permanent(),
+        "retention 0 must produce a permanent receipt"
+    );
     assert_eq!(stored.expires_at_slot, 0);
     assert_eq!(stored.expires_at_unix_ts, 0);
 }
@@ -101,13 +104,22 @@ fn receipt_cannot_be_closed_before_expiry() {
     // Slot deadline not yet reached, wall clock already past: must still fail.
     env.set_slot(stored.expires_at_slot - 1);
     env.set_unix_timestamp(stored.expires_at_unix_ts + 10_000);
-    assert_custom_error(&env.send_distinct(&[close.clone()], 0), E_RECEIPT_NOT_EXPIRED);
-    assert!(env.account_exists(&receipt), "receipt must survive a rejected close");
+    assert_custom_error(
+        &env.send_distinct(&[close.clone()], 0),
+        E_RECEIPT_NOT_EXPIRED,
+    );
+    assert!(
+        env.account_exists(&receipt),
+        "receipt must survive a rejected close"
+    );
 
     // Wall clock not yet reached, slot deadline already past: must still fail.
     env.set_slot(stored.expires_at_slot + 10_000);
     env.set_unix_timestamp(stored.expires_at_unix_ts - 1);
-    assert_custom_error(&env.send_distinct(&[close.clone()], 1), E_RECEIPT_NOT_EXPIRED);
+    assert_custom_error(
+        &env.send_distinct(&[close.clone()], 1),
+        E_RECEIPT_NOT_EXPIRED,
+    );
     assert!(env.account_exists(&receipt));
 
     // Both gates passed: closes.
@@ -182,7 +194,10 @@ fn permanent_receipt_cannot_be_closed() {
     // Warp absurdly far into the future: a permanent receipt still must not close.
     env.set_slot(10_000_000_000);
     env.set_unix_timestamp(4_000_000_000);
-    assert_custom_error(&env.send(&[close_receipt_ix(receipt, refund.pubkey())]), E_RECEIPT_IS_PERMANENT);
+    assert_custom_error(
+        &env.send(&[close_receipt_ix(receipt, refund.pubkey())]),
+        E_RECEIPT_IS_PERMANENT,
+    );
     assert!(env.account_exists(&receipt));
 }
 
@@ -199,7 +214,10 @@ fn close_requires_the_configured_refund_destination() {
     // Any account other than the recorded refund destination must be refused.
     let attacker = env.fresh_funded(1);
     let res = env.send(&[close_receipt_ix(receipt, attacker.pubkey())]);
-    assert!(res.is_err(), "close must not redirect the deposit to an arbitrary account");
+    assert!(
+        res.is_err(),
+        "close must not redirect the deposit to an arbitrary account"
+    );
     assert!(env.account_exists(&receipt));
 
     // The legitimate destination still works.

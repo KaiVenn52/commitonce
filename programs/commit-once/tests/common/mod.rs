@@ -464,8 +464,7 @@ impl Env {
         let (create_ix, table) = create_lookup_table(authority, authority, clock.slot);
         assert_success(&self.send(&[create_ix]));
 
-        let extend_ix =
-            extend_lookup_table(table, authority, Some(authority), addresses.to_vec());
+        let extend_ix = extend_lookup_table(table, authority, Some(authority), addresses.to_vec());
         assert_success(&self.send(&[extend_ix]));
 
         // Move past the slot the table was extended in, or the runtime will refuse it.
@@ -511,13 +510,9 @@ impl Env {
             key: lookup_table,
             addresses: lookup_addresses.to_vec(),
         };
-        let message = v0::Message::try_compile(
-            &self.authority.pubkey(),
-            instructions,
-            &[table],
-            blockhash,
-        )
-        .expect("failed to compile a v0 message");
+        let message =
+            v0::Message::try_compile(&self.authority.pubkey(), instructions, &[table], blockhash)
+                .expect("failed to compile a v0 message");
         VersionedTransaction::try_new(VersionedMessage::V0(message), &[&self.authority])
             .expect("failed to sign the v0 transaction")
     }
@@ -527,7 +522,8 @@ impl Env {
     /// Tests that need to prove "two attempts produced two *different signed
     /// transactions*" build both up front and compare their signatures, rather than
     /// inferring that from a submission result.
-    pub fn build_signed_with_blockhash(        &mut self,
+    pub fn build_signed_with_blockhash(
+        &mut self,
         payer: &Keypair,
         instructions: &[Instruction],
         extra_signers: &[&Keypair],
@@ -578,7 +574,10 @@ impl Env {
     }
 
     pub fn lamports(&self, address: &Pubkey) -> u64 {
-        self.svm.get_account(address).map(|a| a.lamports).unwrap_or(0)
+        self.svm
+            .get_account(address)
+            .map(|a| a.lamports)
+            .unwrap_or(0)
     }
 
     pub fn read_receipt(&self, address: &Pubkey) -> commit_once::state::IntentReceipt {

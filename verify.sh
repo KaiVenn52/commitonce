@@ -11,14 +11,15 @@
 #   1. checks the prerequisites and fails with a specific message for each one that is missing
 #   2. builds both programs (SBPFv2) via scripts/build.sh
 #   3. verifies that every declare_id! matches its deploy-keys/*-keypair.json pubkey
-#   4. runs the Rust suite against the compiled SBF artifact in LiteSVM
-#   5. runs the benchmark test with its output visible
-#   6. runs the SDK typecheck, build, test suite and dual-format check
-#   7. checks the brand assets against the site palette
-#   8. checks the documentation: links resolve, evidence logs are UTF-8, quoted test counts
+#   4. checks formatting (cargo fmt --all --check)
+#   5. runs the Rust suite against the compiled SBF artifact in LiteSVM
+#   6. runs the benchmark test with its output visible
+#   7. runs the SDK typecheck, build, test suite and dual-format check
+#   8. checks the brand assets against the site palette
+#   9. checks the documentation: links resolve, evidence logs are UTF-8, quoted test counts
 #      are counts that exist, and no corrected claim has crept back
-#   9. checks that every tracked text file is valid UTF-8 and free of mojibake
-#  10. prints a PASS/FAIL summary and exits non-zero if anything failed or did not run
+#  10. checks that every tracked text file is valid UTF-8 and free of mojibake
+#  11. prints a PASS/FAIL summary and exits non-zero if anything failed or did not run
 #
 # What it does NOT do, and does not claim:
 #   * It does not deploy anything, to any cluster.
@@ -346,9 +347,15 @@ verify_program_ids() {
 run_step "declare_id! matches deploy-keys (independent check)" verify_program_ids
 
 # ---------------------------------------------------------------------------------------
-# Steps 3 and 4: the Rust suite, then the benchmark with output visible. Both need the
-# compiled artifact, so if the build failed they are reported as NOT RUN — never as a pass.
+# Steps 3 to 5: formatting, the Rust suite, then the benchmark with output visible.
+#
+# Formatting is checked here because CI checks it, and a `cargo fmt --all --check` failure is
+# the kind of thing that should be caught before a push rather than by a red build. The
+# workspace was not rustfmt-clean until this step existed — 53 hunks across 8 files, all of
+# them unnoticed because nothing local ran the formatter.
 # ---------------------------------------------------------------------------------------
+
+run_step "formatting (cargo fmt --all --check)" cargo fmt --all --check
 
 if [ "$BUILD_OK" -eq 1 ]; then
     run_step "Rust suite (bash scripts/test.sh, LiteSVM on the compiled SBF)" bash scripts/test.sh
@@ -361,12 +368,23 @@ else
 fi
 
 # ---------------------------------------------------------------------------------------
-# Steps 5 to 7: the SDK. These do not depend on the compiled program — the SDK suite is pure
+# Steps 6 to 10: the SDK. These do not depend on the compiled program — the SDK suite is pure
 # TypeScript — so they run regardless of whether the build succeeded.
+#
+# **The order below matters, and getting it wrong is invisible on a working copy.** The SDK
+# must be BUILT before the consumers are typechecked: `@commitonce/solana` resolves through
+# `dist/types/index.d.ts`, and `dist/` is gitignored. On a fresh clone the consumers cannot
+# resolve the module until the build has run, and typechecking them first fails with
+# `TS2307: Cannot find module '@commitonce/solana'`. This script had exactly that bug — it
+# passed for months on a machine where `dist/` already existed, and the first CI run on a
+# clean checkout found it.
 # ---------------------------------------------------------------------------------------
 
 run_step "SDK typecheck (pnpm --filter @commitonce/solana typecheck)" \
     sdk_run pnpm --filter @commitonce/solana typecheck
+
+run_step "SDK build (pnpm --filter @commitonce/solana build)" \
+    sdk_run pnpm --filter @commitonce/solana build
 
 # The demo and the examples consume the SDK, so they are the real test of whether its public
 # API still works. They live in the workspace precisely so that breaking one fails a build
@@ -378,9 +396,6 @@ run_step "SDK typecheck (pnpm --filter @commitonce/solana typecheck)" \
 # parallel saves well under a second, so the trade is not worth a nondeterministic result.
 run_step "consumers typecheck (pnpm -r typecheck: demo and all four examples)" \
     sdk_run pnpm -r --workspace-concurrency=1 typecheck
-
-run_step "SDK build (pnpm --filter @commitonce/solana build)" \
-    sdk_run pnpm --filter @commitonce/solana build
 
 run_step "SDK tests (pnpm --filter @commitonce/solana test)" \
     sdk_run pnpm --filter @commitonce/solana test
