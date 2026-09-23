@@ -47,6 +47,23 @@ const MOJIBAKE = [
     ['\ufffd', 'the Unicode replacement character'],
 ];
 
+/**
+ * An em dash adjacent to a digit is always wrong: a numeric range takes an en dash (`2:00-2:59`)
+ * or a hyphen, never an em dash.
+ *
+ * This catches a specific and nasty corruption. Writing a file with PowerShell's `Set-Content`
+ * in 5.1 uses Windows-1252, which turns an en dash into `?` and leaves the leading bytes of its
+ * UTF-8 sequence behind. Repairing *that* — which is the obvious next step — restores valid
+ * UTF-8, but as an em dash, so the file now decodes cleanly and a plain encoding validator is
+ * satisfied. In one case the character after the dash was consumed too, turning `2:00-2:59` into
+ * `2:00\u2014:59`. Valid UTF-8, wrong text, and invisible to every other check here.
+ *
+ * The first version of this pattern required a digit *immediately after* the dash, which missed
+ * the very case it was written for — `2:00\u2014:59` has a colon there. Matching a digit on
+ * either side catches it. A negative test found the gap.
+ */
+const EM_DASH_NEAR_DIGIT = /(?<=\d)\u2014|\u2014(?=\d)/;
+
 const problems = [];
 let checked = 0;
 let skippedBinary = 0;
@@ -116,6 +133,15 @@ for (const file of tracked) {
         const line = text.slice(0, at).split('\n').length;
         problems.push(`${file}:${line}  contains ${label}`);
         break;
+    }
+
+    const nearDigit = EM_DASH_NEAR_DIGIT.exec(text);
+    if (nearDigit !== null) {
+        const line = text.slice(0, nearDigit.index).split('\n').length;
+        problems.push(
+            `${file}:${line}  has an em dash next to a digit ("${nearDigit[0]}") — a numeric ` +
+                `range takes an en dash or a hyphen, so this is a corrupted character`,
+        );
     }
 }
 

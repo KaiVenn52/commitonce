@@ -150,6 +150,12 @@ pub const INITIALIZE_DISCRIMINATOR: [u8; 8] = [175, 175, 109, 31, 13, 152, 155, 
 /// `sha256("global:increment")[0..8]`.
 pub const INCREMENT_DISCRIMINATOR: [u8; 8] = [11, 18, 104, 9, 104, 174, 59, 33];
 
+/// `sha256("global:increment_guarded")[0..8]`.
+///
+/// The CPI variant: `demo-counter` calls `commit_once::claim` itself rather than relying on the
+/// client to prepend it. See `tests/cpi.rs`.
+pub const INCREMENT_GUARDED_DISCRIMINATOR: [u8; 8] = [43, 71, 68, 84, 51, 44, 223, 192];
+
 /// `sha256("account:Counter")[0..8]`.
 pub const COUNTER_ACCOUNT_DISCRIMINATOR: [u8; 8] = [255, 176, 4, 245, 188, 253, 124, 25];
 
@@ -312,6 +318,33 @@ pub fn initialize_counter_ix(owner: Pubkey) -> Instruction {
 
 pub fn counter_pda(owner: &Pubkey) -> Pubkey {
     Pubkey::find_program_address(&[COUNTER_SEED, owner.as_ref()], &DEMO_COUNTER_ID).0
+}
+
+/// Build `demo_counter::increment_guarded`, which calls `commit_once::claim` through a CPI.
+///
+/// Accounts, in the order the program declares them: counter, owner, receipt,
+/// instructions_sysvar, commit_once_program, system_program.
+pub fn increment_guarded_ix(args: &ClaimArgs) -> Instruction {
+    let owner = args.authority;
+    let mut data = Vec::with_capacity(8 + 32 * 3 + 8);
+    data.extend_from_slice(&INCREMENT_GUARDED_DISCRIMINATOR);
+    data.extend_from_slice(&args.namespace_hash);
+    data.extend_from_slice(&args.idempotency_key_hash);
+    data.extend_from_slice(&args.payload_hash);
+    data.extend_from_slice(&args.retention_seconds.to_le_bytes());
+
+    Instruction::new_with_bytes(
+        DEMO_COUNTER_ID,
+        &data,
+        vec![
+            AccountMeta::new(counter_pda(&owner), false),
+            AccountMeta::new(owner, true),
+            AccountMeta::new(args.receipt(), false),
+            AccountMeta::new_readonly(solana_instructions_sysvar::ID, false),
+            AccountMeta::new_readonly(commit_once::id(), false),
+            AccountMeta::new_readonly(anchor_lang::system_program::ID, false),
+        ],
+    )
 }
 
 /// A plain SOL transfer, used as a dependency-free "business action".

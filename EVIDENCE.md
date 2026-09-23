@@ -38,10 +38,10 @@ Produced by `bash scripts/build.sh`.
 
 | Artifact | Size | SHA-256 |
 | --- | --- | --- |
-| `target/deploy/commit_once.so` | 160,008 bytes | `afc54451cdd62de80d20f54093198733bdcbd3fedb6b681e755cf36f7419d6bb` |
-| `target/deploy/demo_counter.so` | 138,064 bytes | `13b2b469276cafe298a511b01c67bc4e7601b37316c1b24b3364fb31f84e04f4` |
+| `target/deploy/commit_once.so` | 160,008 bytes | `7e18f4d0c9cd17db6c03b3f2fe0bcb511d9264f9d0cf06ca5b8afc479035a0` |
+| `target/deploy/demo_counter.so` | 158,160 bytes | `5947555c17fbfe32afc78e295d34935df8af94f0ac0ba7d23f2b4602f005727d` |
 | `target/idl/commit_once.json` | 14,841 bytes | — |
-| `target/idl/demo_counter.json` | 3,778 bytes | — |
+| `target/idl/demo_counter.json` | 7,724 bytes | — |
 
 ### Target architecture, and why
 
@@ -89,13 +89,13 @@ Program Id:            CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB
 Owner:                 BPFLoaderUpgradeab1e11111111111111111111111
 ProgramData Address:   29tT1XTCZ9bPCvBP93S4z9oxt9EChWv3hWWmLzpSED5x
 Authority:             25TUohqYd5b6f97wc5CjMwj89ZVL8oX81nhkWVHimYpY
-Last Deployed In Slot: 502020368
+Last Deployed In Slot: 503101216
 Data Length:           163712 (0x27f80) bytes
 Balance:               0.8325358 SOL
 ```
 
 Deploy signature:
-`65gkC1p7XVQhQixacnudm9ZTpCQRFmESdMjDwu5AFTiiV4Po5gqj4oToEsjNpf2pVKFbttMFH4DjoPhqDTrHFBnX`
+`274PANsUJf4N9jtP8arkuSmzP15TctKk4vgHHJupYHt14JsgwieEYhm1pYmtYVxcwfFUbdUcdFzvNH1cfRTWpui9`
 
 This is the **second** deployment of `commit_once`; the first was at slot `501814672`. It was
 redeployed after the durable-nonce scan was changed to fail closed (§4), so that the live program
@@ -110,7 +110,7 @@ Program Id:            EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5
 Owner:                 BPFLoaderUpgradeab1e11111111111111111111111
 ProgramData Address:   CkDRD9ai9jY8zxizKFWxa4qc5zvvA9iZ7Fd63GCYhqKw
 Authority:             25TUohqYd5b6f97wc5CjMwj89ZVL8oX81nhkWVHimYpY
-Last Deployed In Slot: 501814798
+Last Deployed In Slot: 503100411
 Data Length:           138064 (0x21b50) bytes
 Balance:               0.70224396 SOL
 ```
@@ -124,7 +124,7 @@ Deploy signature:
 export HOME=/home/dell2u
 solana program show CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB --url devnet
 solana program show EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5 --url devnet
-solana confirm -v 65gkC1p7XVQhQixacnudm9ZTpCQRFmESdMjDwu5AFTiiV4Po5gqj4oToEsjNpf2pVKFbttMFH4DjoPhqDTrHFBnX --url devnet
+solana confirm -v 274PANsUJf4N9jtP8arkuSmzP15TctKk4vgHHJupYHt14JsgwieEYhm1pYmtYVxcwfFUbdUcdFzvNH1cfRTWpui9 --url devnet
 ```
 
 Both programs are **upgradeable**, with `25TUohqYd5b6f97wc5CjMwj89ZVL8oX81nhkWVHimYpY` as
@@ -291,7 +291,7 @@ Jupiter's live API.
 
 ---
 
-## 4. Rust test suite — 46 passing, exit code 0
+## 4. Rust test suite — 50 passing, exit code 0
 
 Run: `bash scripts/test.sh`
 
@@ -299,10 +299,11 @@ Run: `bash scripts/test.sh`
 test result: ok. 11 passed; 0 failed    (invariant)
 test result: ok.  9 passed; 0 failed    (retention)
 test result: ok. 12 passed; 0 failed    (security)
+test result: ok.  4 passed; 0 failed    (cpi)
 test result: ok.  3 passed; 0 failed    (versioned)
 test result: ok. 10 passed; 0 failed    (wire_format)
 test result: ok.  1 passed; 0 failed    (benchmarks)
-REAL_EXIT=0   TOTAL_PASSED=46   TOTAL_FAILED=0
+REAL_EXIT=0   TOTAL_PASSED=50   TOTAL_FAILED=0
 ```
 
 The tests execute the **real compiled SBF artifact** through LiteSVM — not a mock and not a
@@ -650,7 +651,7 @@ Listed explicitly, because a document that only lists successes is not evidence.
 | Transaction v1 (`VersionedTransaction` v1) | **Not tested.** v1 is active on mainnet, devnet and testnet, per Solana's own versioned-transactions documentation (<https://solana.com/docs/core/transactions/versioned-transactions>). It raises the size limit to 4,096 bytes, moves resource limits into a message config, and **removes address lookup tables** — so a v1 transaction inlines up to 64 addresses instead. The SDK and tests exercise legacy and v0 messages only. Whether v1 changes message-hash deduplication is an *expectation* rather than a measurement: the program reads the Instructions sysvar and depends on instruction data, account addresses and account ownership rather than on the message format, but that is reasoning, not a test. |
 | Address lookup tables / v0 messages | **Tested end-to-end, in `tests/versioned.rs`.** Three tests: the guard commits when the receipt PDA, the Instructions sysvar, the System Program and the business program all arrive through a lookup table; a rebuilt v0 retry is blocked with `AlreadyCommitted` and the counter stays at 1; and a signer listed in a table is *not* loaded from it, staying in the static keys. This was previously recorded as "expected to work, but not verified" — the guard reads the Instructions sysvar by transaction index rather than by account, so the read should be indifferent to how accounts resolved, but "should be" was not evidence. |
 | Non-Anchor clients | **Verified, and the limitation was previously overstated.** The SDK has **zero runtime dependencies**, imports nothing from Anchor's JavaScript library — every mention of "Anchor" in `packages/sdk/src/` is a comment explaining which discriminator is being reproduced — and hand-encodes the instruction discriminator, the Borsh body and the base64 event decoding. It has been executed against the deployed program on devnet repeatedly. What is **not** tested is a **CPI into `claim` from a non-Anchor on-chain program**; that needs a second program, and none has been written. |
-| CPI from another program | **Not tested.** `claim` is an ordinary instruction and a CPI should work, but no program in this repository calls it. |
+| CPI from another program | **Tested, in `tests/cpi.rs`.** `demo-counter` gained an `increment_guarded` instruction that calls `commit_once::claim` itself and then increments, in one instruction. Four tests: the CPI commits and the action runs once; a rebuilt retry is blocked and the counter stays at 1; a different payload under the same key is a conflict rather than a duplicate; and the guard program account cannot be substituted. This was previously recorded as "should work, but no program here calls it", which is the difference between a claim and a measurement. |
 | Durable-nonce transactions, genuine | **Cannot be tested in LiteSVM 0.10.0.** A real nonce transaction is inexpressible there, because LiteSVM passes the transaction's own blockhash into the program environment, making the System Program's advance check and the runtime's nonce validation mutually exclusive. The tests assert the program's stricter behaviour — that the *presence* of the marker triggers the policy — and this limitation is documented at length in `tests/security.rs`. |
 | SBPFv3 build | **Not verified.** Deliberately not shipped, because LiteSVM cannot verify it. |
 | CU figures on mainnet | **Not measured.** And the harness does not match the runtime: devnet reported `claim` at 14,669 CU against the harness's 9,283 median, so the in-process numbers are a lower bound. |

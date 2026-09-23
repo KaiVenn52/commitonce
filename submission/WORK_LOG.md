@@ -194,6 +194,9 @@ The largest day by artifact count.
 | 05:40 | and the comment documenting it was wrong in the same way | the comment above `setComputeUnitPriceInstruction` said *"if the supplied transaction already contains its own SetComputeUnitPrice, that one takes effect, because the last such instruction wins"*. That is not what happens — the transaction is rejected outright. A comment that confidently describes the wrong behaviour is worse than no comment, because it is the thing a reader checks instead of running it. Corrected, with the actual error message quoted |
 | 05:50 | `--dry-run`: the composition is now verifiable by anyone | the full path needs two things that cannot currently coexist — Jupiter's aggregator is mainnet-only and CommitOnce is devnet-only — so the composition could not be exercised by anyone, including its author, without hand-waving. Dry run composes and signs exactly what the submit path would, prints it, and stops: no funds, no deployment, and the same `buildGuardedMessage` code path, because a dry run that used a different path would verify nothing. Against the real transaction: 8 supplied instructions → 9 composed, guard at index 0, supplied order and contents unchanged, no duplicate ComputeBudget. The transaction is committed as a fixture (922 bytes, route `Meteora DLMM → AlphaQ`, **unsigned** — verified by reading the wire format, not assumed) so the run needs Jupiter only once |
 | 05:55 | the strongest illustration of the product's own premise came from taking two quotes | the same request, minutes apart, returned a **922-byte** transaction routed `Meteora DLMM → AlphaQ` and a **570-byte** transaction routed `Flux`. Different route, different size, different intermediate accounts, different compute budget — same user intent. That is precisely why fingerprinting the transaction bytes would break the guard, and it is now recorded as a measured observation rather than an assertion in a comment |
+| 06:20 | **the CPI path is now tested, closing the last documented composability gap** | `docs/FAQ.md` said a PDA authority "works only if a program signs for it through CPI", and then admitted *"there is no such integration in this repository and no test for it"*. Several other documents went further and simply asserted that "a Squads vault can act as the authority" — an overstatement, since a PDA cannot sign for itself. `demo-counter` gained `increment_guarded`, which calls `commit_once::claim` itself and then increments in the same instruction, and `tests/cpi.rs` covers it four ways: the CPI commits and the action runs once; a rebuilt retry is blocked with `AlreadyCommitted` and the counter stays at 1; a different payload under the same key is a conflict rather than a duplicate; and the guard program account is constrained to `commit_once::id()` so a caller cannot point the "guard" at a different program. What is still **not** demonstrated is the `invoke_signed` step a vault specifically needs, and the docs now say exactly that instead of asserting the vault case |
+| 06:35 | an unrelated crate's dependency changed `commit_once.so`'s hash | adding `commit-once = { features = ["cpi"] }` to `demo-counter` changed the commit_once artifact from `afc54451…` to `7e18f4d0…` without a line of its own source changing. That is worth knowing because Anchor's `cpi` feature implies `no-entrypoint`, so the fear was a stripped entrypoint and a dead program. Checked rather than assumed: the LiteSVM suite executes that artifact in 40 tests and they pass, so it is callable. The honest conclusion is that **the artifact hash is a function of the whole workspace dependency graph**, not of the program's own source — so it must be regenerated after any workspace change, and the recorded hash fingerprints one build rather than guaranteeing reproducibility |
+| 06:50 | **PowerShell corrupted two files, and the encoding check caught both** | editing `SUBMISSION_FORM.md` and `check-docs.mjs` with `Set-Content` turned every em dash into `E2 80 3F` — not valid UTF-8. That is the second time this exact corruption has appeared here, so it is now a rule in `CONTRIBUTING.md` rather than a note: write repository files with Node. And the repair itself was a trap worth recording — restoring the third byte produces **valid** UTF-8, but as an em dash where the original was an en dash, and in one case the following character was consumed too, turning `2:00–2:59` into `2:00—:59`. The file decoded cleanly and every check passed. `scripts/check-encoding.mjs` now rejects an em dash adjacent to a digit, and a negative test confirms it fires on the real corruption and stays silent on en-dash ranges, hyphen ranges, and a correctly used em dash. The first version of that rule required a digit *immediately after* the dash and missed the very case it was written for |
 
 ---
 
@@ -201,10 +204,10 @@ The largest day by artifact count.
 
 | Component | Location | State |
 | --- | --- | --- |
-| Guard program (`claim`, `close_receipt`) | `programs/commit-once/` | built (SBPFv2), deployed to devnet, 46 tests passing |
+| Guard program (`claim`, `close_receipt`) | `programs/commit-once/` | built (SBPFv2), deployed to devnet, 50 tests passing |
 | Demo counter program | `programs/demo-counter/` | built, deployed to devnet |
 | TypeScript SDK `@commitonce/solana` v0.1.0 | `packages/sdk/` | built (ESM + CJS + types), 71 tests passing, **not published to npm** |
-| Rust test suite | `programs/commit-once/tests/` | 46 tests, exit 0, executing the real compiled artifact in LiteSVM |
+| Rust test suite | `programs/commit-once/tests/` | 50 tests, exit 0, executing the real compiled artifact in LiteSVM |
 | SDK test suite | `packages/sdk/test/` | 71 tests, with golden vectors cross-checked by an independent implementation |
 | A/B demo CLI | `apps/demo/` | written and **executed against devnet**; output recorded in `submission/evidence/devnet-demo-run.log` and summarised in `EVIDENCE.md` |
 | Integration examples | `examples/` | four examples, typechecked as part of the workspace. `sol-transfer`, `spl-transfer` and `custom-program` **have been executed against devnet** (System Program; SPL Token + Associated Token; an arbitrary Anchor program); the Jupiter-swap example has never submitted a transaction |
@@ -220,7 +223,7 @@ working tree:
 | Result | Value | Date recorded |
 | --- | --- | --- |
 | `commit_once` devnet deployment | slot `501814672`, signature `5N8nwtyQSnA9XvRGLJMqsZrGmz3zFG1zPgWzcNmqyRo9N6udGT6RhsCV6mo8G68mWEWcsDziM44M6cuuHW6Hb4uW` | 2026-09-20 |
-| `demo_counter` devnet deployment | slot `501814798` | 2026-09-20 |
+| `demo_counter` devnet deployment | slot `503100411` (redeployed with the CPI instruction) | 2026-09-24 |
 | Rust suite | 41 passing, exit 0 | 2026-09-20 |
 | SDK suite | 71 passing | 2026-09-20 |
 | `commit_once.so` | 153,472 bytes, SHA-256 `56bc2084e4f1d0b3345938e3e9406eb0af0686b410f1cb8c78cf4fe9129f25b5` | 2026-09-20 |
@@ -234,9 +237,9 @@ working tree:
 | `sol-transfer` example executed | phase 1 committed, phase 2 blocked; recipient gained exactly one transfer | 2026-09-22 |
 | `spl-transfer` example executed | phase 1 committed, phase 2 blocked; source fell by exactly one transfer, no ATA rent paid on the retry | 2026-09-22 |
 | `custom-program` example executed | phase 1 committed, phase 2 blocked; counter stayed at 1 across two different transaction shapes | 2026-09-22 |
-| `commit_once` **redeployed** to devnet | slot `502020368`, signature `65gkC1p7XVQhQixacnudm9ZTpCQRFmESdMjDwu5AFTiiV4Po5gqj4oToEsjNpf2pVKFbttMFH4DjoPhqDTrHFBnX`, data length `163712` | 2026-09-22 |
-| `commit_once.so` (current) | 160,008 bytes, SHA-256 `afc54451cdd62de80d20f54093198733bdcbd3fedb6b681e755cf36f7419d6bb` | 2026-09-22 |
-| Rust suite (current) | 46 passing, exit 0 | 2026-09-22 |
+| `commit_once` **redeployed** to devnet | slot `503101216`, signature `274PANsUJf4N9jtP8arkuSmzP15TctKk4vgHHJupYHt14JsgwieEYhm1pYmtYVxcwfFUbdUcdFzvNH1cfRTWpui9`, data length `163712` | 2026-09-22 |
+| `commit_once.so` (current) | 160,008 bytes, SHA-256 `7e18f4d0c9cd17db6c03b3f2fe0bcb511d9264f9d0cf06ca5b8afc479035a0` | 2026-09-24 |
+| Rust suite (current) | 50 passing, exit 0 | 2026-09-24 |
 | v0 + address lookup tables | **Tested** in `tests/versioned.rs` — the guard commits with all non-signer accounts loaded from a table, and a rebuilt v0 retry is blocked | 2026-09-22 |
 | Durable-nonce scan | changed to fail closed; the runtime's own instruction ceiling discovered by probing, not assumed | 2026-09-22 |
 
@@ -256,7 +259,7 @@ this log is more useful than the flattering one.
 | **Transaction v1** | Not tested. |
 | **Address lookup tables / v0** | **Tested** in `programs/commit-once/tests/versioned.rs`. |
 | **Non-Anchor clients** | **Verified.** The SDK has zero runtime dependencies and imports nothing from Anchor's JS library — it hand-encodes everything and runs against the deployed program. |
-| **CPI into `claim` from another program** | Not tested. |
+| **CPI into `claim` from another program** | **Tested** in `programs/commit-once/tests/cpi.rs`. |
 | **Compute units on mainnet** | Not measured. |
 
 The remaining work that is blocked on a credential, a payment or an account — Colosseum

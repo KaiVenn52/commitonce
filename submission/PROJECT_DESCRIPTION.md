@@ -98,9 +98,9 @@ instructions, and both are asserted by tests rather than described in prose:
 | | |
 | --- | --- |
 | Program ID (all clusters) | `CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB` |
-| Devnet deployment | **live and executable**, deploy slot `502020368`, signature `65gkC1p7XVQhQixacnudm9ZTpCQRFmESdMjDwu5AFTiiV4Po5gqj4oToEsjNpf2pVKFbttMFH4DjoPhqDTrHFBnX` |
-| Demo counter program (devnet) | `EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5`, slot `501814798` |
-| Rust test suite | **46 passing, exit 0**, executing the real compiled SBF artifact through LiteSVM |
+| Devnet deployment | **live and executable**, deploy slot `503101216`, signature `274PANsUJf4N9jtP8arkuSmzP15TctKk4vgHHJupYHt14JsgwieEYhm1pYmtYVxcwfFUbdUcdFzvNH1cfRTWpui9` |
+| Demo counter program (devnet) | `EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5`, slot `503100411` |
+| Rust test suite | **50 passing, exit 0**, executing the real compiled SBF artifact through LiteSVM |
 | SDK test suite | **71 passing**, golden vectors cross-checked by an independent implementation |
 | Composability | **executed on devnet** with the System Program, with SPL Token + Associated Token in one transaction, and with an arbitrary Anchor program — three of the four examples. The fourth composes cleanly with a **real Jupiter swap transaction** in dry-run mode; execution there is not possible today |
 | Measured overhead | **+404 bytes, +4 accounts** (usually +3 in practice); `claim` consumed 14,669 CU on devnet |

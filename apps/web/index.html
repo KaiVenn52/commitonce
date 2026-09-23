@@ -605,8 +605,8 @@ isAlreadyCommitted(rpcError);                   // true — treat as success, do
           <p class="step-n">3</p>
           <h3>Then run the guard against a cluster you control</h3>
           <pre class="code"><code>bash scripts/build.sh   # builds, then verifies declare_id! against deploy-keys/
-bash scripts/test.sh    # 46 tests against the compiled SBF artifact, exit 0
-bash verify.sh          # everything, with a PASS/FAIL summary and the true exit code</code><button class="copy copy-block" type="button" data-copy="bash scripts/build.sh   # builds, then verifies declare_id! against deploy-keys/&#10;bash scripts/test.sh    # 46 tests against the compiled SBF artifact, exit 0&#10;bash verify.sh          # everything, with a PASS/FAIL summary and the true exit code">Copy</button></pre>
+bash scripts/test.sh    # 50 tests against the compiled SBF artifact, exit 0
+bash verify.sh          # everything, with a PASS/FAIL summary and the true exit code</code><button class="copy copy-block" type="button" data-copy="bash scripts/build.sh   # builds, then verifies declare_id! against deploy-keys/&#10;bash scripts/test.sh    # 50 tests against the compiled SBF artifact, exit 0&#10;bash verify.sh          # everything, with a PASS/FAIL summary and the true exit code">Copy</button></pre>
           <p class="step-note">
             The Rust suite needs no validator, no RPC and no funds — it runs the compiled program
             in-process through LiteSVM.
@@ -678,7 +678,7 @@ bash verify.sh          # everything, with a PASS/FAIL summary and the true exit
               <a href="https://explorer.solana.com/address/EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5?cluster=devnet" target="_blank" rel="noopener noreferrer">demo_counter <span class="ext" aria-hidden="true">↗</span></a>
             </dd>
           </div>
-          <div><dt>Rust tests</dt><dd>46 passing, exit 0, executing the real compiled SBF artifact through LiteSVM.</dd></div>
+          <div><dt>Rust tests</dt><dd>50 passing, exit 0, executing the real compiled SBF artifact through LiteSVM.</dd></div>
           <div>
             <dt>Live contention</dt>
             <dd>
@@ -726,13 +726,13 @@ bash verify.sh          # everything, with a PASS/FAIL summary and the true exit
       <div class="addrow">
         <span class="addrow-k">commit_once</span>
         <code class="addr">CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB</code>
-        <span class="addrow-m">deploy slot 502020368</span>
+        <span class="addrow-m">deploy slot 503101216</span>
         <button class="copy" type="button" data-copy="CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB">Copy</button>
       </div>
       <div class="addrow">
         <span class="addrow-k">demo_counter</span>
         <code class="addr">EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5</code>
-        <span class="addrow-m">deploy slot 501814798</span>
+        <span class="addrow-m">deploy slot 503100411</span>
         <button class="copy" type="button" data-copy="EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5">Copy</button>
       </div>
       <p class="deployed-note">
@@ -751,7 +751,6 @@ bash verify.sh          # everything, with a PASS/FAIL summary and the true exit
         <li>npm publication. The package is not published.</li>
         <li>Third-party integration, real users, traction, revenue, waitlist. None.</li>
         <li>Transaction v1 (<code>VersionedTransaction</code> v1). The SDK and tests exercise legacy and v0 messages only.</li>
-        <li>CPI into <code>claim</code> from another onchain program. It is an ordinary instruction and a CPI should work, but no program here calls it.</li>
         <li>Genuine durable-nonce transactions. A real nonce transaction is inexpressible in LiteSVM 0.10.0, so the tests assert the program's stricter behaviour — that the presence of the marker triggers the policy.</li>
         <li>SBPFv3 builds. Deliberately not shipped, because the project's own test suite cannot verify one.</li>
         <li>Compute-unit figures on mainnet. Not measured.</li>
@@ -763,7 +762,7 @@ bash verify.sh          # everything, with a PASS/FAIL summary and the true exit
       <h3>Known limitations of the design</h3>
       <ol class="checks checks-num">
         <li><strong>The window is finite unless you choose <code>permanent</code>.</strong> After cleanup the key is free again.</li>
-        <li><strong>The authority is a single key.</strong> No multisig or threshold authority today; a Squads vault can act as the authority, but individual member keys cannot share one receipt.</li>
+        <li><strong>The authority is a single key.</strong> No multisig or threshold authority today. A Squads vault can act as the authority through a CPI that signs for its PDA — the CPI path is tested, though the <code>invoke_signed</code> step a vault needs specifically is not — but individual member keys cannot share one receipt.</li>
         <li><strong>Durable-nonce transactions require <code>permanent</code> retention.</strong></li>
         <li><strong>A conflicting payload is detected, not resolved.</strong> The program reports it; deciding what to do is the application's job.</li>
         <li><strong>The fingerprint is only as good as what you put in it.</strong> Pass semantic fields, never transport details.</li>
@@ -889,7 +888,7 @@ bash verify.sh          # everything, with a PASS/FAIL summary and the true exit
       <p class="foot-head">On chain — devnet</p>
       <a href="https://explorer.solana.com/address/CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB?cluster=devnet" target="_blank" rel="noopener noreferrer">commit_once program <span class="ext" aria-hidden="true">↗</span></a>
       <a href="https://explorer.solana.com/address/EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5?cluster=devnet" target="_blank" rel="noopener noreferrer">demo_counter program <span class="ext" aria-hidden="true">↗</span></a>
-      <a href="https://explorer.solana.com/tx/65gkC1p7XVQhQixacnudm9ZTpCQRFmESdMjDwu5AFTiiV4Po5gqj4oToEsjNpf2pVKFbttMFH4DjoPhqDTrHFBnX?cluster=devnet" target="_blank" rel="noopener noreferrer">commit_once deploy transaction <span class="ext" aria-hidden="true">↗</span></a>
+      <a href="https://explorer.solana.com/tx/274PANsUJf4N9jtP8arkuSmzP15TctKk4vgHHJupYHt14JsgwieEYhm1pYmtYVxcwfFUbdUcdFzvNH1cfRTWpui9?cluster=devnet" target="_blank" rel="noopener noreferrer">commit_once deploy transaction <span class="ext" aria-hidden="true">↗</span></a>
       <p class="foot-note">
         Explorer links are devnet-scoped (<code>?cluster=devnet</code>). There is no mainnet link because
         there is no mainnet deployment.

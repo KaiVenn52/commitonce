@@ -23,6 +23,14 @@ custom-panic = []
 
 [dependencies]
 anchor-lang = "1.2.0"
+# The CPI path. `commit-once` is depended on with its `cpi` feature so this program can call
+# `claim` itself, which is the "my program guards its own actions" pattern — the alternative to
+# asking every client to prepend the guard. It is a normal dependency, not a dev-dependency,
+# because the CPI is part of the shipped program.
+commit-once = { path = "../commit-once", features = ["cpi"] }
+# Same Instructions-sysvar reader `claim` uses, so the account constraint here is written the
+# same way rather than as a hand-copied literal.
+solana-instructions-sysvar = "3.0.0"
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }

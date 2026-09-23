@@ -407,14 +407,23 @@ implemented in another language.
 
 `claim` requires `authority` to be a `Signer`, so a PDA cannot sign for itself directly. A PDA
 authority works only if a program signs for it through CPI — i.e. your program (or a wrapper)
-invokes `commit_once::claim` with `invoke_signed` using the PDA's seeds. That is a
-straightforward pattern in principle, but **there is no such integration in this repository
-and no test for it**. If you build one, note that the CPI caller becomes responsible for the
-guard's ordering and for passing the right accounts, which is exactly the kind of code the
-prepend-an-instruction design lets you avoid.
+invokes `commit_once::claim` with `invoke_signed` using the PDA's seeds.
 
-A Squads vault is a PDA, so the same answer applies: the vault's address *can* be the
-authority, but only through a CPI that signs for it. [`ARCHITECTURE.md`](./ARCHITECTURE.md)
+**That CPI path is now tested.** `programs/commit-once/tests/cpi.rs` exercises it through
+`demo-counter`'s `increment_guarded` instruction, which calls `claim` itself and then
+increments. Four tests cover it: the CPI commits and the action runs once, a rebuilt retry is
+blocked with `AlreadyCommitted` and the counter stays at 1, a different payload under the same
+key is reported as a conflict rather than a duplicate, and the guard program account is
+constrained so a caller cannot point it at a different program. The test uses the ordinary
+transaction signer as the authority rather than a PDA, because that is the simpler case and it
+still answers the question that matters — whether another program can call `claim` at all.
+
+What that does **not** yet demonstrate is `invoke_signed` with a PDA's own seeds, which is the
+extra step a vault needs. The mechanism is the same CPI, and the caller's responsibility is the
+same: it owns the guard's ordering and the account list, which is exactly the code the
+prepend-an-instruction design lets a client avoid.
+
+A Squads vault is a PDA, so it needs that `invoke_signed` step. [`ARCHITECTURE.md`](./ARCHITECTURE.md)
 §11 states the consequence plainly: **there is no multisig or threshold authority today**, and
 per-member keys cannot share a single receipt — each key is its own authority with its own
 receipt.

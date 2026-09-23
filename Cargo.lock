@@ -1088,6 +1088,8 @@ name = "demo-counter"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",
+ "commit-once",
+ "solana-instructions-sysvar",
 ]
 
 [[package]]

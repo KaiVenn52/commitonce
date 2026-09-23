@@ -104,7 +104,7 @@ Do not change this default without also changing the test harness and recording 
 | What | Command |
 | --- | --- |
 | Build both programs + verify program IDs | `bash scripts/build.sh` |
-| Rust suite (46 tests, LiteSVM, real compiled artifact) | `bash scripts/test.sh` |
+| Rust suite (50 tests, LiteSVM, real compiled artifact) | `bash scripts/test.sh` |
 | SDK installs and works as a package (needs network) | `node scripts/check-package.mjs` |
 | One Rust test file | `cargo test -p commit-once --test invariant` |
 | Benchmarks with output visible | `cargo test -p commit-once --test benchmarks -- --nocapture` |
@@ -287,6 +287,34 @@ receipt, and it needs a version bump plus a migration story, not just new vector
 and TypeScript must not acquire CRLF — a CRLF shebang produces `bad interpreter` on Linux and
 a confusing CI failure. If you edit from Windows, check `git diff --stat` for whole-file
 changes before committing.
+
+### Do not write repository files with PowerShell redirection
+
+**Use Node, or an editor, to write any file containing non-ASCII characters.** This has now
+caused the same corruption twice, so it is a rule rather than a preference.
+
+`Set-Content` and `>` in Windows PowerShell 5.1 default to Windows-1252, not UTF-8. A single
+em dash is three bytes in UTF-8 (`E2 80 94`); written through that path it becomes `E2 80 3F` —
+the first two bytes followed by a literal `?`. The file is then **not valid UTF-8**, which means
+it is unreadable on Linux and binary to git. Worse, repairing it is a trap: restoring the third
+byte to `0x94` yields *valid* UTF-8, but as an em dash where the original was an en dash, and in
+one case the following character was consumed as well — `2:00–2:59` became `2:00—:59`. Valid
+UTF-8, wrong text.
+
+Two checks now stand in the way, and both were added because they caught this:
+
+- `node scripts/check-encoding.mjs` rejects files that are not valid UTF-8, files with a BOM or
+  UTF-16, mojibake, and an em dash adjacent to a digit. It runs as a step in `verify.sh`.
+- `node scripts/check-docs.mjs` catches the structural damage that a round-trip tends to leave
+  behind, such as a table row detached from its table.
+
+If a file does get mangled, **do not hand-repair the bytes.** Revert it from git and redo the
+edit with Node:
+
+```bash
+git checkout -- path/to/file
+node -e "const fs=require('node:fs');const f='path/to/file';fs.writeFileSync(f,fs.readFileSync(f,'utf8').replaceAll('old','new'),'utf8')"
+```
 
 ---
 

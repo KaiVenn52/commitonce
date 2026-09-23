@@ -49,7 +49,7 @@ Individual steps, if you prefer:
 
 ```bash
 bash scripts/build.sh                                  # build + verify program IDs
-bash scripts/test.sh                                   # 46 Rust tests, expect exit 0
+bash scripts/test.sh                                   # 50 Rust tests, expect exit 0
 bash scripts/test.sh --test benchmarks -- --nocapture   # the overhead table
 pnpm --filter @commitonce/solana test                   # 71 SDK tests
 ```
@@ -61,8 +61,8 @@ solana program show CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB --url devnet
 solana program show EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5 --url devnet
 ```
 
-Expect `Last Deployed In Slot` **502020368** and **501814798**. The guard's deploy signature is
-`65gkC1p7XVQhQixacnudm9ZTpCQRFmESdMjDwu5AFTiiV4Po5gqj4oToEsjNpf2pVKFbttMFH4DjoPhqDTrHFBnX`,
+Expect `Last Deployed In Slot` **503101216** and **503100411**. The guard's deploy signature is
+`274PANsUJf4N9jtP8arkuSmzP15TctKk4vgHHJupYHt14JsgwieEYhm1pYmtYVxcwfFUbdUcdFzvNH1cfRTWpui9`,
 visible on any devnet explorer.
 
 **See the A/B for yourself** (devnet, needs a funded throwaway key):
@@ -122,8 +122,8 @@ verified).
 | | |
 | --- | --- |
 | Program ID (identical on all clusters) | `CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB` |
-| Devnet deployment | **live and executable**, deploy slot `502020368` |
-| Rust tests | **46 passing, exit 0**, executing the real compiled SBF artifact in LiteSVM |
+| Devnet deployment | **live and executable**, deploy slot `503101216` |
+| Rust tests | **50 passing, exit 0**, executing the real compiled SBF artifact in LiteSVM |
 | SDK tests | **71 passing**, golden vectors cross-checked by an independent implementation |
 | Measured overhead | +404 bytes, +4 accounts (usually +3); `claim` ~14,000 CU on devnet |
 | Receipt | 202 bytes, 1,676,400 lamports rent, fully refundable on cleanup |
@@ -148,7 +148,7 @@ Stated plainly, because a submission that only lists successes is not evidence.
 | Transaction v1 messages | Not tested (v1 does not change message-hash deduplication, but that is an expectation, not a measurement). |
 | Address lookup tables / v0 end-to-end | **Tested** in `tests/versioned.rs`: the guard commits with all non-signer accounts loaded from a table, a rebuilt v0 retry is blocked, and a signer is never loaded from a table. |
 | Non-Anchor clients | **Verified.** The SDK has zero runtime dependencies and imports nothing from Anchor's JS library; it hand-encodes everything and runs against the deployed program. |
-| CPI into `claim` from another program | Not tested — it is an ordinary instruction, but no program here calls it. |
+| CPI into `claim` from another program | **Tested** in `tests/cpi.rs`: `demo-counter` calls `claim` itself, the invariant holds through the CPI, and the guard program account cannot be substituted. |
 | Genuine durable-nonce transactions | Cannot be constructed in LiteSVM 0.10.0; the program's stricter behaviour is asserted instead, and the limitation is documented in `tests/security.rs`. |
 | Compute units on mainnet | Not measured. And the in-process harness does **not** match the runtime: devnet reported `claim` at 14,669 CU while the harness reports 9,283 (median). Budget from the devnet figure. |
 | SBPFv3 build | Not verified, and deliberately not shipped, because LiteSVM cannot verify it. |

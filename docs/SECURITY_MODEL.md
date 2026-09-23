@@ -369,7 +369,9 @@ CommitOnce does **not**:
 * **provide a global, network-wide key space.** Receipts are per authority, per namespace,
   per key.
 * **stop a caller from choosing a short retention** for a later intent.
-* **provide multisig or threshold authority.** A Squads vault can act as the authority, but
+* **provide multisig or threshold authority.** A Squads vault can act as the authority — a PDA
+  authority requires a CPI that signs for it, and the CPI path is tested in `tests/cpi.rs`
+  (the `invoke_signed` step a vault needs specifically is not) — but
   individual member keys cannot share a single receipt.
 
 ---
