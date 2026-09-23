@@ -45,9 +45,14 @@ Winners announced by **2026-12-05**.
 
 **What is already prepared for you:**
 
+**Start here: [`submission/SUBMISSION_FORM.md`](submission/SUBMISSION_FORM.md)** — the exact text
+for every field the portal asks for, ready to paste. Everything below is the longer-form source
+that document draws from.
+
 | Field | Source |
 | --- | --- |
-| GitHub repo link | this repository |
+| **Form answers, ready to paste** | [`submission/SUBMISSION_FORM.md`](submission/SUBMISSION_FORM.md) |
+| GitHub repo link | <https://github.com/KaiVenn52/commitonce> |
 | Project description | [`submission/PROJECT_DESCRIPTION.md`](submission/PROJECT_DESCRIPTION.md) |
 | Technical overview | [`submission/TECHNICAL_OVERVIEW.md`](submission/TECHNICAL_OVERVIEW.md) |
 | Pitch script (2:00–2:59) | [`submission/PITCH_SCRIPT.md`](submission/PITCH_SCRIPT.md) |
@@ -59,6 +64,7 @@ Winners announced by **2026-12-05**.
 | FAQ | [`submission/FAQ.md`](submission/FAQ.md) |
 | Judge entry point | [`submission/JUDGE_README.md`](submission/JUDGE_README.md) |
 | Compliance check against the official guides | [`submission/COLOSSEUM_GUIDES_BRIEF.md`](submission/COLOSSEUM_GUIDES_BRIEF.md) |
+| Logo to upload | [`assets/brand/commitonce-mark-1024.png`](assets/brand/commitonce-mark-1024.png) |
 
 **Actions required:**
 

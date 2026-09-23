@@ -190,11 +190,12 @@ Prize Acceptance Documents and passing due diligence.
 
 ### Submission artifacts
 
+- [ ] **Form answers, ready to paste** → [`submission/SUBMISSION_FORM.md`](../submission/SUBMISSION_FORM.md)
 - [ ] Product name + brief description → `submission/PROJECT_DESCRIPTION.md`
 - [ ] Blockchains and tools integrated → `submission/TECHNICAL_OVERVIEW.md`
 - [ ] All teammates, backgrounds, location → `submission/FOUNDER_STORY.md`
 - [ ] Product logo or graphic → [`assets/brand/`](../assets/brand/) (`commitonce-mark-1024.png`)
-- [ ] GitHub repository link (public; if private, grant `hackathon@colosseum.com`) → repo root
+- [ ] GitHub repository link (public; if private, grant `hackathon@colosseum.com`) → <https://github.com/KaiVenn52/commitonce>
 - [ ] **Presentation video, target 2:00–2:59** → `submission/PITCH_SCRIPT.md`
 - [ ] **Product-demo video, ≤3:00** → `submission/DEMO_SCRIPT.md`
 - [ ] Video shot list / capture instructions → `submission/VIDEO_SHOTLIST.md`
