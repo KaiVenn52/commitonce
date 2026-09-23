@@ -285,7 +285,55 @@ for (const file of files.filter((f) => extname(f) === '.md')) {
 console.log(`table rows:     ${orphans} orphaned`);
 
 // ---------------------------------------------------------------------------------------
-// 7. Every evidence log must be referenced by at least one document, or it is dead weight
+// 7. Every test the security model cites must exist.
+//
+// `docs/SECURITY_MODEL.md` §8 lists the failure modes that would break the guarantee and names
+// the test guarding each one, "so that a reviewer can check them rather than trust the prose".
+// That is only true while the names resolve. Rename a test and the document goes on asserting
+// protection that nothing provides — the worst kind of documentation bug in a security model,
+// because it reads as evidence.
+//
+// Only `Guarded by:` lines are read, and only backticked snake_case identifiers that are long
+// enough to be test names. Field names like `expires_at_slot` appear in backticks throughout
+// the same document and are not tests; a looser rule flags nine of them.
+// ---------------------------------------------------------------------------------------
+const securityModelPath = join(ROOT, 'docs', 'SECURITY_MODEL.md');
+if (existsSync(securityModelPath)) {
+    // Every `fn name(` in the Rust test suite.
+    const definedTests = new Set();
+    for (const file of files) {
+        if (!/programs[\\/]commit-once[\\/]tests[\\/].*\.rs$/.test(file)) continue;
+        const text = readFileSync(file, 'utf8');
+        for (const match of text.matchAll(/^\s*fn (\w+)\(/gm)) definedTests.add(match[1]);
+    }
+
+    const securityModel = readFileSync(securityModelPath, 'utf8');
+    const cited = new Set();
+    for (const block of securityModel.matchAll(/\*Guarded by:\*([\s\S]*?)(?=\n\d+\.\s|\n##|$)/g)) {
+        for (const code of block[1].matchAll(/`([^`]+)`/g)) {
+            for (const candidate of code[1].split(/[,\s]+/)) {
+                const name = candidate.replace(/[^a-z0-9_]/gi, '');
+                if (name.length > 12 && name.includes('_')) cited.add(name);
+            }
+        }
+    }
+
+    let missingTests = 0;
+    for (const name of cited) {
+        if (definedTests.has(name)) continue;
+        missingTests += 1;
+        problems.push(
+            `docs/SECURITY_MODEL.md cites the test \`${name}\`, which does not exist in ` +
+                `programs/commit-once/tests/`,
+        );
+    }
+    console.log(
+        `cited tests:    ${cited.size} checked (${definedTests.size} defined), ${missingTests} missing`,
+    );
+}
+
+// ---------------------------------------------------------------------------------------
+// 8. Every evidence log must be referenced by at least one document, or it is dead weight
 //    that nobody will ever find.
 // ---------------------------------------------------------------------------------------
 for (const log of logs) {

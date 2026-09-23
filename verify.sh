@@ -421,8 +421,9 @@ run_step "brand assets consistent (node scripts/check-brand.mjs)" \
 # a file gets renamed, a test count is quoted after the suite grew, a claim that was found
 # to be false comes back. This checks the links (markdown AND html, since the markdown pass
 # cannot see `href`), that the evidence logs are readable UTF-8, that every quoted test count
-# is a count the suites actually produce, that no retired claim has survived, and that no
-# markdown table row has drifted away from its table.
+# is a count the suites actually produce, that no retired claim has survived, that no markdown
+# table row has drifted away from its table, and that every test the security model cites in a
+# `Guarded by:` line actually exists.
 # ---------------------------------------------------------------------------------------
 
 run_step "documentation consistent (node scripts/check-docs.mjs)" \
