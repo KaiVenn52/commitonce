@@ -201,7 +201,7 @@ console.log(`evidence logs:  ${logs.length} checked`);
 // `submission/WORK_LOG.md` is a dated history, so it legitimately records the counts as they
 // were on each day. Everywhere else, a test count is a claim about the present.
 // ---------------------------------------------------------------------------------------
-const CURRENT_COUNTS = new Set([50, 71]);
+const CURRENT_COUNTS = new Set([53, 71]);
 const HISTORY_FILE = 'submission/WORK_LOG.md';
 let counts = 0;
 for (const file of files.filter((f) => extname(f) === '.md')) {
@@ -235,7 +235,7 @@ console.log(`test counts:    ${counts} quoted (outside ${HISTORY_FILE})`);
 //
 // Fenced code blocks are skipped. A TypeScript union type is written as a leading pipe
 // (`| null`, `| { readonly kind: ... }`), which is indistinguishable from a table row without
-// tracking the fence — and a check that flags five lines of a code sample gets switched off.
+// tracking the fence —and a check that flags five lines of a code sample gets switched off.
 // ---------------------------------------------------------------------------------------
 const isTableRow = (line) => /^\s*\|/.test(line);
 const isSeparator = (line) => /^\s*\|[\s:|-]+\|\s*$/.test(line) && line.includes('-');

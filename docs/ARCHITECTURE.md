@@ -342,9 +342,10 @@ See `docs/SECURITY_MODEL.md` for the full threat analysis.
 1. **The window is finite unless you choose `permanent`.** After cleanup the key is free
    again. `permanent` costs the rent deposit forever (1,676,400 lamports at mainnet rates).
 2. **The authority is a single key.** There is no multisig or threshold authority today; a
-   Squads vault can be the authority through a CPI that signs for its PDA — the CPI path is
-   tested in `tests/cpi.rs`, though the `invoke_signed` step a vault needs specifically is not —
-   but per-member keys cannot share one receipt.
+   Squads vault can be the authority: it is a PDA, and a PDA becomes a `Signer` only through
+   `invoke_signed`. Both the CPI and the `invoke_signed` step are tested in `tests/cpi.rs`, and
+   because the receipt is derived from the vault, every member sharing one vault shares one
+   receipt. Per-member keys still cannot share a receipt unless they share a vault.
 3. **Durable-nonce transactions need `retention: 'permanent'`.**
 4. **A conflicting payload is detected, not resolved.** The program tells you the key was
    used for something else; deciding what to do is the application's job.

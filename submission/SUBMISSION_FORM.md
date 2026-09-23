@@ -51,7 +51,7 @@ The guarantee is at-most-once successful execution of a guarded logical intent w
 configured retention window. It is not a universal "exactly once" claim, and the repository
 does not describe it as one.
 
-It is live on devnet and unaudited. 50 Rust tests and 71 SDK tests pass, and the tests execute
+It is live on devnet and unaudited. 53 Rust tests and 71 SDK tests pass, and the tests execute
 the real compiled SBF artifact rather than a mock.
 ```
 
@@ -85,6 +85,8 @@ Composes with, verified by execution against devnet:
 - An arbitrary third-party Anchor program
 - Another program calling `claim` through a CPI, so a program can guard its own actions
   rather than requiring every client to prepend the guard
+- A **PDA** as the authority, signed through `invoke_signed` — the case a Squads vault or any
+  program-owned account needs, verified by test
 
 Also verified: v0 transactions with address lookup tables, which is the transaction shape most
 production Solana clients build.
@@ -240,7 +242,7 @@ mistake, so fill these rather than skipping them.
 | Track | `Solana` |
 | Stage | `Working product on devnet, unaudited, no users yet` |
 | Website | leave blank if the form requires a URL — there is no deployed site, and a placeholder would be worse than an empty field |
-| Metrics | `50 Rust tests, 71 SDK tests, both suites green; CI green on a clean runner; both programs live on devnet` |
+| Metrics | `53 Rust tests, 71 SDK tests, both suites green; CI green on a clean runner; both programs live on devnet` |
 | Anything about traction | `None. No users, integrations, revenue or waitlist. Stated rather than implied away.` |
 | Anything about funding raised | `None.` |
 

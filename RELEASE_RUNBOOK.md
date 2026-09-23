@@ -68,7 +68,7 @@ runtime accepts v3.
 | File | Size | SHA-256 |
 | --- | --- | --- |
 | `target/deploy/commit_once.so` | 160,008 B | `7e18f4d0c9cd17db6c03b3f2fe0bcb511d9264f9d0cf06ca5b8afc479035a0` |
-| `target/deploy/demo_counter.so` | 158,160 B | `5947555c17fbfe32afc78e295d34935df8af94f0ac0ba7d23f2b4602f005727d` |
+| `target/deploy/demo_counter.so` | 169,240 B | `a4d377e0fa54706779d032c64023b7c8ebee6c7e09fb8dd3d2b4a04fb7e95112` |
 
 Sizes may legitimately drift between compiler versions. Hashes will differ if you change
 source. Treat them as a drift detector, not as a contract.

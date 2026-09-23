@@ -199,6 +199,8 @@ The largest day by artifact count.
 | 06:50 | **PowerShell corrupted two files, and the encoding check caught both** | editing `SUBMISSION_FORM.md` and `check-docs.mjs` with `Set-Content` turned every em dash into `E2 80 3F` — not valid UTF-8. That is the second time this exact corruption has appeared here, so it is now a rule in `CONTRIBUTING.md` rather than a note: write repository files with Node. And the repair itself was a trap worth recording — restoring the third byte produces **valid** UTF-8, but as an em dash where the original was an en dash, and in one case the following character was consumed too, turning `2:00–2:59` into `2:00—:59`. The file decoded cleanly and every check passed. `scripts/check-encoding.mjs` now rejects an em dash adjacent to a digit, and a negative test confirms it fires on the real corruption and stays silent on en-dash ranges, hyphen ranges, and a correctly used em dash. The first version of that rule required a digit *immediately after* the dash and missed the very case it was written for <!-- encoding-check: allow-em-dash --> |
 | 07:20 | **the durable-nonce policy, verified against a live cluster at last** | the repository had said for its whole life that a genuine durable-nonce transaction *"cannot be tested in LiteSVM 0.10.0"* — LiteSVM passes the transaction's own blockhash into the program environment, which makes the System Program's advance check and the runtime's nonce validation mutually exclusive. That was true, and it was also a dead end: the claim stopped there rather than asking whether a *cluster* could do what the harness could not. `apps/demo/nonce-policy.ts` does it. It creates a real nonce account on devnet, builds transactions whose blockhash **is** the stored nonce with `AdvanceNonceAccount` first, and simulates them. **Finite retention is refused with `DurableNonceUnsupported` (6002); `permanent` is accepted.** Two real nonce transactions, one difference, the policy confirmed in both directions. Raw output: [`evidence/devnet-nonce-policy-run.log`](evidence/devnet-nonce-policy-run.log) |
 | 07:35 | and the reason the harness cannot do this turned out to be visible in the live run | trying to close the nonce account automatically failed with *"Withdraw nonce account: nonce can only advance once per slot"* — `NONCE_BLOCKHASH_NOT_EXPIRED` (0x7). That is the **same** constraint `tests/security.rs` cites as the reason a nonce transaction is inexpressible in LiteSVM, observed directly rather than described. It is a protocol rule, not a harness limitation, and the harness simply cannot work around it; against a cluster the workaround is a wait between two transactions. The script now leaves the nonce account for manual cleanup and prints the exact command, because a cleanup step that needs its own explanation is worse than an honest instruction — and shipping a cleanup that does not work would have been the dishonest option |
+| 08:10 | **the `invoke_signed` step, which is the gap I had just documented as untested** | last round I closed the "can another program call `claim`" question and then wrote, precisely, that the `invoke_signed` step a vault specifically needs was still not demonstrated. That was an honest note, and it was also the next thing to do. `demo-counter` gained `increment_guarded_by_vault`, where the guard's authority is a **PDA** that signs through `invoke_signed` over its own seeds — the exact mechanism a Squads vault requires, since a PDA has no keypair and `claim` insists on a `Signer`. Three tests: the PDA authority commits and the receipt is derived from the *vault* rather than the transaction signer, **and no receipt exists under the signer** — which is what would appear if the PDA were not the authority at all, so the test distinguishes the two rather than just checking for success; a rebuilt retry is blocked; and two different vaults using the same key derive different receipts. Rust suite 50 → **53** |
+| 08:25 | and the claim that had been an assertion for the project's whole life became a mechanism | `docs/ARCHITECTURE.md` §11, `docs/SECURITY_MODEL.md`, `submission/TECHNICAL_OVERVIEW.md`, `NEEDS_OWNER_ACTION.md` and the website all said some version of *"a Squads vault can act as the authority"*. That was never tested, and after the CPI work it was hedged with a caveat about `invoke_signed`. Now the mechanism is stated in full because there is a test behind each step: a vault is a PDA, a PDA becomes a `Signer` only through `invoke_signed`, and the receipt is derived from the vault — so **members sharing one vault share one receipt**. What has *not* changed, and is now stated more clearly than before, is the operational limitation: there is no multisig or threshold authority *in the program*. A vault works because it is one account acting as one authority, not because CommitOnce understands what a multisig is |
 
 ---
 
@@ -206,10 +208,10 @@ The largest day by artifact count.
 
 | Component | Location | State |
 | --- | --- | --- |
-| Guard program (`claim`, `close_receipt`) | `programs/commit-once/` | built (SBPFv2), deployed to devnet, 50 tests passing |
+| Guard program (`claim`, `close_receipt`) | `programs/commit-once/` | built (SBPFv2), deployed to devnet, 53 tests passing |
 | Demo counter program | `programs/demo-counter/` | built, deployed to devnet |
 | TypeScript SDK `@commitonce/solana` v0.1.0 | `packages/sdk/` | built (ESM + CJS + types), 71 tests passing, **not published to npm** |
-| Rust test suite | `programs/commit-once/tests/` | 50 tests, exit 0, executing the real compiled artifact in LiteSVM |
+| Rust test suite | `programs/commit-once/tests/` | 53 tests, exit 0, executing the real compiled artifact in LiteSVM |
 | SDK test suite | `packages/sdk/test/` | 71 tests, with golden vectors cross-checked by an independent implementation |
 | A/B demo CLI | `apps/demo/` | written and **executed against devnet**; output recorded in `submission/evidence/devnet-demo-run.log` and summarised in `EVIDENCE.md` |
 | Integration examples | `examples/` | four examples, typechecked as part of the workspace. `sol-transfer`, `spl-transfer` and `custom-program` **have been executed against devnet** (System Program; SPL Token + Associated Token; an arbitrary Anchor program); the Jupiter-swap example has never submitted a transaction |
@@ -225,7 +227,7 @@ working tree:
 | Result | Value | Date recorded |
 | --- | --- | --- |
 | `commit_once` devnet deployment | slot `501814672`, signature `5N8nwtyQSnA9XvRGLJMqsZrGmz3zFG1zPgWzcNmqyRo9N6udGT6RhsCV6mo8G68mWEWcsDziM44M6cuuHW6Hb4uW` | 2026-09-20 |
-| `demo_counter` devnet deployment | slot `503100411` (redeployed with the CPI instruction) | 2026-09-24 |
+| `demo_counter` devnet deployment | slot `503118191` (redeployed with the CPI and PDA-authority instructions) | 2026-09-24 |
 | Rust suite | 41 passing, exit 0 | 2026-09-20 |
 | SDK suite | 71 passing | 2026-09-20 |
 | `commit_once.so` | 153,472 bytes, SHA-256 `56bc2084e4f1d0b3345938e3e9406eb0af0686b410f1cb8c78cf4fe9129f25b5` | 2026-09-20 |
@@ -241,7 +243,7 @@ working tree:
 | `custom-program` example executed | phase 1 committed, phase 2 blocked; counter stayed at 1 across two different transaction shapes | 2026-09-22 |
 | `commit_once` **redeployed** to devnet | slot `503101216`, signature `274PANsUJf4N9jtP8arkuSmzP15TctKk4vgHHJupYHt14JsgwieEYhm1pYmtYVxcwfFUbdUcdFzvNH1cfRTWpui9`, data length `163712` | 2026-09-22 |
 | `commit_once.so` (current) | 160,008 bytes, SHA-256 `7e18f4d0c9cd17db6c03b3f2fe0bcb511d9264f9d0cf06ca5b8afc479035a0` | 2026-09-24 |
-| Rust suite (current) | 50 passing, exit 0 | 2026-09-24 |
+| Rust suite (current) | 53 passing, exit 0 | 2026-09-24 |
 | v0 + address lookup tables | **Tested** in `tests/versioned.rs` — the guard commits with all non-signer accounts loaded from a table, and a rebuilt v0 retry is blocked | 2026-09-22 |
 | Durable-nonce scan | changed to fail closed; the runtime's own instruction ceiling discovered by probing, not assumed | 2026-09-22 |
 
@@ -261,7 +263,7 @@ this log is more useful than the flattering one.
 | **Transaction v1** | Not tested. |
 | **Address lookup tables / v0** | **Tested** in `programs/commit-once/tests/versioned.rs`. |
 | **Non-Anchor clients** | **Verified.** The SDK has zero runtime dependencies and imports nothing from Anchor's JS library — it hand-encodes everything and runs against the deployed program. |
-| **CPI into `claim` from another program** | **Tested** in `programs/commit-once/tests/cpi.rs`. |
+| **CPI into `claim` from another program** | **Tested** in `programs/commit-once/tests/cpi.rs` — seven tests, including a PDA authority via `invoke_signed`. |
 | **Compute units on mainnet** | Not measured. |
 
 The remaining work that is blocked on a credential, a payment or an account — Colosseum

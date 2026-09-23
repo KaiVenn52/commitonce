@@ -8,7 +8,7 @@ unreviewed code written by its own authors.
 
 What that means concretely:
 
-* Nothing here has been independently reviewed. The 50 Rust tests and 71 SDK tests in this
+* Nothing here has been independently reviewed. The 53 Rust tests and 71 SDK tests in this
   repository were written by the same authors as the code they test. They are evidence that
   the code does what its authors intended, not evidence that the intent is correct.
 * `commit_once` is **not deployed to mainnet**. Neither program holds user value.

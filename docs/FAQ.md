@@ -409,24 +409,31 @@ implemented in another language.
 authority works only if a program signs for it through CPI — i.e. your program (or a wrapper)
 invokes `commit_once::claim` with `invoke_signed` using the PDA's seeds.
 
-**That CPI path is now tested.** `programs/commit-once/tests/cpi.rs` exercises it through
-`demo-counter`'s `increment_guarded` instruction, which calls `claim` itself and then
-increments. Four tests cover it: the CPI commits and the action runs once, a rebuilt retry is
-blocked with `AlreadyCommitted` and the counter stays at 1, a different payload under the same
-key is reported as a conflict rather than a duplicate, and the guard program account is
-constrained so a caller cannot point it at a different program. The test uses the ordinary
-transaction signer as the authority rather than a PDA, because that is the simpler case and it
-still answers the question that matters — whether another program can call `claim` at all.
+**Both steps are now tested**, in `programs/commit-once/tests/cpi.rs`, through two
+instructions on `demo-counter`:
 
-What that does **not** yet demonstrate is `invoke_signed` with a PDA's own seeds, which is the
-extra step a vault needs. The mechanism is the same CPI, and the caller's responsibility is the
-same: it owns the guard's ordering and the account list, which is exactly the code the
-prepend-an-instruction design lets a client avoid.
+- `increment_guarded` calls `claim` itself with the **transaction signer** as the authority. Its
+  signer privilege propagates through the CPI. Four tests: the CPI commits and the action runs
+  once; a rebuilt retry is blocked with `AlreadyCommitted`; a different payload under the same key
+  is a conflict rather than a duplicate; and the guard program account is constrained so a caller
+  cannot point it at a different program.
+- `increment_guarded_by_vault` calls `claim` with a **PDA** as the authority, signing for it with
+  `invoke_signed` over the vault's own seeds. Three tests: the PDA authority commits and the
+  receipt is derived from the *vault* rather than the signer (and no receipt exists under the
+  signer, which is what would appear if the PDA were not the authority); a rebuilt retry is
+  blocked; and two different vaults using the same key derive different receipts.
 
-A Squads vault is a PDA, so it needs that `invoke_signed` step. [`ARCHITECTURE.md`](./ARCHITECTURE.md)
-§11 states the consequence plainly: **there is no multisig or threshold authority today**, and
-per-member keys cannot share a single receipt — each key is its own authority with its own
-receipt.
+The second one is the case a **Squads vault** needs, and it is why
+[`ARCHITECTURE.md`](./ARCHITECTURE.md) §11 can now state the mechanism rather than assert it: a
+vault is a PDA, a PDA cannot sign for itself, and `invoke_signed` is the only way it becomes a
+`Signer` that `claim` will accept. The receipt belongs to the vault, so **every member of a
+multisig sharing one vault shares one receipt** — which is the property that was previously
+described without a test behind it.
+
+What has **not** changed is the operational limitation: there is still no multisig or threshold
+authority in the program itself. A vault works because it is a single account acting as one
+authority, not because CommitOnce understands what a multisig is. Per-member keys still cannot
+share a receipt unless they share a vault.
 
 ---
 

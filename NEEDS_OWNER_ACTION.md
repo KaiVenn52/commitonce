@@ -237,8 +237,7 @@ need updating for mainnet.
    unaudited code, and `SECURITY.md` must say so plainly.
 3. **Squads / multisig authority.** For anything holding real value, the upgrade authority
    should be a multisig rather than a single hot key. A Squads vault can also act as a
-   (the CPI path a PDA authority needs is tested in `tests/cpi.rs`; the `invoke_signed` step a
-   vault specifically needs is not)
+   (the `invoke_signed` CPI path a PDA authority needs is tested in `tests/cpi.rs`)
    CommitOnce *authority*, but note that individual vault member keys cannot share one
    receipt — see the limitations in `README.md`.
 
@@ -279,7 +278,7 @@ produced from here.
 * `docs/ARCHITECTURE.md` — every design decision and its rationale, including the ones where
   the obvious choice was rejected (`init_if_needed`, a separate rent payer, signature-based
   dedup reasoning).
-* 50 tests that execute the real compiled artifact, all asserting on observable onchain
+* 53 tests that execute the real compiled artifact, all asserting on observable onchain
   state.
 * `EVIDENCE.md` §7 — an explicit list of what is **not** verified, which is where an auditor
   should start.
@@ -312,7 +311,7 @@ Recorded here so it is not mistaken for a blocker:
 | Capability | Status |
 | --- | --- |
 | Program build | Works. SBPFv2, IDs verified against `deploy-keys/`. |
-| Rust test suite | **50 passing, exit 0.** Executes the real compiled artifact. |
+| Rust test suite | **53 passing, exit 0.** Executes the real compiled artifact. |
 | SDK build (ESM + CJS + types) | Works. Verified by importing both ways. |
 | SDK test suite | **71 passing**, golden vectors cross-checked by an independent implementation. |
 | Devnet deployment | **Done and verified.** See `EVIDENCE.md` §3. |

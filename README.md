@@ -246,7 +246,7 @@ Full detail, including the account-by-account and byte-by-byte layouts, is in
 ```bash
 bash verify.sh          # everything: 14 steps, PASS/FAIL summary, true exit code
 bash scripts/build.sh   # builds, then verifies declare_id! against deploy-keys/
-bash scripts/test.sh    # 50 tests, exit code 0
+bash scripts/test.sh    # 53 tests, exit code 0
 ```
 
 `verify.sh` is the one to run. It checks prerequisites, builds both programs, verifies
@@ -413,7 +413,7 @@ deploy-keys/            the program keypairs the program IDs are derived from
 | --- | --- |
 | Program ID (all clusters) | `CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB` |
 | Demo counter program | `EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5` |
-| Rust tests | 50 passing, exit 0 |
+| Rust tests | 53 passing, exit 0 |
 | SDK tests | 71 passing |
 | Built for | SBPFv2, Anchor 1.2.0, Solana 4.x toolchain |
 | Mainnet | **not deployed** |
@@ -430,9 +430,9 @@ that is stated rather than implied.
 1. **The window is finite unless you choose `permanent`.** After cleanup the key is free
    again. This is a deliberate trade-off, and `closing_frees_the_key_for_a_new_claim`
    asserts it so it cannot be forgotten.
-2. **The authority is a single key.** No multisig or threshold authority today; a PDA authority
-   needs a CPI that signs for it, and that CPI path is tested (`tests/cpi.rs`), though the
-   `invoke_signed` step a vault specifically needs is not.
+2. **The authority is a single account.** No multisig or threshold authority in the program
+   itself. A PDA authority — which is what a Squads vault is — needs a CPI that signs for it with
+   `invoke_signed`, and both steps are tested (`tests/cpi.rs`).
 3. **Durable-nonce transactions require `retention: 'permanent'`.**
 4. **A conflicting payload is detected, not resolved.** The program reports it; deciding
    what to do is the application's job.

@@ -156,6 +156,15 @@ pub const INCREMENT_DISCRIMINATOR: [u8; 8] = [11, 18, 104, 9, 104, 174, 59, 33];
 /// client to prepend it. See `tests/cpi.rs`.
 pub const INCREMENT_GUARDED_DISCRIMINATOR: [u8; 8] = [43, 71, 68, 84, 51, 44, 223, 192];
 
+/// `sha256("global:increment_guarded_by_vault")[0..8]`.
+///
+/// The PDA-authority variant: the guard's authority is a vault PDA that signs through
+/// `invoke_signed`, which is the case a Squads vault needs.
+pub const INCREMENT_GUARDED_BY_VAULT_DISCRIMINATOR: [u8; 8] = [32, 224, 109, 131, 115, 234, 193, 6];
+
+/// PDA seed prefix for the vault in `demo-counter`.
+pub const VAULT_SEED: &[u8] = b"vault";
+
 /// `sha256("account:Counter")[0..8]`.
 pub const COUNTER_ACCOUNT_DISCRIMINATOR: [u8; 8] = [255, 176, 4, 245, 188, 253, 124, 25];
 
@@ -318,6 +327,47 @@ pub fn initialize_counter_ix(owner: Pubkey) -> Instruction {
 
 pub fn counter_pda(owner: &Pubkey) -> Pubkey {
     Pubkey::find_program_address(&[COUNTER_SEED, owner.as_ref()], &DEMO_COUNTER_ID).0
+}
+
+/// The vault PDA in `demo-counter`, which stands in for a Squads vault.
+pub fn vault_pda(owner: &Pubkey) -> Pubkey {
+    Pubkey::find_program_address(&[VAULT_SEED, owner.as_ref()], &DEMO_COUNTER_ID).0
+}
+
+/// Build `demo_counter::increment_guarded_by_vault`, where the guard's authority is a **PDA**.
+///
+/// The receipt is derived from the vault, not from the signer, because that is the authority
+/// `claim` will see. Accounts in declaration order: counter, owner, vault, receipt,
+/// instructions_sysvar, commit_once_program, system_program.
+pub fn increment_guarded_by_vault_ix(args: &ClaimArgs) -> Instruction {
+    let owner = args.authority;
+    let vault = vault_pda(&owner);
+
+    let mut data = Vec::with_capacity(8 + 32 * 3 + 8);
+    data.extend_from_slice(&INCREMENT_GUARDED_BY_VAULT_DISCRIMINATOR);
+    data.extend_from_slice(&args.namespace_hash);
+    data.extend_from_slice(&args.idempotency_key_hash);
+    data.extend_from_slice(&args.payload_hash);
+    data.extend_from_slice(&args.retention_seconds.to_le_bytes());
+
+    Instruction::new_with_bytes(
+        DEMO_COUNTER_ID,
+        &data,
+        vec![
+            AccountMeta::new(counter_pda(&owner), false),
+            AccountMeta::new(owner, true),
+            AccountMeta::new(vault, false),
+            AccountMeta::new(receipt_for_authority(&vault, args), false),
+            AccountMeta::new_readonly(solana_instructions_sysvar::ID, false),
+            AccountMeta::new_readonly(commit_once::id(), false),
+            AccountMeta::new_readonly(anchor_lang::system_program::ID, false),
+        ],
+    )
+}
+
+/// The receipt for an arbitrary authority, which for the vault case is not `args.authority`.
+pub fn receipt_for_authority(authority: &Pubkey, args: &ClaimArgs) -> Pubkey {
+    derive_receipt(authority, &args.namespace_hash, &args.idempotency_key_hash)
 }
 
 /// Build `demo_counter::increment_guarded`, which calls `commit_once::claim` through a CPI.

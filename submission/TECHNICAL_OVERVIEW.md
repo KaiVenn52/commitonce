@@ -631,9 +631,9 @@ the reasoning.
 | Priority of work | program and proof first, then product surface | The guarantee is the product. A guard that is not proven to block a rebuilt duplicate is a claim, so the test suite, the devnet deployment and the measured benchmarks came before any website or demo polish. |
 
 **What was deliberately deprioritised**, so the choice is visible: no multisig or threshold
-authority (a Squads vault can be the authority through a CPI that signs for its PDA — the CPI
-path is tested in `tests/cpi.rs`, though the `invoke_signed` step a vault needs is not — but
-per-member keys cannot share one receipt);
+authority (a Squads vault can be the authority: a PDA becomes a `Signer` only through
+`invoke_signed`, and both that and the CPI are tested in `tests/cpi.rs` — but per-member keys
+cannot share one receipt unless they share a vault);
 no hosted dashboard; no mainnet deployment before an audit; and no v1-message support until it
 can be tested.
 
@@ -647,7 +647,7 @@ bash verify.sh
 
 # Or the same steps individually:
 bash scripts/build.sh                                     # builds both programs, verifies declare_id! against deploy-keys/
-bash scripts/test.sh                                      # 50 tests, expect exit 0
+bash scripts/test.sh                                      # 53 tests, expect exit 0
 bash scripts/test.sh --test benchmarks -- --nocapture      # the overhead table
 pnpm --filter @commitonce/solana test                      # 71 tests
 node packages/sdk/scripts/print-vectors.mjs                # vectors recomputed without importing the SDK
@@ -667,7 +667,7 @@ and reproduced against `target/deploy/` when this document was written):
 | Artifact | Size | SHA-256 |
 | --- | --- | --- |
 | `commit_once.so` | 160,008 bytes | `7e18f4d0c9cd17db6c03b3f2fe0bcb511d9264f9d0cf06ca5b8afc479035a0` |
-| `demo_counter.so` | 158,160 bytes | `5947555c17fbfe32afc78e295d34935df8af94f0ac0ba7d23f2b4602f005727d` |
+| `demo_counter.so` | 169,240 bytes | `a4d377e0fa54706779d032c64023b7c8ebee6c7e09fb8dd3d2b4a04fb7e95112` |
 
 Both are built for SBPFv2 (`readelf -h` reports `Flags: 0x2`).
 
@@ -711,7 +711,7 @@ successes is not evidence):
 | Transaction v1 (`VersionedTransaction` v1) | **Not tested.** v1 is active on mainnet, devnet and testnet (<https://solana.com/docs/core/transactions/versioned-transactions>). It raises the size limit to 4,096 bytes, moves resource limits into a message config, and **removes address lookup tables**. The SDK and tests exercise legacy and v0 messages only. |
 | Address lookup tables / v0 messages | **Tested end-to-end** in `tests/versioned.rs` — see §9. Previously "expected to work, but not verified". |
 | Non-Anchor clients | **Verified.** Zero runtime dependencies, nothing imported from Anchor's JS library; every "Anchor" in `packages/sdk/src/` is a comment naming the discriminator it reproduces. Run against the deployed program on devnet. |
-| CPI into `claim` from another program | **Tested** in `tests/cpi.rs` — see §9. |
+| CPI into `claim` from another program | **Tested** in `tests/cpi.rs` — seven tests, including a PDA authority via `invoke_signed`. See §9. |
 | Genuine durable-nonce transactions | **Tested against devnet** in `apps/demo/nonce-policy.ts`. The harness cannot express one — see §9 — so the Rust test injects the marker, and the live script closes that gap. |
 | SBPFv3 build | **Not verified**, and deliberately not shipped, because LiteSVM cannot verify it. |
 | Compute units on mainnet | **Not measured.** |
