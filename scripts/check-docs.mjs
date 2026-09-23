@@ -124,6 +124,17 @@ const RETIRED_CLAIMS = [
         why: 'three examples have been executed',
     },
     {
+        // The earlier pattern above only matches one specific phrasing, in three specific
+        // directories. This one caught a sentence in EVIDENCE.md that said the same wrong
+        // thing a different way and lived outside those directories.
+        pattern: /[Tt]he other three are structural/,
+        why: 'three of the four examples have been executed; only jupiter-swap is structural',
+    },
+    {
+        pattern: /One of the four[\s\S]{0,40}has additionally been executed/,
+        why: 'three of the four examples have been executed, not one',
+    },
+    {
         pattern: /run\.ts\s+--scenario|--scenario\s+both/,
         why: 'the demo entry point is commitonce-demo.ts and it has no --scenario flag',
     },
