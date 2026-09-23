@@ -1,0 +1,40 @@
+ORDER_ID=tok2022_1790196713553
+MINT=23ugiz5J5AZ6QwAM6EowRocYH8go1Ds1XhEQ9pyQjcS7 (Token-2022)
+TOKEN_PROGRAM=TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb
+
+CommitOnce — guarded SPL TransferChecked
+  rpc              https://api.devnet.solana.com
+  authority        25TUohqYd5b6f97wc5CjMwj89ZVL8oX81nhkWVHimYpY
+  mint             23ugiz5J5AZ6QwAM6EowRocYH8go1Ds1XhEQ9pyQjcS7 (decimals 6)
+  recipient        2pEygTi47UnFtPDvmnrkHWZ4cydBJMXh6SLLeEAGWmBU
+  amount           1000000 base units
+  source ATA       3P4GgTawmFN7YseTSTEaRij8JswNSJDnfN45m9eiRLTY
+  destination ATA  ASYzD5rqtME3DZy7gjgPnEbQcsnATH2RUZ9W5hwmY6eC
+  namespace        examples:spl-transfer
+  idempotencyKey   tok2022_1790196713553
+  receipt PDA      8hPZhpHZ7iLZ6RZ2Xeu3utWoXhPFrQdFYhcjyT32FWaL
+  retention        86400s
+
+Instruction order in the guarded transaction:
+  0. compute budget  SetComputeUnitPrice   (transport only)
+  1. commit_once     claim                 (the guard)
+  2. ATA program     CreateIdempotent      (destination ATA, if absent)
+  3. SPL Token       TransferChecked       (the business instruction)
+
+[attempt -  ] submit    guarded transfer, up to 3 attempts
+[attempt 1  ] send      phase 1 blockhash=BgMQy8He… priorityFee=1000µLamports sig=5FWDBNGC…
+[attempt 1  ] committed signature=5FWDBNGCXSuq2g4AqNBdmuymHuJLyhLtYe5LztPExREaGnL2BPLp2xh5RSEEyn9wz6ivzet3bjaR1F8Sj5w273zF
+
+[attempt -  ] replay    phase 2 — same intent, rebuilt transaction, same idempotency key
+[attempt 1  ] send      phase 2 blockhash=DchvdMVq… priorityFee=1000µLamports sig=DW5UR7PB…
+[attempt 1  ] blocked   AlreadyCommitted (code 6000) — duplicate blocked, no ATA rent paid and no tokens moved
+
+Result
+  phase 1               committed after 1 attempt(s)
+  phase 2               duplicate-blocked after 1 attempt(s)
+  source before/after   999000000 -> 998000000
+  destination before    1000000
+  destination after     2000000
+  delta                 1000000 base units (one transfer, not two)
+  receipt status        committed
+  receipt matches       true (true means the stored fingerprint is this same intent)

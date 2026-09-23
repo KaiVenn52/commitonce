@@ -112,6 +112,22 @@ const RPC_WS_URL = process.env.RPC_WS_URL ?? RPC_URL.replace(/^http/, 'ws');
 const MINT = address(requireEnv('MINT'));
 const RECIPIENT = address(requireEnv('RECIPIENT'));
 
+/**
+ * Which token program the mint belongs to.
+ *
+ * Defaults to the classic SPL Token program. Set `TOKEN_PROGRAM` to the Token-2022 program id
+ * to use a Token-2022 mint instead — the guard does not care which, because it is an ordinary
+ * instruction prepended to whatever the caller was already building, but the *associated token
+ * address* does: the same owner and mint derive different ATAs under the two programs, so
+ * getting this wrong produces a transfer against an account that does not exist.
+ *
+ * This was previously hard-coded, and the README said Token-2022 was "not handled here". It is
+ * now one variable, which is all it ever needed to be.
+ */
+const TOKEN_PROGRAM = address(
+    process.env.TOKEN_PROGRAM ?? TOKEN_PROGRAM_ADDRESS,
+);
+
 /** Base units, i.e. whole tokens * 10^decimals. Read the mint below to confirm the scale. */
 const AMOUNT_BASE_UNITS = BigInt(requireEnv('AMOUNT_BASE_UNITS'));
 
@@ -171,6 +187,22 @@ function describeAmbiguous(error: unknown): string {
     if (isSolanaError(error, SOLANA_ERROR__TRANSACTION_ERROR__ALREADY_PROCESSED)) {
         return 'identical signed bytes were already processed';
     }
+    // Solana's preflight reports `Transaction simulation failed` and nothing else, which says
+    // nothing about *why*. The logs are in `context.logs` and they are the whole point: they
+    // name the program that failed and the reason. Without them a reader cannot tell a missing
+    // account from a wrong token program from a program that does not exist on this cluster.
+    const logs = (error as { context?: { logs?: unknown } })?.context?.logs;
+    if (Array.isArray(logs) && logs.length > 0) {
+        const interesting = logs
+            .map((entry) => String(entry).trim())
+            .filter((entry) => entry.length > 0)
+            // Drop the per-program "invoke [n]" / "success" bookkeeping and keep what failed.
+            .filter((entry) => !/^Program \S+ (invoke \[\d+\]|success)$/.test(entry));
+        if (interesting.length > 0) {
+            return `simulation failed — ${interesting.slice(-4).join(' | ')}`;
+        }
+    }
+
     return error instanceof Error ? error.message : String(error);
 }
 
@@ -233,13 +265,66 @@ async function submitGuardedTransfer(args: GuardedTransferArgs): Promise<Submiss
         });
 
         // Created only if absent, and created by the *payer*: the authority pays the ATA rent
-        // as well as the receipt deposit. `getCreateAssociatedTokenIdempotentInstructionAsync`
-        // derives the ATA when `ata` is omitted, which is why it is asynchronous.
+        // as well as the receipt deposit.
+        //
+        // **`ata` is passed explicitly, and that is not cosmetic.** When it is omitted the
+        // builder derives the address itself — under the *classic* token program, because that
+        // is the program id baked into the package. With a Token-2022 mint that produces the
+        // wrong address: the same owner and mint derive a different ATA under each program, so
+        // the instruction ends up creating an account the example never computed, and the
+        // failure surfaces as an `IncorrectProgramId` from inside the ATA program's CPI rather
+        // than as anything mentioning the address. Deriving it here, with `TOKEN_PROGRAM`, keeps
+        // the instruction and the rest of the example in agreement.
         const createDestinationAta = await getCreateAssociatedTokenIdempotentInstructionAsync({
             payer: authority,
+            ata: destinationAta,
             owner: RECIPIENT,
             mint: MINT,
         });
+
+        /**
+         * Skip the ATA instruction when the destination token account already exists.
+         *
+         * Two reasons, and the second is the interesting one.
+         *
+         * **It is wasted work otherwise.** `CreateIdempotent` succeeds on an existing account, so
+         * sending it is not *wrong* — it just costs an instruction and a CPI for nothing.
+         *
+         * **Under Token-2022 it does not merely waste work, it fails.** The builder in
+         * `@solana-program/token` is hard-typed to the classic program, and even with the address
+         * passed explicitly and the program id replaced in both the executing program and the
+         * account list, the ATA program's CPI into Token-2022 is rejected:
+         *
+         *     Program log: Instruction: InitializeAccount
+         *     Program log: Error: IncorrectProgramId
+         *     Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb failed
+         *
+         * **This is a limitation of that builder, not of the guard.** The guarded transfer itself
+         * works against Token-2022 — verified by running this example with the ATA present. So
+         * the example creates the account only when it is missing, and under Token-2022 requires
+         * the caller to have created it:
+         *
+         *     spl-token create-account <MINT> --program-id TokenzQd… --owner <RECIPIENT>
+         *
+         * Checking rather than sending unconditionally does open a narrow race — the account
+         * could appear between the check and the send — but the failure mode is benign and
+         * visible: `CreateIdempotent` would have succeeded anyway, and a lost race means the
+         * transfer targets an account that now exists.
+         */
+        const destinationAccount = await rpc.getAccountInfo(destinationAta, { encoding: 'base64' }).send();
+        const destinationExists = destinationAccount.value !== null;
+
+        if (!destinationExists && TOKEN_PROGRAM !== TOKEN_PROGRAM_ADDRESS) {
+            throw new Error(
+                `CommitOnce example: the destination associated token account ${destinationAta} does ` +
+                    'not exist, and this example cannot create it under Token-2022 — the ' +
+                    'CreateIdempotent builder in @solana-program/token is hard-typed to the classic ' +
+                    'program and its CPI is rejected by Token-2022 with IncorrectProgramId. Create ' +
+                    'it first:\n' +
+                    `  spl-token create-account ${MINT} --program-id ${TOKEN_PROGRAM} --owner ${RECIPIENT}\n` +
+                    'The guarded transfer itself works under Token-2022; only this creation step does not.',
+            );
+        }
 
         const transferChecked = getTransferCheckedInstruction({
             source: sourceAta,
@@ -254,6 +339,52 @@ async function submitGuardedTransfer(args: GuardedTransferArgs): Promise<Submiss
             decimals,
         });
 
+        /**
+         * Retarget both instructions at the mint's own token program.
+         *
+         * `@solana-program/token` bakes the classic program id into these builders as a
+         * *literal type* — the config argument accepts only a `programAddress` narrowed to
+         * `Tokenkeg…` — so there is no supported way to ask it for Token-2022.
+         *
+         * **Overriding the executing program is not enough, and finding that out cost a run.**
+         * The Associated Token program's `CreateIdempotent` carries the token program as an
+         * *account* as well, and the ATA program checks that account against the mint's owner.
+         * Overriding only `programAddress` produces:
+         *
+         *     Program log: Instruction: InitializeAccount
+         *     Program log: Error: IncorrectProgramId
+         *
+         * So the token program has to be replaced in both places: as the program to execute, and
+         * as the account the ATA program will use to create the token account.
+         *
+         * Token-2022 is a superset of Token — `TransferChecked` and `CreateIdempotent` have the
+         * same discriminator, the same argument encoding and the same account list under both —
+         * so rewriting the program id is correct rather than a trick. This is the one place the
+         * example steps outside the library's typed surface, which is why it is commented rather
+         * than silent.
+         *
+         * Note what this does *not* touch: the guard. It is an ordinary instruction prepended to
+         * whatever the caller was already building, and it is indifferent to which token program
+         * the business instructions use.
+         */
+        const retarget = (instruction: Instruction): Instruction => {
+            if (TOKEN_PROGRAM === TOKEN_PROGRAM_ADDRESS) {
+                return instruction;
+            }
+            return {
+                ...instruction,
+                programAddress: TOKEN_PROGRAM,
+                accounts: instruction.accounts?.map((meta) =>
+                    meta.address === TOKEN_PROGRAM_ADDRESS
+                        ? { ...meta, address: TOKEN_PROGRAM }
+                        : meta,
+                ),
+            };
+        };
+
+        const createDestinationAtaForMint = retarget(createDestinationAta);
+        const transferCheckedForMint = retarget(transferChecked);
+
         const message = pipe(
             createTransactionMessage({ version: 0 }),
             (m) => setTransactionMessageFeePayerSigner(authority, m),
@@ -263,8 +394,9 @@ async function submitGuardedTransfer(args: GuardedTransferArgs): Promise<Submiss
                         setComputeUnitPriceInstruction(priorityFeeMicroLamports),
                         // Guard first. See the file header for why the ordering matters.
                         guard.instruction,
-                        createDestinationAta,
-                        transferChecked,
+                        // Only when the account is missing; see the comment above.
+                        ...(destinationExists ? [] : [createDestinationAtaForMint]),
+                        transferCheckedForMint,
                     ],
                     m,
                 ),
@@ -383,12 +515,12 @@ async function main(): Promise<void> {
 
     const [sourceAta] = await findAssociatedTokenPda({
         owner: authority.address,
-        tokenProgram: TOKEN_PROGRAM_ADDRESS,
+        tokenProgram: TOKEN_PROGRAM,
         mint: MINT,
     });
     const [destinationAta] = await findAssociatedTokenPda({
         owner: RECIPIENT,
-        tokenProgram: TOKEN_PROGRAM_ADDRESS,
+        tokenProgram: TOKEN_PROGRAM,
         mint: MINT,
     });
 

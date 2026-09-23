@@ -102,7 +102,7 @@ instructions, and both are asserted by tests rather than described in prose:
 | Demo counter program (devnet) | `EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5`, slot `503118191` |
 | Rust test suite | **53 passing, exit 0**, executing the real compiled SBF artifact through LiteSVM |
 | SDK test suite | **71 passing**, golden vectors cross-checked by an independent implementation |
-| Composability | **executed on devnet** with the System Program, with SPL Token + Associated Token in one transaction, and with an arbitrary Anchor program — three of the four examples. The fourth composes cleanly with a **real Jupiter swap transaction** in dry-run mode; execution there is not possible today |
+| Composability | **executed on devnet** with the System Program, with SPL Token + Associated Token in one transaction, with **Token-2022**, and with an arbitrary Anchor program. The fourth example composes cleanly with a **real Jupiter swap transaction** in dry-run mode; execution there is not possible today |
 | Measured overhead | **+404 bytes, +4 accounts** (usually +3 in practice); `claim` consumed 14,669 CU on devnet |
 | Receipt account | 202 bytes, 1,676,400 lamports rent (0.0016764 SOL), fully refundable on cleanup |
 | Mainnet | **not deployed** |
@@ -123,6 +123,7 @@ been **executed against devnet** against the deployed program, each a single ato
 | --- | --- | --- |
 | `sol-transfer` | System Program `Transfer` | retry blocked; recipient gained exactly one transfer |
 | `spl-transfer` | SPL Token `TransferChecked` + Associated Token `CreateIdempotent` | retry blocked; source fell by exactly one transfer, and no ATA rent was paid on the retry |
+| `spl-transfer` with `TOKEN_PROGRAM` | the same, under **Token-2022** | retry blocked; source fell by exactly one transfer |
 | `custom-program` | an arbitrary Anchor program | retry blocked; counter stayed at 1 — even though the first attempt carried two business instructions and the retry carried one |
 
 Raw output for all three is in [`evidence/`](evidence/). The fourth — the Jupiter swap — has been

@@ -82,6 +82,9 @@ Composes with, verified by execution against devnet:
 - System Program (lamport transfer)
 - SPL Token (TransferChecked) and the Associated Token Program (CreateIdempotent), both in the
   same atomic transaction as the guard
+- **Token-2022**, which is a different program with the same instruction encoding — the guard is
+  indifferent to which one executes the business instructions, and that has been executed against
+  devnet rather than reasoned about
 - An arbitrary third-party Anchor program
 - Another program calling `claim` through a CPI, so a program can guard its own actions
   rather than requiring every client to prepend the guard

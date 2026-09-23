@@ -35,6 +35,23 @@ MINT_WHOLE_TOKENS="${MINT_WHOLE_TOKENS:-1000}"
 # throwaway devnet secret and must never be committed.
 MINT_KEYPAIR="${MINT_KEYPAIR:-$HOME/.cache/commitonce/spl-example-mint.json}"
 
+# Which token program to create the mint under.
+#
+#   TOKEN_PROGRAM=classic   (default) TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA
+#   TOKEN_PROGRAM=2022                TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb
+#
+# The example reads the program from its own `TOKEN_PROGRAM` variable; this script prints the
+# matching value. The two must agree, because the same owner and mint derive different
+# associated token addresses under the two programs — a mismatch produces a transfer against an
+# account that does not exist.
+TOKEN_PROGRAM="${TOKEN_PROGRAM:-classic}"
+case "$TOKEN_PROGRAM" in
+    classic) TOKEN_PROGRAM_ID="TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" ;;
+    2022)    TOKEN_PROGRAM_ID="TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb" ;;
+    *)       echo "setup-devnet: TOKEN_PROGRAM must be 'classic' or '2022', got '$TOKEN_PROGRAM'" >&2
+             exit 1 ;;
+esac
+
 die() { echo "setup-devnet: $*" >&2; exit 1; }
 
 command -v spl-token >/dev/null 2>&1 || die "spl-token is not on PATH. It ships with the Solana CLI."
@@ -48,6 +65,7 @@ echo "CommitOnce — devnet setup for examples/spl-transfer"
 echo "  rpc         $RPC_URL"
 echo "  authority   $AUTHORITY"
 echo "  balance     $BALANCE SOL"
+echo "  token prog  $TOKEN_PROGRAM ($TOKEN_PROGRAM_ID)"
 echo
 
 # Creating a mint costs rent for the mint account plus a fee; creating the ATA costs rent for
@@ -67,12 +85,14 @@ if [ -f "$MINT_KEYPAIR" ]; then
     else
         echo "     the saved mint keypair has no account on devnet; creating it"
         spl-token create-token "$MINT_KEYPAIR" --decimals "$DECIMALS" \
+            --program-id "$TOKEN_PROGRAM_ID" \
             --url "$RPC_URL" --fee-payer "$PAYER_KEYPAIR" >/dev/null
     fi
 else
     solana-keygen new --no-bip39-passphrase --silent --force --outfile "$MINT_KEYPAIR"
     MINT="$(solana-keygen pubkey "$MINT_KEYPAIR")"
     spl-token create-token "$MINT_KEYPAIR" --decimals "$DECIMALS" \
+        --program-id "$TOKEN_PROGRAM_ID" \
         --url "$RPC_URL" --fee-payer "$PAYER_KEYPAIR" >/dev/null
 fi
 echo "     mint $MINT"
@@ -107,8 +127,17 @@ echo "  export MINT=$MINT"
 echo "  export RECIPIENT=$RECIPIENT"
 echo "  export AMOUNT_BASE_UNITS=$AMOUNT_BASE_UNITS"
 echo "  export ORDER_ID=order_$(date +%s)"
+if [ "$TOKEN_PROGRAM" = "2022" ]; then
+    echo "  export TOKEN_PROGRAM=$TOKEN_PROGRAM_ID"
+fi
 echo
 echo "  node examples/spl-transfer/index.ts"
 echo
 echo "ORDER_ID must be new each run: it is the idempotency key, so reusing one that already has"
 echo "a live receipt makes phase 1 fail with AlreadyCommitted instead of transferring."
+if [ "$TOKEN_PROGRAM" = "2022" ]; then
+    echo
+    echo "TOKEN_PROGRAM is set above because this is a Token-2022 mint. The example needs it: the"
+    echo "same owner and mint derive a different associated token address under Token-2022, so"
+    echo "omitting it would build a transfer against an account that does not exist."
+fi

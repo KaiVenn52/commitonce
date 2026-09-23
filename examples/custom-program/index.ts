@@ -279,6 +279,22 @@ function describeAmbiguous(error: unknown): string {
     if (isSolanaError(error, SOLANA_ERROR__TRANSACTION_ERROR__ALREADY_PROCESSED)) {
         return 'identical signed bytes were already processed';
     }
+    // Solana's preflight reports `Transaction simulation failed` and nothing else, which says
+    // nothing about *why*. The logs are in `context.logs` and they are the whole point: they
+    // name the program that failed and the reason. Without them a reader cannot tell a missing
+    // account from a wrong token program from a program that does not exist on this cluster.
+    const logs = (error as { context?: { logs?: unknown } })?.context?.logs;
+    if (Array.isArray(logs) && logs.length > 0) {
+        const interesting = logs
+            .map((entry) => String(entry).trim())
+            .filter((entry) => entry.length > 0)
+            // Drop the per-program "invoke [n]" / "success" bookkeeping and keep what failed.
+            .filter((entry) => !/^Program \S+ (invoke \[\d+\]|success)$/.test(entry));
+        if (interesting.length > 0) {
+            return `simulation failed — ${interesting.slice(-4).join(' | ')}`;
+        }
+    }
+
     return error instanceof Error ? error.message : String(error);
 }
 

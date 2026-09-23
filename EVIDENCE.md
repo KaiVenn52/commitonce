@@ -230,6 +230,7 @@ against the deployed CommitOnce program:
 | [`sol-transfer`](examples/sol-transfer/) | System Program `Transfer` | phase 1 committed; phase 2 blocked; recipient gained exactly one transfer |
 | [`spl-transfer`](examples/spl-transfer/) | SPL Token `TransferChecked` + Associated Token `CreateIdempotent` | phase 1 committed; phase 2 blocked; source fell by exactly one transfer |
 | [`custom-program`](examples/custom-program/) | an arbitrary Anchor program (`demo-counter`) | phase 1 committed; phase 2 blocked; counter stayed at 1 |
+| [`spl-transfer`](examples/spl-transfer/) with `TOKEN_PROGRAM` set | **Token-2022** (`TokenzQd…`) instead of the classic SPL Token program | phase 1 committed; phase 2 blocked; source fell by exactly one transfer |
 
 The `custom-program` run is worth calling out separately, because phase 1 and phase 2 carried
 **different numbers of business instructions** — phase 1 had `initialize` *and* `increment`,
@@ -283,11 +284,18 @@ reproducible rather than a one-off. `sol-transfer` needs only a funded keypair a
 address.
 
 **What this proves:** the guard composes with the System Program, the SPL Token program, the
-Associated Token program and an arbitrary Anchor program, in one atomic transaction each, on a
-live cluster, with the instruction ordering the examples argue for. **What it does not prove:**
-anything about mainnet, and it does not make the program audited. The Jupiter-swap example is
-still structural — it has never submitted a transaction, and it has never been run against
-Jupiter's live API.
+Associated Token program, **Token-2022**, and an arbitrary Anchor program, in one atomic
+transaction each, on a live cluster, with the instruction ordering the examples argue for.
+**What it does not prove:** anything about mainnet, and it does not make the program audited.
+
+The Token-2022 run is worth a note because it took four attempts and **none of the four failures
+was a CommitOnce bug**. The guard worked at every step; what failed was a client library that
+assumes a single token program — it hard-types the classic program id as a literal type, reads
+the token program from an *account* as well as a program id, and derives the associated token
+address under the classic program when the address is not passed explicitly. All three had to be
+worked around before the instruction itself turned out not to work under Token-2022 at all, at
+which point the example began skipping it when the account already exists. Details in
+[`examples/spl-transfer/README.md`](examples/spl-transfer/README.md).
 
 ---
 

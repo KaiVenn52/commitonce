@@ -218,9 +218,27 @@ environment variable so a mistyped scale cannot silently change the intent.
   installed. If you add that package, replace the helper with its
   `getSetComputeUnitPriceInstruction({ microLamports })`. This is the one place in this
   example where an interface outside the repository is encoded rather than imported.
-- Only the classic SPL Token program is used (`TOKEN_PROGRAM_ADDRESS`, i.e.
-  `TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA`). Token-2022 mints are not handled here;
-  they need the Token-2022 program id and, for some extensions, extra accounts.
+- **Both token programs are supported**, selected with `TOKEN_PROGRAM`. It defaults to the
+  classic program (`TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA`); set it to
+  `TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb` for Token-2022. The guarded transfer has been
+  **executed against a Token-2022 mint on devnet** — see "Token-2022" below.
+
+  Two things are needed beyond setting the variable, and neither is obvious:
+
+  1. **The destination token account must already exist.** The `CreateIdempotent` builder in
+     `@solana-program/token` is hard-typed to the classic program, and even with the address
+     passed explicitly and the program id replaced in both the executing program and the account
+     list, its CPI into Token-2022 is rejected with `IncorrectProgramId`. The example therefore
+     skips that instruction when the account is present, and throws a clear error rather than a
+     cryptic simulation failure when it is missing. Create it first:
+     `spl-token create-account <MINT> --program-id TokenzQd… --owner <RECIPIENT>`.
+  2. **The program id has to be replaced in two places**, not one: as the program that executes
+     the instruction, and as the `token_program` account the Associated Token program reads.
+     Overriding only the former produces the same `IncorrectProgramId`.
+
+  **The limitation is in that builder, not in the guard.** The guard is an ordinary instruction
+  prepended to whatever the caller was already building, and it is indifferent to which token
+  program the business instructions use — which is what the Token-2022 run demonstrates.
 
 ## Status
 
@@ -251,6 +269,58 @@ bash examples/spl-transfer/setup-devnet.sh
 # export the lines it prints, then:
 node examples/spl-transfer/index.ts
 ```
+
+## Token-2022
+
+**Executed against devnet, against the deployed CommitOnce program.** Raw output:
+[`submission/evidence/devnet-spl-transfer-token2022-run.log`](../../submission/evidence/devnet-spl-transfer-token2022-run.log).
+
+```
+  phase 1               committed after 1 attempt(s)
+  phase 2               duplicate-blocked after 1 attempt(s)
+  source before/after   999000000 -> 998000000
+  destination before    1000000
+  destination after     2000000
+  delta                 1000000 base units (one transfer, not two)
+  receipt matches       true
+```
+
+Same result as the classic path: the retry is blocked and the business effect lands exactly
+once. That is the point — **the guard does not know or care which token program is in use**,
+because it is an instruction prepended to the caller's transaction rather than a feature of it.
+
+To reproduce it, create the mint and the accounts under Token-2022 and tell the example about it:
+
+```bash
+TOKEN_PROGRAM=2022 bash examples/spl-transfer/setup-devnet.sh
+spl-token create-account <MINT> --program-id TokenzQd… --owner <RECIPIENT>
+# export the lines it prints (they include TOKEN_PROGRAM), then:
+node examples/spl-transfer/index.ts
+```
+
+Getting there took four attempts, and the three failures are worth recording because each looked
+like the same symptom:
+
+1. **`IncorrectProgramId` with the classic program executing.** The builders hard-type the classic
+   program id as a *literal type*, so the config argument cannot be used to select Token-2022.
+   Fixed by replacing `programAddress` afterwards.
+2. **The same error again.** The Associated Token program reads the token program from an
+   *account* as well, and the ATA program checks that account against the mint's owner. Replacing
+   only the executing program is not enough; the account has to be replaced too.
+3. **The same error a third time.** The ATA builder derives the associated token address itself
+   under the classic program when `ata` is omitted, so the instruction was creating a *different
+   account* from the one the rest of the example computed. Both addresses are 32 bytes and the
+   failure says nothing about addresses, which is why this one was the hardest to see. Fixed by
+   passing `ata` explicitly.
+4. **Still the same error with all three fixed**, which is when it became clear the instruction
+   itself cannot work under Token-2022, and the example started skipping it when the account
+   already exists.
+
+**None of the four was a CommitOnce bug.** The guard worked at every step; what failed was a
+client library's assumption that there is only one token program. That is worth stating plainly,
+because "the guard composes with Token-2022" and "this example can create a Token-2022 token
+account with this particular library" are different claims, and only the first is what the
+product is about.
 
 **What this proves and does not prove.** It proves the guard composes with the real SPL Token
 program and the Associated Token program in one atomic transaction, on a live cluster, with the
