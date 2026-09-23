@@ -1,5 +1,8 @@
 # CommitOnce
 
+[![CI](https://github.com/KaiVenn52/commitonce/actions/workflows/ci.yml/badge.svg)](https://github.com/KaiVenn52/commitonce/actions/workflows/ci.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+
 **Idempotency keys for Solana.**
 
 > Retry without executing twice.
@@ -7,6 +10,14 @@
 An onchain idempotency layer for Solana actions. Prepend one instruction to the transaction
 you already build, and a *rebuilt* retry can no longer execute the same logical intent a
 second time.
+
+CI runs on a clean Ubuntu runner that has never seen this repository: it installs the pinned
+Solana and Anchor toolchains, builds both programs for SBPFv2, verifies every `declare_id!`
+against its committed keypair, checks formatting and lints, runs the full Rust suite against
+the compiled SBF artifact in LiteSVM, and runs the SDK typecheck, build, tests and
+dual-format check. **That is the strongest evidence in this repository** — every other number
+was measured on the author's machine, and this one is reproduced from a fresh checkout by
+someone else's computer.
 
 ```
    ┌──────────────────────────────────────────────────────────────────┐

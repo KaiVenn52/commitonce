@@ -656,13 +656,12 @@ Listed explicitly, because a document that only lists successes is not evidence.
 bash verify.sh
 ```
 
-Runs prerequisite checks, the program build, program-ID verification, the Rust suite, the
-benchmarks, and the SDK typecheck/build/tests/dual-format check plus a consumer typecheck, the
-brand-asset check, the documentation check and the encoding check — **fourteen steps** —
-then prints a PASS/FAIL
-summary with the true exit code. It fails loudly rather than silently skipping a step, and a step
-that could not run is reported as `NOT RUN`, which fails the run rather than being counted as a
-pass.
+Runs prerequisite checks, the program build, program-ID verification, formatting, the Rust
+suite, the benchmarks, and the SDK typecheck/build/tests/dual-format check plus a consumer
+typecheck, the brand-asset check, the documentation check and the encoding check —
+**fourteen steps** — then prints a PASS/FAIL summary with the true exit code. It fails loudly
+rather than silently skipping a step, and a step that could not run is reported as `NOT RUN`,
+which fails the run rather than being counted as a pass.
 
 Last full run: **`RESULT: PASS (14 steps ran and passed)`**, exit code 0.
 
@@ -678,7 +677,39 @@ that from the presence of those packages and routes the SDK steps to the toolcha
 `node_modules`, reporting the mode it chose in its header. On a machine with a single
 toolchain it runs everything natively.
 
+### CI — and why it caught what `verify.sh` could not
+
+**CI is green on a clean Ubuntu runner that has never seen this repository.** It installs the
+pinned Solana 4.2.2 and Anchor 1.2.0 toolchains, builds both programs for SBPFv2, verifies every
+`declare_id!` against its committed keypair, runs `cargo fmt --all --check` and
+`cargo clippy --workspace --all-targets`, runs the full Rust suite against the compiled SBF
+artifact in LiteSVM, re-runs the benchmarks with output visible, and runs the SDK typecheck,
+build, tests, dual-format check and consumer typecheck plus the three repository consistency
+checks.
+
+That is the strongest single piece of evidence in this document. Every other number here was
+measured on the author's machine; this one is reproduced from a fresh checkout by a different
+computer.
+
+**The first CI run failed, and that is the point.** It came back red on two steps, neither of
+which `verify.sh` covered, and neither of which was visible on a working copy:
+
+1. **`cargo fmt --all --check` — 53 hunks across 8 files.** The workspace had never been
+   rustfmt-clean, and nothing local ran the formatter. Fixed, and the check added to `verify.sh`.
+
+2. **Consumers typecheck — four `TS2307: Cannot find module '@commitonce/solana'` errors.**
+   This was an ordering bug, and it was in `verify.sh` as well as in the workflow. The SDK
+   resolves through `dist/types/index.d.ts`, and `dist/` is gitignored — so on a clean checkout
+   the consumers cannot resolve the module until the SDK has been built, and both files
+   typechecked the consumers *first*. It passed locally for months because `dist/` was already
+   there from an earlier build. Deleting `packages/sdk/dist` reproduced the identical four errors
+   locally, and building the SDK first made them disappear.
+
+`verify.sh` had run green fourteen times on this machine and could not have caught either
+problem, because both are invisible when `dist/` is warm and the tree is consistently
+unformatted. A clean checkout is a different environment.
+
 The examples are typechecked as part of the workspace (`pnpm -r typecheck`), so a change to the
-SDK that breaks an integration example fails the build rather than rotting silently. One of the
-four — `examples/spl-transfer` — has additionally been executed against devnet; see §3. The other
-three are structural.
+SDK that breaks an integration example fails the build rather than rotting silently. Three of
+the four have additionally been **executed against devnet**; see §3. `jupiter-swap` is
+structural, because it needs Jupiter's live API.
