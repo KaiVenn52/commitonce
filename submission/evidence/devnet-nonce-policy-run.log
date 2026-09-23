@@ -1,0 +1,29 @@
+CommitOnce — durable-nonce policy against a live cluster
+  rpc        https://api.devnet.solana.com
+  payer      25TUohqYd5b6f97wc5CjMwj89ZVL8oX81nhkWVHimYpY
+  balance    6801754570 lamports
+
+===== 1. create a real nonce account =====
+  nonce account  A7qseu8Hp7DED5LV3pcsWWXh3ewEXYg7DULCmvYnuteF
+  signature      56wgNPPPWx7pYEji4tc9eGnsiU6iUtuK22nXCJbVeZPS4z8fAfmjo2PJym4LkVBUyZBarX8G7TatcizgrLi5Sjzq
+  explorer       https://explorer.solana.com/tx/56wgNPPPWx7pYEji4tc9eGnsiU6iUtuK22nXCJbVeZPS4z8fAfmjo2PJym4LkVBUyZBarX8G7TatcizgrLi5Sjzq?cluster=devnet
+  stored nonce   G19mtrYbHy43Ev6QjMPjyfHhayPPiuFhYVFTS8hq45DV
+
+===== 2. simulate the guard in a real durable-nonce transaction =====
+  finite retention       DurableNonceUnsupported (6002)
+  permanent retention    SUCCESS
+
+===== 3. clean up the nonce account =====
+  left in place deliberately. To close it and recover the rent:
+
+    solana nonce-account withdraw A7qseu8Hp7DED5LV3pcsWWXh3ewEXYg7DULCmvYnuteF 25TUohqYd5b6f97wc5CjMwj89ZVL8oX81nhkWVHimYpY \
+      --url https://api.devnet.solana.com --fee-payer \\wsl.localhost\Ubuntu\home\dell2u\.config\solana\id.json
+
+  rent held      1500000 lamports
+
+===== what this shows =====
+  Both transactions are real durable-nonce transactions: the blockhash is the
+  stored nonce and the first instruction advances it. The only difference is the
+  retention. Finite retention is refused with DurableNonceUnsupported; permanent
+  is allowed. The policy holds against a live cluster, not just against an
+  injected marker in a harness.

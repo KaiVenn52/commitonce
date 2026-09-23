@@ -712,7 +712,7 @@ successes is not evidence):
 | Address lookup tables / v0 messages | **Tested end-to-end** in `tests/versioned.rs` — see §9. Previously "expected to work, but not verified". |
 | Non-Anchor clients | **Verified.** Zero runtime dependencies, nothing imported from Anchor's JS library; every "Anchor" in `packages/sdk/src/` is a comment naming the discriminator it reproduces. Run against the deployed program on devnet. |
 | CPI into `claim` from another program | **Tested** in `tests/cpi.rs` — see §9. |
-| Genuine durable-nonce transactions | **Cannot be tested in LiteSVM 0.10.0**, for the reason given in §9. |
+| Genuine durable-nonce transactions | **Tested against devnet** in `apps/demo/nonce-policy.ts`. The harness cannot express one — see §9 — so the Rust test injects the marker, and the live script closes that gap. |
 | SBPFv3 build | **Not verified**, and deliberately not shipped, because LiteSVM cannot verify it. |
 | Compute units on mainnet | **Not measured.** |
 

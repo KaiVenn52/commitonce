@@ -751,7 +751,7 @@ bash verify.sh          # everything, with a PASS/FAIL summary and the true exit
         <li>npm publication. The package is not published.</li>
         <li>Third-party integration, real users, traction, revenue, waitlist. None.</li>
         <li>Transaction v1 (<code>VersionedTransaction</code> v1). The SDK and tests exercise legacy and v0 messages only.</li>
-        <li>Genuine durable-nonce transactions. A real nonce transaction is inexpressible in LiteSVM 0.10.0, so the tests assert the program's stricter behaviour — that the presence of the marker triggers the policy.</li>
+        <li>Genuine durable-nonce transactions in the <em>harness</em>. A real nonce transaction is inexpressible in LiteSVM 0.10.0, so the Rust tests assert the program's stricter behaviour — that the presence of the marker triggers the policy. They have since been exercised for real against devnet, where finite retention is refused and <code>permanent</code> is allowed.</li>
         <li>SBPFv3 builds. Deliberately not shipped, because the project's own test suite cannot verify one.</li>
         <li>Compute-unit figures on mainnet. Not measured.</li>
       </ul>
