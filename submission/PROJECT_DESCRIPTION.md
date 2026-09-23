@@ -3,7 +3,7 @@
 **Product name:** CommitOnce
 **One line:** Idempotency keys for Solana. Retry without executing twice.
 **Track:** Solana
-**Repository:** this repository, Apache-2.0
+**Repository:** <https://github.com/KaiVenn52/commitonce> — Apache-2.0, public
 **Status:** deployed and live on **devnet**; unaudited; not on mainnet; not published to npm
 
 Everything in this document is either reproducible from the repository or read back from

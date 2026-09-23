@@ -503,7 +503,7 @@ checkout — so the intended channel is documented but not yet written.
 What that leaves, in order of preference:
 
 1. **GitHub private vulnerability reporting**, if it is enabled on the repository
-   (`https://github.com/commitonce-dev/commitonce`, per `packages/sdk/package.json`). This is
+   (`https://github.com/KaiVenn52/commitonce`, per `packages/sdk/package.json`). This is
    the correct channel for a security report, because it is private by default.
 2. If it is not enabled, open a **minimal public issue asking for a private channel** — and
    nothing more. Do not post reproduction steps, exploit details or affected deployments in

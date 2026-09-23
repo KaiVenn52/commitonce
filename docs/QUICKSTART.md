@@ -41,7 +41,7 @@ disabled on this system"), use `pnpm.cmd` instead of `pnpm`, or run the commands
 ### Step 1. Install
 
 ```bash
-git clone https://github.com/commitonce-dev/commitonce.git
+git clone https://github.com/KaiVenn52/commitonce.git
 cd commitonce
 pnpm install
 ```

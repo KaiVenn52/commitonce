@@ -51,11 +51,15 @@ Links under “In the repository” and the `src` citation chips point at real f
 using relative paths (`../../README.md`, `../../docs/PRIOR_ART.md`, …). They work when the site is
 served from inside the repository or opened from `apps/web/`.
 
-They are **relative on purpose.** `package.json` names a GitHub repository, but
-`https://api.github.com/repos/commitonce-dev/commitonce` returns **404** as of this writing, so a
-GitHub link on the page would be a dead link — and `NEEDS_OWNER_ACTION.md` §5 says explicitly not
-to put placeholder URLs in front of judges. If a public remote is created, replace the relative
-paths in the footer with absolute URLs.
+They are **relative on purpose**, and that was originally a workaround: the repository had no
+public remote, so a GitHub link on the page would have been a dead link, and
+`NEEDS_OWNER_ACTION.md` §5 says explicitly not to put placeholder URLs in front of judges.
+
+The repository is now public at <https://github.com/KaiVenn52/commitonce>, and the footer links to it. The in-page links are
+still relative, which is a deliberate choice rather than a constraint: the site is served from
+inside the checkout, so a relative path resolves whether the reader is on GitHub, on a static
+host, or opening the file locally. If the site is ever deployed somewhere that does not carry
+the rest of the repository alongside it, those links have to become absolute.
 
 ## Where every number comes from
 

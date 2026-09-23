@@ -169,7 +169,9 @@ Stated plainly, because a submission that only lists successes is not evidence.
 
 ## Repository access
 
-If this repository is private at submission time, read access is granted to
-**`hackathon@colosseum.com`**. It is Apache-2.0 and intended to be public. Two videos — a 2:00–2:59
-presentation and a ≤3:00 product demo — are linked from the submission form; the scripts and shot
-lists for both are in this directory.
+**The source is public: <https://github.com/KaiVenn52/commitonce>** — Apache-2.0, default branch
+`main`, readable without an account. Nothing needs to be granted for a judge to read it.
+
+If it is ever made private, read access is granted to **`hackathon@colosseum.com`**. Two
+videos — a 2:00–2:59 presentation and a ≤3:00 product demo — are linked from the submission
+form; the scripts and shot lists for both are in this directory.

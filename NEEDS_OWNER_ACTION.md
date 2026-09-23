@@ -140,8 +140,11 @@ requires an authenticated token, which cannot be created or stored from here.
 GitHub repository search for the name returns `total_count: 0`. crates.io, PyPI and Docker
 Hub are clear.
 
-**One caveat:** the GitHub *user* handle `@CommitOnce` is taken by a dormant account. Use the
-organisation handle **`commitonce-dev`** instead.
+**One caveat, now moot for the repository:** the GitHub *user* handle `@CommitOnce` is taken by a
+dormant account. That only matters if a dedicated account or organisation is created for this
+project; the repository is published under the owner's existing account as
+`KaiVenn52/commitonce`, and the npm scope `@commitonce` is a separate namespace that is still
+unclaimed.
 
 **Actions required:**
 
