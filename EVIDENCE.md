@@ -718,5 +718,7 @@ unformatted. A clean checkout is a different environment.
 
 The examples are typechecked as part of the workspace (`pnpm -r typecheck`), so a change to the
 SDK that breaks an integration example fails the build rather than rotting silently. Three of
-the four have additionally been **executed against devnet**; see §3. `jupiter-swap` is
-structural, because it needs Jupiter's live API.
+the four have additionally been **executed against devnet**; see §3. The fourth, `jupiter-swap`,
+has been **composed against a real Jupiter swap transaction** in dry-run mode — see §3 — but has
+not executed end to end, because Jupiter's aggregator is mainnet-only and CommitOnce is
+devnet-only.

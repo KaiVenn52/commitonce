@@ -691,11 +691,14 @@ bash verify.sh          # everything, with a PASS/FAIL summary and the true exit
           <div>
             <dt>Real integrations</dt>
             <dd>
-              Three of the four examples have been <em>executed</em> against devnet, not just typechecked.
+              Three of the four examples have been <em>executed</em> against devnet, not just typechecked, and
+              the fourth has been composed against a <em>real</em> Jupiter swap transaction.
               The guard composed with the System Program, with SPL Token + Associated Token in one
               transaction, and with an arbitrary Anchor program — and in each case the rebuilt retry was
-              blocked while the business effect landed exactly once. The Jupiter swap stays structural
-              because it needs Jupiter's live API, and says so.
+              blocked while the business effect landed exactly once. The Jupiter swap is the fourth: it
+              composes cleanly with a real transaction fetched from Jupiter's live API, verified in dry-run
+              mode, but has not executed end to end — Jupiter's aggregator is mainnet-only and CommitOnce is
+              devnet-only, and the page says so rather than implying otherwise.
             </dd>
           </div>
           <div>

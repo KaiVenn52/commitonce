@@ -1,13 +1,19 @@
-# CommitOnce example — guarding an already-built swap transaction (structural)
+# CommitOnce example — guarding an already-built swap transaction
 
 ## Read this first
 
-This example is **structural**. It has not been run against Jupiter's live API, and it does
-not contain a Jupiter endpoint, request body, quote format or instruction layout — those are
-Jupiter's to define, this repository does not know them, and guessing would produce code that
-looks authoritative and is wrong.
+This example has been **run against a real Jupiter swap transaction**, fetched from Jupiter's
+live aggregator API. Raw output:
+[`submission/evidence/jupiter-swap-dry-run.log`](../../submission/evidence/jupiter-swap-dry-run.log).
 
-What it does show, correctly and completely, is the part that is CommitOnce's business:
+What it deliberately does **not** do is encode a Jupiter endpoint, request body, quote format or
+instruction layout — those are Jupiter's to define, this repository does not own them, and
+guessing would produce code that looks authoritative and is wrong. `scripts/fetch-jupiter-swap.mjs`
+calls the real API instead, and a fetched transaction is committed at
+[`fixtures/jupiter-swap-mainnet.base64`](fixtures/jupiter-swap-mainnet.base64) so the run is
+reproducible without calling Jupiter at all.
+
+What the example does show, correctly and completely, is the part that is CommitOnce's business:
 **given a serialized transaction that somebody else built, how do you prepend the guard and
 submit it?** The transaction is supplied by the environment:
 
@@ -15,33 +21,72 @@ submit it?** The transaction is supplied by the environment:
 - `JUPITER_SWAP_TX_FILE` — a path to a file containing that base64 string (base64 text, not
   raw bytes).
 
-Producing that value is your job: call the swap API you actually use (Jupiter's current HTTP
-API, their SDK, or any other aggregator) with your own client and pass the base64 transaction
-it returns. See "Placeholders and unverified details" below.
+## `--dry-run`: verify the composition with no funds and no deployment
+
+```bash
+RPC_URL=https://api.mainnet-beta.solana.com \
+KEYPAIR=~/.config/solana/id.json \
+JUPITER_SWAP_TX_FILE=examples/jupiter-swap/fixtures/jupiter-swap-mainnet.base64 \
+INPUT_MINT=So11111111111111111111111111111111111111112 \
+OUTPUT_MINT=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v \
+AMOUNT_BASE_UNITS=1000000 \
+DRY_RUN=1 \
+node examples/jupiter-swap/index.ts
+```
+
+It composes and signs exactly what the submit path would, prints it, and stops. **Nothing is
+submitted, so the keypair needs no funds.** A mainnet RPC endpoint is required, because the
+transaction's address lookup tables have to be resolved on the cluster they live on.
+
+This exists because the full path needs two things that cannot currently coexist: Jupiter's
+aggregator is mainnet-only, and CommitOnce is devnet-only, so the two never meet. Without a dry
+run the composition could not be exercised by anyone — including its author — without
+hand-waving.
+
+What the dry run **verifies**: the guard prepends cleanly to a real third-party transaction, the
+supplied instructions keep their order and contents, and no duplicate ComputeBudget instruction
+is introduced.
+
+What it does **not** verify: execution. That needs `commit_once` deployed on the cluster the swap
+targets, plus a funded keypair there.
 
 ## What this demonstrates
 
 ```text
 the transaction you are given          after prepending
-├── 0. compute budget  SetComputeUnitLimit      ├── 0. compute budget  SetComputeUnitPrice  (ours, transport)
-├── 1. compute budget  SetComputeUnitPrice      ├── 1. commit_once     claim                (the guard)
-└── 2. swap instructions (n of them)            ├── 2. compute budget  SetComputeUnitLimit  (unchanged)
-                                                ├── 3. compute budget  SetComputeUnitPrice  (unchanged)
-                                                └── 4. swap instructions (n of them, same order)
+├── 0. compute budget  SetComputeUnitLimit      ├── 0. commit_once     claim                (the guard)
+├── 1. compute budget  SetComputeUnitPrice      ├── 1. compute budget  SetComputeUnitLimit  (unchanged)
+└── 2. swap instructions (n of them)            ├── 2. compute budget  SetComputeUnitPrice  (unchanged)
+                                                └── 3. swap instructions (n of them, same order)
 ```
 
 The swap's own instructions are not modified, reordered, or reinterpreted. They are simply no
 longer first. One atomic transaction, so if the receipt already exists, `claim` errors and the
 swap does not execute.
 
+**Note what is absent: this example adds no priority-fee instruction of its own.** An earlier
+revision did, and it did not work. A swap API's transaction already carries
+`SetComputeUnitLimit` and `SetComputeUnitPrice`, and the runtime rejects a transaction with two
+ComputeBudget instructions of the same kind:
+
+```
+invalid transaction: Transaction contains a duplicate instruction (3) that is not allowed
+```
+
+That is what a real Jupiter swap exposed the first time this example was pointed at one. The
+guard is now the *only* instruction this example adds, and it adds a price instruction only when
+the supplied transaction does not already set one. Raising the fee for a swap belongs in the swap
+API's own priority-fee parameter.
+
 The script also makes the central trap visible. A swap API returns a *different* transaction on
 every quote — different blockhash, different route, different intermediate accounts, different
 compute budget — while the user's intent ("swap 100 USDC for at least this much SOL, order
-928") is unchanged. The example prints a SHA-256 digest of the supplied transaction bytes and
-labels it "diagnostic only, NOT part of the intent fingerprint", because fingerprinting those
-bytes would make every re-quote look like a brand new intent: the guard would report
-`IdempotencyConflict` instead of `AlreadyCommitted`, and a rebuilt retry would be treated as a
-second swap.
+928") is unchanged. Two quotes taken minutes apart for the identical request produced a 922-byte
+transaction routed `Meteora DLMM → AlphaQ` and a 570-byte transaction routed `Flux`. The example
+prints a SHA-256 digest of the supplied transaction bytes and labels it "diagnostic only, NOT
+part of the intent fingerprint", because fingerprinting those bytes would make every re-quote
+look like a brand new intent: the guard would report `IdempotencyConflict` instead of
+`AlreadyCommitted`, and a rebuilt retry would be treated as a second swap.
 
 The precise guarantee: **at-most-once successful execution of the guarded intent within the
 configured retention window.** Not "exactly once" in general — after a receipt expires and is
@@ -222,7 +267,10 @@ the example.
 
 ## Placeholders and unverified details
 
-- **The Jupiter integration is structural and unverified.** No Jupiter host, path, request
+- **The Jupiter integration has been run against the live API, but not executed end to end.**
+  A real transaction was fetched from Jupiter's public aggregator API and committed as a fixture;
+  the composition was verified against it in dry-run mode. What remains unverified is execution,
+  which needs `commit_once` on mainnet and a funded keypair there. No Jupiter host, path, request
   body, response shape or instruction layout appears anywhere in this example, because the
   repository does not know Jupiter's current API. `loadSwapTransactionBase64()` is a
   deliberate placeholder: it reads the transaction from `JUPITER_SWAP_TX` or

@@ -3,7 +3,11 @@
  *
  * ## Read this first
  *
- * This example is **structural**. It has NOT been run against Jupiter's live API, and it does
+ * This example HAS been run against a real Jupiter swap transaction, fetched from Jupiter's
+ * live aggregator API, in `--dry-run` mode. What it has NOT done is execute one end to end:
+ * Jupiter's aggregator is mainnet-only and CommitOnce is devnet-only, so the two cannot meet
+ * today. The composition is verified; the execution is not, and the two are stated separately
+ * below rather than collapsed into one word. It still does
  * not contain a Jupiter endpoint, request shape, quote format or instruction layout, because
  * those are Jupiter's to define and this repository does not know them. Inventing them would
  * produce code that looks authoritative and is wrong.
@@ -128,6 +132,25 @@ const RPC_WS_URL = process.env.RPC_WS_URL ?? RPC_URL.replace(/^http/, 'ws');
 const ORDER_ID = process.env.ORDER_ID ?? 'order_928';
 
 /**
+ * `--dry-run` / `DRY_RUN=1`: compose and sign the guarded transaction, print exactly what
+ * would be submitted, and stop before sending it.
+ *
+ * This exists because the full path needs two things this example cannot supply: a funded
+ * keypair on the cluster the swap targets, and `commit_once` deployed on that same cluster.
+ * Jupiter's aggregator is mainnet-only and CommitOnce is devnet-only, so the two never meet
+ * today — which meant the composition could not be exercised by anyone, including its author,
+ * without hand-waving.
+ *
+ * Dry run removes both requirements. It still needs a keypair, because the guard's authority
+ * must sign and kit 8.3.0 offers no way to set a bare address as fee payer, but the key needs
+ * no funds: nothing is submitted. What it verifies is the part that is actually CommitOnce's
+ * business — that the guard prepends cleanly to a real third-party transaction, that the
+ * supplied instructions keep their order and contents, and that no duplicate ComputeBudget
+ * instruction is introduced.
+ */
+const DRY_RUN = process.env.DRY_RUN === '1' || process.argv.includes('--dry-run');
+
+/**
  * The swap's *semantic* parameters. These come from your own request, not from the returned
  * transaction — see the comment on `intent` below for why that distinction is the whole
  * product.
@@ -178,18 +201,52 @@ const COMPUTE_BUDGET_PROGRAM_ADDRESS = address('ComputeBudget1111111111111111111
  * that package's `getSetComputeUnitPriceInstruction` if you add it — the bytes are the same.
  * See README.md, "Placeholders and unverified details".
  *
- * Caveat specific to this example: if the supplied transaction already contains its own
- * SetComputeUnitPrice, that one takes effect, because the *last* such instruction in a
- * transaction wins and ours is prepended. Raising the fee for a swap therefore belongs in the
- * swap API's own priority-fee parameter, not here.
+ * **Caveat specific to this example, and it is not the one this comment used to give.** It
+ * previously said that if the supplied transaction already carries its own
+ * `SetComputeUnitPrice`, "the last such instruction wins and ours is prepended". That is
+ * wrong. The runtime **rejects the whole transaction**:
+ *
+ *     invalid transaction: Transaction contains a duplicate instruction (3) that is not allowed
+ *
+ * That is not a theoretical concern — it is what happened the first time this example was
+ * pointed at a real Jupiter swap, which carries `SetComputeUnitLimit` and
+ * `SetComputeUnitPrice` of its own. So the price instruction is now prepended **only when the
+ * supplied transaction does not already set one**; see `hasComputeBudgetInstruction`. Raising
+ * the fee for a swap belongs in the swap API's own priority-fee parameter either way.
  *
  * Transport only: it changes on every retry and must never enter the intent fingerprint.
  */
 function setComputeUnitPriceInstruction(microLamports: bigint): Instruction {
     const data = new Uint8Array(9);
-    data[0] = 3;
+    data[0] = COMPUTE_BUDGET_TAG_SET_COMPUTE_UNIT_PRICE;
     new DataView(data.buffer).setBigUint64(1, microLamports, true);
     return { programAddress: COMPUTE_BUDGET_PROGRAM_ADDRESS, data };
+}
+
+/** ComputeBudget instruction tags. Only the two this example needs to reason about. */
+const COMPUTE_BUDGET_TAG_SET_COMPUTE_UNIT_LIMIT = 2;
+const COMPUTE_BUDGET_TAG_SET_COMPUTE_UNIT_PRICE = 3;
+
+/**
+ * Does this instruction list already set the given ComputeBudget value?
+ *
+ * Needed because the runtime refuses a transaction containing two ComputeBudget instructions
+ * of the same kind. A transaction built by a swap API routinely sets both the unit limit and
+ * the unit price, so a guard that unconditionally prepends its own price instruction produces
+ * a transaction the cluster will not accept — which is exactly what a real Jupiter swap
+ * exposed. Read-only: nothing here modifies the supplied instructions.
+ */
+function hasComputeBudgetInstruction(
+    instructions: readonly Instruction[],
+    tag: number,
+): boolean {
+    return instructions.some(
+        (instruction) =>
+            instruction.programAddress === COMPUTE_BUDGET_PROGRAM_ADDRESS &&
+            instruction.data !== undefined &&
+            instruction.data.length >= 1 &&
+            instruction.data[0] === tag,
+    );
 }
 
 // ---------------------------------------------------------------------------------------
@@ -217,6 +274,16 @@ function line(attempt: number | null, phase: string, detail: string): void {
     console.log(`[attempt ${stamp}] ${phase.padEnd(9)} ${detail}`);
 }
 
+/**
+ * Describe a failure that does not classify as a CommitOnce error.
+ *
+ * Solana's preflight returns `Transaction simulation failed` and nothing else, which tells a
+ * reader nothing about *why*. The logs are in `context.logs`, and they are the whole point:
+ * they say which program failed and with what. Surfacing them turned an opaque
+ * "simulation failed" into the actual reason the first time this example was pointed at
+ * mainnet — `commit_once` is not deployed there, and without the logs that would have looked
+ * like a bug in the guard rather than a missing deployment.
+ */
 function describeAmbiguous(error: unknown): string {
     if (isSolanaError(error, SOLANA_ERROR__BLOCK_HEIGHT_EXCEEDED)) {
         return 'blockhash expired before confirmation';
@@ -224,15 +291,45 @@ function describeAmbiguous(error: unknown): string {
     if (isSolanaError(error, SOLANA_ERROR__TRANSACTION_ERROR__ALREADY_PROCESSED)) {
         return 'identical signed bytes were already processed';
     }
+
+    // `context.logs` is where the runtime puts the program logs for a simulation failure.
+    const logs = (error as { context?: { logs?: unknown } })?.context?.logs;
+    if (Array.isArray(logs) && logs.length > 0) {
+        const interesting = logs
+            .map((entry) => String(entry).trim())
+            .filter((entry) => entry.length > 0)
+            // Drop the per-program "invoke [n]" / "success" bookkeeping and keep what failed.
+            .filter((entry) => !/^Program \S+ (invoke \[\d+\]|success)$/.test(entry));
+        if (interesting.length > 0) {
+            return `simulation failed — ${interesting.slice(-4).join(' | ')}`;
+        }
+    }
+
     return error instanceof Error ? error.message : String(error);
 }
 
-/** One line per instruction, for showing what is in the transaction and in what order. */
+/**
+ * One line per instruction, for showing what is in the transaction and in what order.
+ *
+ * ComputeBudget instructions are named rather than shown as a byte count. That is not
+ * cosmetic: whether the supplied transaction already sets a unit price decides whether this
+ * example may add one, and the runtime rejects the whole transaction if it ends up with two.
+ * A reader checking the composition should be able to see that at a glance.
+ */
 function describeInstructions(message: TransactionMessage): string[] {
     return message.instructions.map((instruction, index) => {
         const accounts = instruction.accounts?.length ?? 0;
         const bytes = instruction.data?.length ?? 0;
-        return `    [${index}] program=${instruction.programAddress} accounts=${accounts} data=${bytes}B`;
+
+        let label = '';
+        if (instruction.programAddress === COMPUTE_BUDGET_PROGRAM_ADDRESS && bytes >= 1) {
+            const tag = instruction.data?.[0];
+            if (tag === COMPUTE_BUDGET_TAG_SET_COMPUTE_UNIT_LIMIT) label = '  SetComputeUnitLimit';
+            else if (tag === COMPUTE_BUDGET_TAG_SET_COMPUTE_UNIT_PRICE) label = '  SetComputeUnitPrice';
+            else label = `  ComputeBudget tag ${String(tag)}`;
+        }
+
+        return `    [${index}] program=${instruction.programAddress} accounts=${accounts} data=${bytes}B${label}`;
     });
 }
 
@@ -306,6 +403,61 @@ type GuardedSwapArgs = {
     readonly label: string;
 };
 
+/**
+ * Compose the guarded transaction: the supplied instructions, unchanged, with the guard
+ * prepended.
+ *
+ * Extracted so that `--dry-run` and the real submit path build the transaction the *same* way.
+ * A dry run that used a different code path would verify nothing about the real one.
+ *
+ * Prepend, never reorder: the swap's own instructions keep their relative order and their
+ * contents.
+ *
+ * The message is rebuilt rather than mutated in place. Jupiter's decoder types the fee payer
+ * address as a plain `string`, while kit brands addresses as `Address`, so
+ * `setTransactionMessageFeePayerSigner` cannot be applied to the decoded message directly.
+ * Rebuilding is lossless here because `decompileTransactionMessageFetchingLookupTables` has
+ * already resolved every address lookup table: the instruction list is complete and
+ * self-contained, so the rebuilt message carries the same instructions in the same order, with
+ * our own fee payer.
+ */
+function buildGuardedMessage(args: {
+    readonly authority: KeyPairSigner;
+    readonly swap: DecodedSwap;
+    readonly guard: { readonly instruction: Instruction };
+    readonly latestBlockhash: Parameters<typeof setTransactionMessageLifetimeUsingBlockhash>[0];
+    readonly priorityFeeMicroLamports: bigint;
+}) {
+    const { authority, swap, guard, latestBlockhash, priorityFeeMicroLamports } = args;
+
+    return pipe(
+        createTransactionMessage({ version: 0 }),
+        (m) => setTransactionMessageFeePayerSigner(authority, m),
+        // Rebuild the lifetime on every attempt. A retry must not carry the blockhash the
+        // swap API computed minutes ago: an expired blockhash fails before the guard is
+        // ever reached, so a stale lifetime turns retries into guaranteed failures.
+        // In a real integration this step is where a fresh quote also arrives.
+        (m) => setTransactionMessageLifetimeUsingBlockhash(latestBlockhash, m),
+        (m) => appendTransactionMessageInstructions(swap.message.instructions, m),
+        (m) => prependTransactionMessageInstruction(guard.instruction, m),
+        // Only when the supplied transaction does not already set a price. The runtime
+        // rejects a transaction carrying two ComputeBudget instructions of the same kind,
+        // and a swap API's transaction almost always sets one — so prepending blindly
+        // produces a transaction no cluster will accept. Retries still differ, because the
+        // lifetime above is rebuilt from a fresh blockhash on every attempt.
+        (m) =>
+            hasComputeBudgetInstruction(
+                swap.message.instructions,
+                COMPUTE_BUDGET_TAG_SET_COMPUTE_UNIT_PRICE,
+            )
+                ? m
+                : prependTransactionMessageInstruction(
+                      setComputeUnitPriceInstruction(priorityFeeMicroLamports),
+                      m,
+                  ),
+    );
+}
+
 async function submitGuardedSwap(args: GuardedSwapArgs): Promise<SubmissionOutcome> {
     const { rpc, sendAndConfirm, commitOnce, authority, swap, intent, label } = args;
     let priorityFeeMicroLamports = BASE_PRIORITY_FEE_MICRO_LAMPORTS;
@@ -336,33 +488,26 @@ async function submitGuardedSwap(args: GuardedSwapArgs): Promise<SubmissionOutco
             );
         }
 
-        // Prepend, never reorder: the swap's own instructions keep their relative order and
-        // their contents. Prepending is two passes so that the compute budget instruction
-        // ends up before the guard rather than after it.
-        //
-        // The message is rebuilt rather than mutated in place. Jupiter's decoder types the fee
-        // payer address as a plain `string`, while kit brands addresses as `Address`, so
-        // `setTransactionMessageFeePayerSigner` cannot be applied to the decoded message
-        // directly. Rebuilding is lossless here because
-        // `decompileTransactionMessageFetchingLookupTables` has already resolved every address
-        // lookup table: the instruction list is complete and self-contained, so the rebuilt
-        // message carries the same instructions in the same order, with our own fee payer.
-        const message = pipe(
-            createTransactionMessage({ version: 0 }),
-            (m) => setTransactionMessageFeePayerSigner(authority, m),
-            // Rebuild the lifetime on every attempt. A retry must not carry the blockhash the
-            // swap API computed minutes ago: an expired blockhash fails before the guard is
-            // ever reached, so a stale lifetime turns retries into guaranteed failures.
-            // In a real integration this step is where a fresh quote also arrives.
-            (m) => setTransactionMessageLifetimeUsingBlockhash(latestBlockhash, m),
-            (m) => appendTransactionMessageInstructions(swap.message.instructions, m),
-            (m) => prependTransactionMessageInstruction(guard.instruction, m),
-            (m) => prependTransactionMessageInstruction(setComputeUnitPriceInstruction(priorityFeeMicroLamports), m),
-        );
+        const message = buildGuardedMessage({
+            authority,
+            swap,
+            guard,
+            latestBlockhash,
+            priorityFeeMicroLamports,
+        });
 
         const transaction = asBlockhashTransaction(await signTransactionMessageWithSigners(message));
         const signature = getSignatureFromTransaction(transaction);
         const instructionLines = describeInstructions(message);
+
+        // Say what was actually added rather than asserting a fixed shape. When the supplied
+        // transaction already sets a priority fee, the only instruction this example adds is
+        // the guard — and claiming otherwise in the log would be a small lie in the one place
+        // a reader is checking the composition.
+        const addedPriceInstruction = hasComputeBudgetInstruction(
+            message.instructions,
+            COMPUTE_BUDGET_TAG_SET_COMPUTE_UNIT_PRICE,
+        ) && !hasComputeBudgetInstruction(swap.message.instructions, COMPUTE_BUDGET_TAG_SET_COMPUTE_UNIT_PRICE);
 
         line(
             attempt,
@@ -370,7 +515,8 @@ async function submitGuardedSwap(args: GuardedSwapArgs): Promise<SubmissionOutco
             `${label} blockhash=${latestBlockhash.blockhash.slice(0, 8)}… ` +
                 `priorityFee=${priorityFeeMicroLamports}µLamports sig=${signature.slice(0, 8)}… ` +
                 `instructions=${message.instructions.length} ` +
-                `(${swap.originalInstructionCount} swap + guard + compute budget)`,
+                `(${swap.originalInstructionCount} supplied + guard` +
+                `${addedPriceInstruction ? ' + compute budget' : ', priority fee left as supplied'})`,
         );
 
         try {
@@ -526,6 +672,51 @@ async function main(): Promise<void> {
         console.log(l);
     }
     console.log('');
+
+    if (DRY_RUN) {
+        // Compose and sign exactly as the submit path would, then stop. The keypair needs no
+        // funds because nothing leaves this process.
+        const { value: latestBlockhash } = await rpc
+            .getLatestBlockhash({ commitment: 'confirmed' })
+            .send();
+
+        if (swap.message.feePayer.address !== authority.address) {
+            throw new Error(
+                `CommitOnce example: the supplied transaction is paid for by ${swap.message.feePayer.address}, ` +
+                    `but this example signs with ${authority.address}. Build the swap with the ` +
+                    'same key you pass as KEYPAIR, or the guard cannot be composed at all.',
+            );
+        }
+
+        const message = buildGuardedMessage({
+            authority,
+            swap,
+            guard,
+            latestBlockhash,
+            priorityFeeMicroLamports: BASE_PRIORITY_FEE_MICRO_LAMPORTS,
+        });
+        const signed = asBlockhashTransaction(await signTransactionMessageWithSigners(message));
+
+        console.log('DRY RUN — nothing was submitted.');
+        console.log('');
+        console.log('Instructions that would be submitted (guard first, supplied order unchanged):');
+        for (const l of describeInstructions(message)) {
+            console.log(l);
+        }
+        console.log('');
+        console.log(`  supplied         ${swap.originalInstructionCount} instruction(s)`);
+        console.log(`  composed         ${message.instructions.length} instruction(s)`);
+        console.log(`  signature        ${getSignatureFromTransaction(signed).slice(0, 16)}…`);
+        console.log('');
+        console.log('What this run verified: the guard prepends cleanly to a real third-party');
+        console.log('transaction, the supplied instructions keep their order and contents, and no');
+        console.log('duplicate ComputeBudget instruction was introduced.');
+        console.log('');
+        console.log('What it did NOT verify: execution. That needs `commit_once` deployed on the');
+        console.log('cluster the swap targets, plus a funded keypair there. Unset DRY_RUN to try');
+        console.log('for real.');
+        return;
+    }
 
     line(null, 'submit', `guarded swap, up to ${MAX_ATTEMPTS} attempts`);
     const first = await submitGuardedSwap({

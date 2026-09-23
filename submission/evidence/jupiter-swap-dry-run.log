@@ -1,0 +1,50 @@
+ORDER_ID=order_928
+JUPITER_SWAP_TX sha256=de4eee98f1213ab3
+
+CommitOnce — guarded third-party swap transaction (structural example)
+  rpc              https://api.mainnet-beta.solana.com
+  authority        25TUohqYd5b6f97wc5CjMwj89ZVL8oX81nhkWVHimYpY
+  namespace        examples:jupiter-swap
+  idempotencyKey   order_928
+  receipt PDA      G4ysDk4zemhojPQRRbYVrkNZq7umDmDa4pR1cy4StXGn
+  retention        86400s
+
+  supplied tx      1232 base64 chars, 8 instruction(s)
+  tx digest        de4eee98f1213ab3603d3917484a4b51c88c189f5a9cac6d1d808ab4bbf7ae02
+                   (diagnostic only — NOT part of the intent fingerprint)
+  fee payer        25TUohqYd5b6f97wc5CjMwj89ZVL8oX81nhkWVHimYpY
+
+Instructions in the supplied transaction:
+    [0] program=ComputeBudget111111111111111111111111111111 accounts=0 data=5B  SetComputeUnitLimit
+    [1] program=ComputeBudget111111111111111111111111111111 accounts=0 data=9B  SetComputeUnitPrice
+    [2] program=ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL accounts=6 data=1B
+    [3] program=11111111111111111111111111111111 accounts=2 data=12B
+    [4] program=TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA accounts=1 data=1B
+    [5] program=ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL accounts=6 data=1B
+    [6] program=JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4 accounts=47 data=41B
+    [7] program=TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA accounts=3 data=1B
+
+DRY RUN — nothing was submitted.
+
+Instructions that would be submitted (guard first, supplied order unchanged):
+    [0] program=CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB accounts=4 data=144B
+    [1] program=ComputeBudget111111111111111111111111111111 accounts=0 data=5B  SetComputeUnitLimit
+    [2] program=ComputeBudget111111111111111111111111111111 accounts=0 data=9B  SetComputeUnitPrice
+    [3] program=ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL accounts=6 data=1B
+    [4] program=11111111111111111111111111111111 accounts=2 data=12B
+    [5] program=TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA accounts=1 data=1B
+    [6] program=ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL accounts=6 data=1B
+    [7] program=JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4 accounts=47 data=41B
+    [8] program=TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA accounts=3 data=1B
+
+  supplied         8 instruction(s)
+  composed         9 instruction(s)
+  signature        2wa7PMsDTUw6Z8Wm…
+
+What this run verified: the guard prepends cleanly to a real third-party
+transaction, the supplied instructions keep their order and contents, and no
+duplicate ComputeBudget instruction was introduced.
+
+What it did NOT verify: execution. That needs `commit_once` deployed on the
+cluster the swap targets, plus a funded keypair there. Unset DRY_RUN to try
+for real.

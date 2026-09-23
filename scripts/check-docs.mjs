@@ -135,6 +135,22 @@ const RETIRED_CLAIMS = [
         why: 'three of the four examples have been executed, not one',
     },
     {
+        // jupiter-swap was described as purely structural until it was composed against a real
+        // Jupiter transaction in dry-run mode. The claim that survives is narrower: the
+        // composition is verified, the execution is not. These patterns catch a regression to
+        // the old, weaker description.
+        pattern: /Jupiter[- ]swap (?:example )?(?:is|stays|remains) structural/,
+        why: 'jupiter-swap has been composed against a real Jupiter transaction in dry-run mode',
+    },
+    {
+        pattern: /has not been run against Jupiter's live API/,
+        why: 'it has: a real transaction was fetched from Jupiter and the composition verified against it',
+    },
+    {
+        pattern: /The Jupiter integration is structural/,
+        why: 'the Jupiter integration has been run against the live API, though not executed end to end',
+    },
+    {
         pattern: /run\.ts\s+--scenario|--scenario\s+both/,
         why: 'the demo entry point is commitonce-demo.ts and it has no --scenario flag',
     },

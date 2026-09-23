@@ -260,7 +260,8 @@ re-run — it is cheap, and the script sweeps the unspent balance back to the pa
 - **A payment, a swap, or a real business flow.** The counter is deliberately trivial so the
   number on screen is unambiguous. The examples directory has guarded SOL, SPL and swap-shaped
   flows, but only three of the four have been executed against a live cluster — the Jupiter swap
-  needs Jupiter's live API — and the demo does not claim otherwise.
+  has been composed against a real Jupiter transaction in dry-run mode but has not executed end to
+  end, and the demo does not claim otherwise.
   have.
 - **Any traction.** No users, no integrations, no revenue. Do not put a logo wall on screen.
 
