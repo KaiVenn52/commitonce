@@ -333,8 +333,70 @@ if (existsSync(securityModelPath)) {
 }
 
 // ---------------------------------------------------------------------------------------
-// 8. Every evidence log must be referenced by at least one document, or it is dead weight
-//    that nobody will ever find.
+// 9. The website's numbers must be the same numbers EVIDENCE.md records.
+//
+// The site is the artifact a judge is most likely to read, and it quotes test counts, deploy
+// slots and measured overhead. `EVIDENCE.md` is the authority on those. Nothing else compares
+// the two, so a suite that grew or a redeployment would leave the site stating a number that is
+// no longer true — and the site is the one place a reader has no way to check.
+//
+// Only values that appear in both are compared, and only where the site's phrasing is
+// unambiguous.
+// ---------------------------------------------------------------------------------------
+const evidencePath = join(ROOT, 'EVIDENCE.md');
+const sitePath = join(ROOT, 'apps', 'web', 'index.html');
+
+if (existsSync(evidencePath) && existsSync(sitePath)) {
+    const evidence = readFileSync(evidencePath, 'utf8');
+    const site = readFileSync(sitePath, 'utf8');
+
+    // The authoritative test totals, read from the recorded run output.
+    const rustTotal = /TOTAL_PASSED=(\d+)/.exec(evidence)?.[1];
+    const sdkTotal = /Tests\s+(\d+) passed/.exec(evidence)?.[1];
+
+    if (rustTotal !== undefined) {
+        const onSite = new RegExp(`\\b${rustTotal}\\s+passing`).test(site) ||
+            new RegExp(`#\\s*${rustTotal}\\s+tests`).test(site);
+        if (!onSite) {
+            problems.push(
+                `apps/web/index.html does not quote the Rust test total (${rustTotal}) that ` +
+                    `EVIDENCE.md records`,
+            );
+        }
+    }
+
+    if (sdkTotal !== undefined) {
+        const onSite = new RegExp(`\\b${sdkTotal}\\s+passing`).test(site);
+        if (!onSite) {
+            problems.push(
+                `apps/web/index.html does not quote the SDK test total (${sdkTotal}) that ` +
+                    `EVIDENCE.md records`,
+            );
+        }
+    }
+
+    // Every deploy slot EVIDENCE.md records for a program should appear on the site.
+    const slots = [...evidence.matchAll(/Last Deployed In Slot:\s*(\d+)/g)].map((m) => m[1]);
+    const uniqueSlots = [...new Set(slots)];
+    let missingSlots = 0;
+    for (const slot of uniqueSlots) {
+        if (!site.includes(slot)) {
+            missingSlots += 1;
+            problems.push(
+                `apps/web/index.html does not mention devnet deploy slot ${slot}, which ` +
+                    `EVIDENCE.md records`,
+            );
+        }
+    }
+    console.log(
+        `site numbers:   rust ${rustTotal ?? '?'}, sdk ${sdkTotal ?? '?'}, ` +
+            `${uniqueSlots.length - missingSlots}/${uniqueSlots.length} deploy slots present`,
+    );
+}
+
+// ---------------------------------------------------------------------------------------
+// 10. Every evidence log must be referenced by at least one document, or it is dead weight
+//     that nobody will ever find.
 // ---------------------------------------------------------------------------------------
 for (const log of logs) {
     const name = rel(log).split('/').pop();
