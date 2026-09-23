@@ -85,11 +85,21 @@ fn a_different_payload_through_cpi_is_a_conflict_not_a_duplicate() {
     let authority = env.authority_pubkey();
     assert_success(&env.send(&[initialize_counter_ix(authority)]));
 
-    let first = ClaimArgs::new(authority, "cpi:demo", "order_conflict", sha256(b"payload A"));
+    let first = ClaimArgs::new(
+        authority,
+        "cpi:demo",
+        "order_conflict",
+        sha256(b"payload A"),
+    );
     assert_success(&env.send(&[increment_guarded_ix(&first)]));
     assert_eq!(env.counter_value(&authority), 1);
 
-    let second = ClaimArgs::new(authority, "cpi:demo", "order_conflict", sha256(b"payload B"));
+    let second = ClaimArgs::new(
+        authority,
+        "cpi:demo",
+        "order_conflict",
+        sha256(b"payload B"),
+    );
     let res = env.send_distinct(&[increment_guarded_ix(&second)], 1);
 
     assert_custom_error(&res, E_IDEMPOTENCY_CONFLICT);
