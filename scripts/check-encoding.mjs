@@ -64,6 +64,17 @@ const MOJIBAKE = [
  */
 const EM_DASH_NEAR_DIGIT = /(?<=\d)\u2014|\u2014(?=\d)/;
 
+/**
+ * A line may opt out with this marker, because documentation *about* this corruption has to
+ * contain an example of it.
+ *
+ * Both CONTRIBUTING.md and the work log describe `2:00-2:59` becoming `2:00\u2014:59`, and the
+ * literal corrupted string is the point of the sentence. The marker is deliberately verbose and
+ * must appear on the same line as the match, so opting out is a visible, local decision rather
+ * than a file-level exemption that could hide a real regression.
+ */
+const ALLOW_MARKER = 'encoding-check: allow-em-dash';
+
 const problems = [];
 let checked = 0;
 let skippedBinary = 0;
@@ -135,14 +146,19 @@ for (const file of tracked) {
         break;
     }
 
-    const nearDigit = EM_DASH_NEAR_DIGIT.exec(text);
-    if (nearDigit !== null) {
-        const line = text.slice(0, nearDigit.index).split('\n').length;
+    // Check every occurrence, not just the first, so a second one on an unmarked line is still
+    // caught when the first happens to sit on a marked line.
+    const lines = text.split('\n');
+    lines.forEach((line, index) => {
+        if (line.includes(ALLOW_MARKER)) return;
+        const match = EM_DASH_NEAR_DIGIT.exec(line);
+        if (match === null) return;
         problems.push(
-            `${file}:${line}  has an em dash next to a digit ("${nearDigit[0]}") — a numeric ` +
-                `range takes an en dash or a hyphen, so this is a corrupted character`,
+            `${file}:${index + 1}  has an em dash next to a digit ("${match[0]}") — a numeric ` +
+                `range takes an en dash or a hyphen, so this is a corrupted character. If this ` +
+                `line is documentation ABOUT that corruption, add "${ALLOW_MARKER}" to it.`,
         );
-    }
+    });
 }
 
 console.log(`encoding: ${checked} text files checked, ${skippedBinary} binary files skipped`);

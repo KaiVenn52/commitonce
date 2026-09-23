@@ -298,7 +298,7 @@ em dash is three bytes in UTF-8 (`E2 80 94`); written through that path it becom
 the first two bytes followed by a literal `?`. The file is then **not valid UTF-8**, which means
 it is unreadable on Linux and binary to git. Worse, repairing it is a trap: restoring the third
 byte to `0x94` yields *valid* UTF-8, but as an em dash where the original was an en dash, and in
-one case the following character was consumed as well — `2:00–2:59` became `2:00—:59`. Valid
+one case the following character was consumed as well — `2:00–2:59` became `2:00—:59`. Valid <!-- encoding-check: allow-em-dash -->
 UTF-8, wrong text.
 
 Two checks now stand in the way, and both were added because they caught this:
