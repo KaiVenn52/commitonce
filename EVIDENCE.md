@@ -299,19 +299,19 @@ which point the example began skipping it when the account already exists. Detai
 
 ---
 
-## 4. Rust test suite — 53 passing, exit code 0
+## 4. Rust test suite — 54 passing, exit code 0
 
 Run: `bash scripts/test.sh`
 
 ```
 test result: ok. 11 passed; 0 failed    (invariant)
-test result: ok.  9 passed; 0 failed    (retention)
+test result: ok. 10 passed; 0 failed    (retention)
 test result: ok. 12 passed; 0 failed    (security)
 test result: ok.  7 passed; 0 failed    (cpi)
 test result: ok.  3 passed; 0 failed    (versioned)
 test result: ok. 10 passed; 0 failed    (wire_format)
 test result: ok.  1 passed; 0 failed    (benchmarks)
-REAL_EXIT=0   TOTAL_PASSED=53   TOTAL_FAILED=0
+REAL_EXIT=0   TOTAL_PASSED=54   TOTAL_FAILED=0
 ```
 
 The tests execute the **real compiled SBF artifact** through LiteSVM — not a mock and not a
@@ -656,7 +656,7 @@ Listed explicitly, because a document that only lists successes is not evidence.
 | Real users | **None.** |
 | Traction, revenue, waitlist | **None.** No such numbers exist and none are claimed. |
 | Concurrent claims of the same key | **Tested, in two places, with a caveat.** In-process, `only_the_first_of_many_attempts_commits` builds five distinct signed transactions against one blockhash — i.e. one slot — and asserts exactly one commits while the other four each fail with `AlreadyCommitted`. On a live cluster, `apps/demo/concurrent-claim.ts` fires 5–8 competing transactions at real devnet validators and gets the same result (exactly one commits, the rest fail 6000). **The caveat:** the live runs spread across 2–3 slots rather than one, because a client cannot force a leader to pack its transactions together. So the same-slot case is proven in-process and the live case is proven across slots; neither experiment is the other. |
-| Transaction v1 (`VersionedTransaction` v1) | **Not tested.** v1 is active on mainnet, devnet and testnet, per Solana's own versioned-transactions documentation (<https://solana.com/docs/core/transactions/versioned-transactions>). It raises the size limit to 4,096 bytes, moves resource limits into a message config, and **removes address lookup tables** — so a v1 transaction inlines up to 64 addresses instead. The SDK and tests exercise legacy and v0 messages only. Whether v1 changes message-hash deduplication is an *expectation* rather than a measurement: the program reads the Instructions sysvar and depends on instruction data, account addresses and account ownership rather than on the message format, but that is reasoning, not a test. |
+| Transaction v1 (`VersionedTransaction` v1) | **Not tested, and cannot be with a stable client.** v1 is active on mainnet, devnet and testnet (<https://solana.com/docs/core/transactions/versioned-transactions>): it raises the size limit to 4,096 bytes, moves resource limits into a message config, and removes address lookup tables. The SDK and tests exercise legacy and v0 messages only, because no stable client library supports it yet. The newest stable release of `@solana/kit`, `@solana/transaction-messages` and `@solana/transactions` is **8.3.0**, which is what this repository pins, and v1 message support (`setTransactionMessageConfig`, a `version: 1` message) exists only in `8.4.0-canary-*` builds. So this is not a gap that more testing would close — it is a dependency that has not shipped. What the guard depends on is the Instructions sysvar, and v1 splits instructions into fixed-size headers and variable-length payloads rather than keeping each contiguous, so the sysvar read is the one place to check when a stable client arrives. Whether v1 changes message-hash deduplication is an *expectation* rather than a measurement. |
 | Address lookup tables / v0 messages | **Tested end-to-end, in `tests/versioned.rs`.** Three tests: the guard commits when the receipt PDA, the Instructions sysvar, the System Program and the business program all arrive through a lookup table; a rebuilt v0 retry is blocked with `AlreadyCommitted` and the counter stays at 1; and a signer listed in a table is *not* loaded from it, staying in the static keys. This was previously recorded as "expected to work, but not verified" — the guard reads the Instructions sysvar by transaction index rather than by account, so the read should be indifferent to how accounts resolved, but "should be" was not evidence. |
 | Non-Anchor clients | **Verified, and the limitation was previously overstated.** The SDK has **zero runtime dependencies**, imports nothing from Anchor's JavaScript library — every mention of "Anchor" in `packages/sdk/src/` is a comment explaining which discriminator is being reproduced — and hand-encodes the instruction discriminator, the Borsh body and the base64 event decoding. It has been executed against the deployed program on devnet repeatedly. What is **not** tested is a **CPI into `claim` from a non-Anchor on-chain program**; that needs a second program, and none has been written. |
 | CPI from another program | **Tested, in `tests/cpi.rs`.** `demo-counter` gained `increment_guarded`, which calls `commit_once::claim` itself with the transaction signer as the authority (four tests), and `increment_guarded_by_vault`, which does the same with a **PDA** authority signed through `invoke_signed` (three tests). Seven in total. This was previously recorded as "should work, but no program here calls it", which is the difference between a claim and a measurement. |

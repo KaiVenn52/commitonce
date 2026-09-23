@@ -49,7 +49,7 @@ Individual steps, if you prefer:
 
 ```bash
 bash scripts/build.sh                                  # build + verify program IDs
-bash scripts/test.sh                                   # 53 Rust tests, expect exit 0
+bash scripts/test.sh                                   # 54 Rust tests, expect exit 0
 bash scripts/test.sh --test benchmarks -- --nocapture   # the overhead table
 pnpm --filter @commitonce/solana test                   # 71 SDK tests
 ```
@@ -123,7 +123,7 @@ verified).
 | --- | --- |
 | Program ID (identical on all clusters) | `CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB` |
 | Devnet deployment | **live and executable**, deploy slot `503101216` |
-| Rust tests | **53 passing, exit 0**, executing the real compiled SBF artifact in LiteSVM |
+| Rust tests | **54 passing, exit 0**, executing the real compiled SBF artifact in LiteSVM |
 | Composability, executed | System Program, SPL Token + Associated Token, **Token-2022**, an arbitrary Anchor program, a CPI from another program, and a **PDA authority via `invoke_signed`** |
 | SDK tests | **71 passing**, golden vectors cross-checked by an independent implementation |
 | Measured overhead | +404 bytes, +4 accounts (usually +3); `claim` ~14,000 CU on devnet |
@@ -146,7 +146,7 @@ Stated plainly, because a submission that only lists successes is not evidence.
 | **Revenue** | Zero. Nothing is for sale; the core is Apache-2.0. |
 | **Traction of any kind** | None. See [`TRACTION.md`](TRACTION.md), which opens with a table of zeros. |
 | **Team** | One founder, a university engineering student, no team. |
-| Transaction v1 messages | Not tested (v1 does not change message-hash deduplication, but that is an expectation, not a measurement). |
+| Transaction v1 messages | **Not tested, and cannot be with a stable client** — the newest stable `@solana/kit` (8.3.0, which this repository pins) has no v1 support; it is canary-only. |
 | Address lookup tables / v0 end-to-end | **Tested** in `tests/versioned.rs`: the guard commits with all non-signer accounts loaded from a table, a rebuilt v0 retry is blocked, and a signer is never loaded from a table. |
 | Non-Anchor clients | **Verified.** The SDK has zero runtime dependencies and imports nothing from Anchor's JS library; it hand-encodes everything and runs against the deployed program. |
 | CPI into `claim` from another program | **Tested** in `tests/cpi.rs` — seven tests, including a **PDA authority signed through `invoke_signed`**, which is what a Squads vault needs. |

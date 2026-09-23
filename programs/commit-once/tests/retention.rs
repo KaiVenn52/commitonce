@@ -224,3 +224,50 @@ fn close_requires_the_configured_refund_destination() {
     assert_success(&env.send(&[close_receipt_ix(receipt, refund.pubkey())]));
     assert!(!env.account_exists(&receipt));
 }
+
+/// **Cleanup is permissionless, and the deposit still goes to the configured destination.**
+///
+/// `close_receipt` has no authority constraint, and the documentation says so: *"Permissionless:
+/// anyone may call this, because the destination cannot be redirected."* The test above checks
+/// the second half — that a caller cannot redirect the deposit — but every successful close in
+/// this suite is submitted by the authority, so the first half was never actually exercised.
+///
+/// The distinction matters. If close silently required the authority, cleanup would be blocked
+/// exactly when it is most needed: a key that was rotated, a team that lost the key, or a receipt
+/// whose authority no longer exists. The window would stay open and the deposit would stay
+/// stranded, and nothing in the suite would have noticed.
+#[test]
+fn cleanup_is_permissionless() {
+    let (mut env, claim, refund) = claim_with_retention(MIN_RETENTION);
+    assert_success(&env.send(&[claim.instruction()]));
+
+    let receipt = claim.receipt();
+    let stored = env.read_receipt(&receipt);
+    env.set_slot(stored.expires_at_slot);
+    env.set_unix_timestamp(stored.expires_at_unix_ts);
+
+    // A third party with no relationship to the intent.
+    let stranger = env.fresh_funded(1);
+    let refund_before = env.lamports(&refund.pubkey());
+
+    // Submitted by the stranger, not by the authority.
+    assert_success(&env.send_as(
+        &stranger,
+        &[close_receipt_ix(receipt, refund.pubkey())],
+        &[],
+    ));
+
+    assert!(
+        !env.account_exists(&receipt),
+        "a third party must be able to close an expired receipt"
+    );
+
+    // And the deposit went to the configured destination, not to the caller. The stranger paid
+    // the fee, so the destination's balance should rise by the deposit and no more.
+    let refund_after = env.lamports(&refund.pubkey());
+    assert_eq!(
+        refund_after - refund_before,
+        RECEIPT_RENT_LAMPORTS,
+        "the deposit must reach the configured destination even when a stranger triggers cleanup"
+    );
+}

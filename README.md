@@ -246,7 +246,7 @@ Full detail, including the account-by-account and byte-by-byte layouts, is in
 ```bash
 bash verify.sh          # everything: 14 steps, PASS/FAIL summary, true exit code
 bash scripts/build.sh   # builds, then verifies declare_id! against deploy-keys/
-bash scripts/test.sh    # 53 tests, exit code 0
+bash scripts/test.sh    # 54 tests, exit code 0
 ```
 
 `verify.sh` is the one to run. It checks prerequisites, builds both programs, verifies
@@ -413,7 +413,7 @@ deploy-keys/            the program keypairs the program IDs are derived from
 | --- | --- |
 | Program ID (all clusters) | `CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB` |
 | Demo counter program | `EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5` |
-| Rust tests | 53 passing, exit 0 |
+| Rust tests | 54 passing, exit 0 |
 | SDK tests | 71 passing |
 | Built for | SBPFv2, Anchor 1.2.0, Solana 4.x toolchain |
 | Mainnet | **not deployed** |

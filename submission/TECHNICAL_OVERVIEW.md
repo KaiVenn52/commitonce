@@ -647,7 +647,7 @@ bash verify.sh
 
 # Or the same steps individually:
 bash scripts/build.sh                                     # builds both programs, verifies declare_id! against deploy-keys/
-bash scripts/test.sh                                      # 53 tests, expect exit 0
+bash scripts/test.sh                                      # 54 tests, expect exit 0
 bash scripts/test.sh --test benchmarks -- --nocapture      # the overhead table
 pnpm --filter @commitonce/solana test                      # 71 tests
 node packages/sdk/scripts/print-vectors.mjs                # vectors recomputed without importing the SDK
@@ -708,7 +708,7 @@ successes is not evidence):
 | npm publication | **Not done.** `@commitonce/solana` is not published. |
 | Third-party integration | **None.** |
 | Real users, traction, revenue | **None.** No such numbers exist and none are claimed. |
-| Transaction v1 (`VersionedTransaction` v1) | **Not tested.** v1 is active on mainnet, devnet and testnet (<https://solana.com/docs/core/transactions/versioned-transactions>). It raises the size limit to 4,096 bytes, moves resource limits into a message config, and **removes address lookup tables**. The SDK and tests exercise legacy and v0 messages only. |
+| Transaction v1 (`VersionedTransaction` v1) | **Not tested, and cannot be with a stable client** — no stable client library supports it yet. The newest stable release of `@solana/kit`, `@solana/transaction-messages` and `@solana/transactions` is **8.3.0**, which is what this repository pins, and v1 message support (`setTransactionMessageConfig`, a `version: 1` message) exists only in `8.4.0-canary-*` builds. So this is not a gap that more testing would close — it is a dependency that has not shipped. What the guard depends on is the Instructions sysvar, and v1 splits instructions into fixed-size headers and variable-length payloads rather than keeping each contiguous, so the sysvar read is the one place to check when a stable client arrives. |
 | Address lookup tables / v0 messages | **Tested end-to-end** in `tests/versioned.rs` — see §9. Previously "expected to work, but not verified". |
 | Non-Anchor clients | **Verified.** Zero runtime dependencies, nothing imported from Anchor's JS library; every "Anchor" in `packages/sdk/src/` is a comment naming the discriminator it reproduces. Run against the deployed program on devnet. |
 | CPI into `claim` from another program | **Tested** in `tests/cpi.rs` — seven tests, including a PDA authority via `invoke_signed`. See §9. |
