@@ -300,8 +300,9 @@ which contradicted the sentence after it.)
 *Test:* `slot_deadline_uses_current_mainnet_slot_rate`.
 
 **Why one hour is the floor.** A signed transaction built on a recent blockhash is executable
-for roughly 40 seconds at mainnet's measured 265 ms. `MIN_RETENTION_SECONDS` is one hour — roughly 90× that
-window — so there is no accepted configuration in which cleanup can outrun a live duplicate.
+for roughly 40 seconds at mainnet's measured 265 ms (145 slots; `apps/demo/blockhash-window.ts`
+measures it by polling `isBlockhashValid`). `MIN_RETENTION_SECONDS` is one hour — 90× that window
+— so there is no accepted configuration in which cleanup can outrun a live duplicate.
 *Test:* `retention_below_minimum_is_rejected`, `retention_above_maximum_is_rejected`,
 `retention_boundaries_are_accepted`.
 
@@ -648,7 +649,7 @@ bash verify.sh
 
 # Or the same steps individually:
 bash scripts/build.sh                                     # builds both programs, verifies declare_id! against deploy-keys/
-bash scripts/test.sh                                      # 54 tests, expect exit 0
+bash scripts/test.sh                                      # 55 tests, expect exit 0
 bash scripts/test.sh --test benchmarks -- --nocapture      # the overhead table
 pnpm --filter @commitonce/solana test                      # 71 tests
 node packages/sdk/scripts/print-vectors.mjs                # vectors recomputed without importing the SDK

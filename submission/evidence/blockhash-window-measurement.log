@@ -1,0 +1,40 @@
+########## mainnet ##########
+CommitOnce — how long is a blockhash actually valid?
+  rpc      https://api.mainnet-beta.solana.com
+  version  4.3.0-rc.0
+
+  blockhash        JDpYWKtxELxJ1MS5nMbB9Siwe1BQNL2ZciTcBfmps8vJ
+  start slot       449861258
+  lastValidHeight  427901548
+
+  polling isBlockhashValid every second...
+
+  valid for        40.1s  (145 slots, 3.62 slots/s)
+  invalid after    24s of polling
+
+  the program requires MIN_RETENTION_SECONDS = 3600 (one hour).
+  measured margin  90x the observed window
+
+  The docs state "roughly MAX_PROCESSING_AGE slots ~= 40s" and a "95x" margin,
+  both derived from constants rather than measured. Compare them with the above.
+
+########## devnet ##########
+CommitOnce — how long is a blockhash actually valid?
+  rpc      https://api.devnet.solana.com
+  version  4.3.0-rc.0
+
+  blockhash        DQhhYHi65e6sf1pXiHQ1nZVW1MosZLsKVryMcuNdnJXQ
+  start slot       503199195
+  lastValidHeight  490453366
+
+  polling isBlockhashValid every second...
+
+  valid for        24.4s  (149 slots, 6.10 slots/s)
+  invalid after    19s of polling
+
+  the program requires MIN_RETENTION_SECONDS = 3600 (one hour).
+  measured margin  147x the observed window
+
+  The docs state "roughly MAX_PROCESSING_AGE slots ~= 40s" and a "95x" margin,
+  both derived from constants rather than measured. Compare them with the above.
+

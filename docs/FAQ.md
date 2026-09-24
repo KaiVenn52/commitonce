@@ -232,7 +232,7 @@ deliberate one-way door, not an oversight.
 ### 14. What if the receipt is closed while a duplicate is still valid?
 
 It cannot happen under an accepted configuration. A receipt becomes closable only after both
-deadlines pass, and the minimum finite retention is one hour — about 95× the ~38-second
+deadlines pass, and the minimum finite retention is one hour — about 90× the measured 40-second
 blockhash window. So a blockhash-based duplicate is long dead before cleanup is permitted.
 For durable-nonce transactions the concern is real (the duplicate never expires), which is
 why those transactions are refused unless retention is permanent — see question 32.
@@ -600,7 +600,7 @@ give up every lever a client normally uses.
   reliably — it must be preserved deliberately, and most retry helpers fetch a fresh one.
 
 So "just retry with the same blockhash" works only while you never rebuild and never change a
-fee, in a window of about 38 seconds. CommitOnce covers the rebuild, which is the case that
+fee, in a window of about 40 seconds. CommitOnce covers the rebuild, which is the case that
 actually causes double execution. The test
 `without_guard_two_rebuilt_transactions_execute_twice` demonstrates the failure it addresses:
 two rebuilt transactions, both landing, the action happening twice.

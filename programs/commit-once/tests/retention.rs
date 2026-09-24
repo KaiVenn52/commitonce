@@ -234,6 +234,51 @@ fn close_requires_the_configured_refund_destination() {
     assert!(!env.account_exists(&receipt));
 }
 
+/// **The retention floor must be far longer than the window a signed duplicate stays live.**
+///
+/// This is the argument the whole retention design rests on, and until now nothing asserted it:
+/// `MIN_RETENTION_SECONDS` could have been lowered to a value that let cleanup outrun a live
+/// duplicate and every test would still have passed.
+///
+/// The window is `MAX_PROCESSING_AGE` slots, which is what the cluster actually counts.
+/// Measured directly by polling `isBlockhashValid` (`apps/demo/blockhash-window.ts`):
+/// **145 slots / 40.1 s on mainnet**, 149 slots / 24.4 s on devnet. The slot count is the
+/// quantity that matters and it matches the constant on both.
+///
+/// The margin is expressed in *slots*, not seconds, because slots are what the runtime expires
+/// against and the program's second-to-slot conversion is the assumed one. In slots the floor is
+/// `MIN_RETENTION_SECONDS * SLOTS_PER_SECOND`, and the test requires it to exceed the window by
+/// at least 10x. At the shipped values that is 14,400 vs 150 — 96x.
+#[test]
+fn the_retention_floor_dwarfs_the_blockhash_window() {
+    // Agave expires a blockhash after MAX_PROCESSING_AGE slots. Measured at 145-149 slots on
+    // mainnet and devnet, so this is the observed value with headroom rather than a guess.
+    const MAX_PROCESSING_AGE: u64 = 150;
+    // Ten times is a floor, not the design target; the design target is "two orders of magnitude".
+    const REQUIRED_MULTIPLE: u64 = 10;
+
+    let floor_in_slots = commit_once::MIN_RETENTION_SECONDS * commit_once::SLOTS_PER_SECOND;
+    assert!(
+        floor_in_slots >= MAX_PROCESSING_AGE * REQUIRED_MULTIPLE,
+        "MIN_RETENTION_SECONDS ({}s) is only {} slots at SLOTS_PER_SECOND = {}, which is less \
+         than {}x the {}-slot blockhash window. Cleanup could outrun a live duplicate.",
+        commit_once::MIN_RETENTION_SECONDS,
+        floor_in_slots,
+        commit_once::SLOTS_PER_SECOND,
+        REQUIRED_MULTIPLE,
+        MAX_PROCESSING_AGE
+    );
+
+    // The shipped values should be far better than the floor, so the test states the real margin
+    // rather than only passing. 96x is what the constants give; 90x leaves room for the constant
+    // to be tuned without the test becoming noise.
+    let margin = floor_in_slots / MAX_PROCESSING_AGE;
+    assert!(
+        margin >= 90,
+        "the shipped retention floor should be ~90x the blockhash window, not {margin}x"
+    );
+}
+
 /// **Cleanup is permissionless, and the deposit still goes to the configured destination.**
 ///
 /// `close_receipt` has no authority constraint, and the documentation says so: *"Permissionless:

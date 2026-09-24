@@ -68,7 +68,7 @@ document and section it draws on. The mapping:
 
 | On the page | Source |
 | --- | --- |
-| 54 Rust tests, exit 0; per-file counts 11/10/12/3/7/10/1 | `EVIDENCE.md` §4 |
+| 55 Rust tests, exit 0; per-file counts 11/11/12/3/7/10/1 | `EVIDENCE.md` §4 |
 | 71 SDK tests | `EVIDENCE.md` §5 |
 | +404 bytes / +4 accounts (exact); compute units as a range | `EVIDENCE.md` §6 |
 | Compute-unit ranges, and the measured 9,292 / 8,407 / 4,067 / 7,067 |

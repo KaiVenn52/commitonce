@@ -299,19 +299,19 @@ which point the example began skipping it when the account already exists. Detai
 
 ---
 
-## 4. Rust test suite — 54 passing, exit code 0
+## 4. Rust test suite — 55 passing, exit code 0
 
 Run: `bash scripts/test.sh`
 
 ```
 test result: ok. 11 passed; 0 failed    (invariant)
-test result: ok. 10 passed; 0 failed    (retention)
+test result: ok. 11 passed; 0 failed    (retention)
 test result: ok. 12 passed; 0 failed    (security)
 test result: ok.  7 passed; 0 failed    (cpi)
 test result: ok.  3 passed; 0 failed    (versioned)
 test result: ok. 10 passed; 0 failed    (wire_format)
 test result: ok.  1 passed; 0 failed    (benchmarks)
-REAL_EXIT=0   TOTAL_PASSED=54   TOTAL_FAILED=0
+REAL_EXIT=0   TOTAL_PASSED=55   TOTAL_FAILED=0
 ```
 
 The tests execute the **real compiled SBF artifact** through LiteSVM — not a mock and not a
@@ -657,6 +657,7 @@ Listed explicitly, because a document that only lists successes is not evidence.
 | Traction, revenue, waitlist | **None.** No such numbers exist and none are claimed. |
 | Concurrent claims of the same key | **Tested, in two places, with a caveat.** In-process, `only_the_first_of_many_attempts_commits` builds five distinct signed transactions against one blockhash — i.e. one slot — and asserts exactly one commits while the other four each fail with `AlreadyCommitted`. On a live cluster, `apps/demo/concurrent-claim.ts` fires 5–8 competing transactions at real devnet validators and gets the same result (exactly one commits, the rest fail 6000). **The caveat:** the live runs spread across 2–3 slots rather than one, because a client cannot force a leader to pack its transactions together. So the same-slot case is proven in-process and the live case is proven across slots; neither experiment is the other. |
 | Transaction v1 (`VersionedTransaction` v1) | **Not tested, and cannot be with a stable client.** v1 is active on mainnet, devnet and testnet (<https://solana.com/docs/core/transactions/versioned-transactions>): it raises the size limit to 4,096 bytes, moves resource limits into a message config, and removes address lookup tables. The SDK and tests exercise legacy and v0 messages only, because no stable client library supports it yet. The newest stable release of `@solana/kit`, `@solana/transaction-messages` and `@solana/transactions` is **8.3.0**, which is what this repository pins, and v1 message support (`setTransactionMessageConfig`, a `version: 1` message) exists only in `8.4.0-canary-*` builds. So this is not a gap that more testing would close — it is a dependency that has not shipped. What the guard depends on is the Instructions sysvar, and v1 splits instructions into fixed-size headers and variable-length payloads rather than keeping each contiguous, so the sysvar read is the one place to check when a stable client arrives. Whether v1 changes message-hash deduplication is an *expectation* rather than a measurement. |
+| Blockhash validity window | **Measured on two clusters.** Measured rather than derived: [`apps/demo/blockhash-window.ts`](apps/demo/blockhash-window.ts) takes a blockhash and polls `isBlockhashValid` until the cluster says no. **Mainnet: 40.1 s, 145 slots. Devnet: 24.4 s, 149 slots.** The slot count matches `MAX_PROCESSING_AGE = 150` on both, which is the constant the argument actually rests on; the *time* differs only because the two clusters run at different slot rates (3.62/s and 6.10/s). Raw output: [`submission/evidence/blockhash-window-measurement.log`](submission/evidence/blockhash-window-measurement.log). This is the window `MIN_RETENTION_SECONDS` is a margin against. |
 | Slot rate behind `SLOTS_PER_SECOND` | **Measured on two clusters.** Measured rather than assumed: [`apps/demo/slot-rate.ts`](apps/demo/slot-rate.ts) samples the live counter, and reports **3.77 slots/second on mainnet** (265 ms) and **6.09 on devnet** (164 ms). Raw output: [`submission/evidence/slot-rate-measurement.log`](submission/evidence/slot-rate-measurement.log). So `4` is slightly **above** mainnet's real rate and well below devnet's, and both directions are safe for the reason below. |
 | Rent-exemption enforced by the runtime | **Verified against a real Agave validator.** confirmed against a **real Agave validator**, not just the harness. `apps/demo/rent-exemption-check.ts` deploys to `solana-test-validator` 4.2.2 and has an attacker send the victim's receipt PDA one lamport; the runtime refuses the attacker's own transfer with `InsufficientFundsForRent`, so the account is never created and the victim's claim succeeds. The rule is Agave's, not LiteSVM's, and the cheap form of the attack cannot be constructed on the real runtime either. Raw output: [`submission/evidence/validator-rent-exemption-check.log`](submission/evidence/validator-rent-exemption-check.log). |
 | Address lookup tables / v0 messages | **Tested end-to-end, in `tests/versioned.rs`.** Three tests: the guard commits when the receipt PDA, the Instructions sysvar, the System Program and the business program all arrive through a lookup table; a rebuilt v0 retry is blocked with `AlreadyCommitted` and the counter stays at 1; and a signer listed in a table is *not* loaded from it, staying in the static keys. This was previously recorded as "expected to work, but not verified" — the guard reads the Instructions sysvar by transaction index rather than by account, so the read should be indifferent to how accounts resolved, but "should be" was not evidence. |

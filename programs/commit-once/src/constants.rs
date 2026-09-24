@@ -19,7 +19,10 @@ pub const PERMANENT_RETENTION: u64 = 0;
 /// Shortest accepted non-zero retention: 1 hour.
 ///
 /// A signed transaction built on a recent blockhash is only valid for roughly
-/// `MAX_PROCESSING_AGE` slots — about **40 seconds** at mainnet's measured 265 ms.
+/// `MAX_PROCESSING_AGE` slots. Measured directly by polling `isBlockhashValid`
+/// (`apps/demo/blockhash-window.ts`): **145 slots / 40.1 s on mainnet**, 149 slots /
+/// 24.4 s on devnet. The slot count is what the argument rests on and it matches the
+/// constant; the time varies with the cluster's slot rate.
 /// One hour is nearly two orders of magnitude
 /// longer, so a receipt can never be cleaned up while a blockhash-based duplicate of the
 /// same transaction is still executable.

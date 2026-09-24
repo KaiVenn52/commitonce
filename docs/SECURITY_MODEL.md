@@ -248,9 +248,13 @@ wall-clock deadline. See §4.
 mainnet's measured 265 ms). If a receipt could be cleaned up inside that window, a still-valid
 duplicate could execute after cleanup, breaking the guarantee.
 
-**Mitigation.** `MIN_RETENTION_SECONDS` is one hour — roughly 95× the blockhash validity
-window. A receipt cannot be created with a shorter finite retention, so there is no
-configuration in which cleanup can outrun a live duplicate.
+**Mitigation.** `MIN_RETENTION_SECONDS` is one hour — **90× the measured blockhash validity
+window on mainnet** (40.1 s), and 147× on devnet (24.4 s). A receipt cannot be created with a
+shorter finite retention, so there is no configuration in which cleanup can outrun a live
+duplicate. Measured rather than derived: [`apps/demo/blockhash-window.ts`](../apps/demo/blockhash-window.ts) takes a blockhash and polls `isBlockhashValid` until the cluster says no. **Mainnet: 40.1 s, 145 slots. Devnet: 24.4 s, 149 slots.** The slot count matches `MAX_PROCESSING_AGE = 150` on both, which is the constant the argument actually rests on; the *time* differs only because the two clusters run at different slot rates (3.62/s and 6.10/s). Raw output: [`submission/evidence/blockhash-window-measurement.log`](../submission/evidence/blockhash-window-measurement.log).
+
+The margin shrinks only if slots *slow down*: at one slot per second the window would be 150 s
+and the margin still 24×. There is no plausible slot rate at which one hour stops being safe.
 
 **Test:** `retention_below_minimum_is_rejected`.
 
