@@ -169,6 +169,27 @@ Stated plainly, because a submission that only lists successes is not evidence.
   security model.
 - **Not audited, not production-ready, not on mainnet.**
 
+## Everything in this directory
+
+`submission/JUDGE_README.md` is the entry point, and this is the index. Nine of these files
+were previously unreachable from it, which for a reviewer is the same as not existing.
+
+| File | What it is |
+| --- | --- |
+| [PROJECT_DESCRIPTION](PROJECT_DESCRIPTION.md) | the submission-form answers, in full |
+| [SUBMISSION_FORM](SUBMISSION_FORM.md) | the ten portal fields, copy-paste ready |
+| [TECHNICAL_OVERVIEW](TECHNICAL_OVERVIEW.md) | the whole system in one document |
+| [FAQ](FAQ.md) | the hard questions, answered directly |
+| [TRACTION](TRACTION.md) | honest zeros, and why they are zeros |
+| [GTM](GTM.md) | demand, distribution, and what would have to be true |
+| [FOUNDER_STORY](FOUNDER_STORY.md) | who built this and why |
+| [WORK_LOG](WORK_LOG.md) | what was built during the Contest Period, including the bugs |
+| [DEMO_SCRIPT](DEMO_SCRIPT.md) | the product-demo script |
+| [PITCH_SCRIPT](PITCH_SCRIPT.md) | the presentation script |
+| [VIDEO_SHOTLIST](VIDEO_SHOTLIST.md) | shot lists for both videos |
+| [COLOSSEUM_GUIDES_BRIEF](COLOSSEUM_GUIDES_BRIEF.md) | the official sources, retrieved and quoted |
+| [evidence/](evidence/) | raw output from every live run referenced in `EVIDENCE.md` |
+
 ## Repository access
 
 **The source is public: <https://github.com/KaiVenn52/commitonce>** — Apache-2.0, default branch

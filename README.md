@@ -444,6 +444,9 @@ that is stated rather than implied.
 
 ## Documentation
 
+**If you are judging this**, start with [`submission/JUDGE_README.md`](submission/JUDGE_README.md)
+— it is written for that and links to everything else.
+
 | | |
 | --- | --- |
 | [QUICKSTART](docs/QUICKSTART.md) | zero to a guarded transaction |
@@ -454,7 +457,21 @@ that is stated rather than implied.
 | [API REFERENCE](docs/API_REFERENCE.md) | every instruction, account, error and export |
 | [FAQ](docs/FAQ.md) | the hard questions, answered directly |
 | [PRIOR ART](docs/PRIOR_ART.md) | the landscape, with sources |
-| [EVIDENCE](EVIDENCE.md) | what was verified, and how |
+| [EVIDENCE](EVIDENCE.md) | what was verified, and how — the authority on every claim |
+
+Project and process:
+
+| | |
+| --- | --- |
+| [JUDGE README](submission/JUDGE_README.md) | the entry point for a reviewer, and an index of `submission/` |
+| [TECHNICAL OVERVIEW](submission/TECHNICAL_OVERVIEW.md) | the whole system in one document |
+| [WORK LOG](submission/WORK_LOG.md) | what was built during the Contest Period, and what went wrong |
+| [TRACTION](submission/TRACTION.md) | honest zeros, and why they are zeros |
+| [COLOSSEUM REQUIREMENTS](docs/COLOSSEUM_REQUIREMENTS.md) | the official rules, tracked with sources |
+| [NEEDS OWNER ACTION](NEEDS_OWNER_ACTION.md) | what only the owner can do, and why |
+| [SECURITY](SECURITY.md) | disclosure policy, and the audit status |
+| [CONTRIBUTING](CONTRIBUTING.md) | how to build, test and submit changes |
+| [RELEASE RUNBOOK](RELEASE_RUNBOOK.md) | shipping a build |
 
 ---
 

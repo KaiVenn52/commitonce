@@ -422,6 +422,41 @@ for (const log of logs) {
 }
 
 // ---------------------------------------------------------------------------------------
+// 11. Every document under docs/ and submission/ must be reachable from somewhere.
+//
+// A document nothing links to is invisible in practice, however good it is. `submission/` had
+// nine files in that state — including `TECHNICAL_OVERVIEW.md` and `PROJECT_DESCRIPTION.md` —
+// and the README did not link `submission/JUDGE_README.md`, which is the entry point written
+// for the person most likely to be reading. None of that is a content problem and all of it is
+// a navigation one, which is why nothing caught it: every individual file was fine.
+// ---------------------------------------------------------------------------------------
+{
+    const NAVIGABLE = /^(docs|submission)\/.*\.md$/;
+    const candidates = files
+        .map((f) => rel(f))
+        .filter((p) => NAVIGABLE.test(p) && !p.endsWith('README.md'));
+
+    // Every document's text, so a link can be found anywhere rather than only from the README.
+    const corpus = new Map();
+    for (const file of files) {
+        if (!/\.(md|html)$/.test(rel(file))) continue;
+        corpus.set(rel(file), readFileSync(file, 'utf8'));
+    }
+
+    let orphans = 0;
+    for (const path of candidates) {
+        const name = path.split('/').pop();
+        const linked = [...corpus].some(
+            ([other, text]) => other !== path && text.includes(name),
+        );
+        if (linked) continue;
+        orphans += 1;
+        problems.push(`${path}  is not linked from any document, so nothing will find it`);
+    }
+    console.log(`documents:      ${candidates.length} checked, ${orphans} unreachable`);
+}
+
+// ---------------------------------------------------------------------------------------
 console.log(
     `\n${problems.length === 0 ? 'DOCS CHECK PASSED' : `DOCS CHECK FAILED (${problems.length})`}`,
 );
