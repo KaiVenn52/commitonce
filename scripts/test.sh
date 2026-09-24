@@ -8,11 +8,34 @@
 # the default here.
 set -euo pipefail
 
-export HOME=/home/dell2u
-export PATH="/home/dell2u/solana-current/bin:$HOME/.cargo/bin:$PATH"
-export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-/home/dell2u/cot-target}"
-
+# Resolve the repository root *before* the environment block, because the portable
+# CARGO_TARGET_DIR default is relative to it and not to the caller's working directory.
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# ---------------------------------------------------------------------------
+# Environment.
+#
+# These three lines used to force HOME=/home/dell2u and a WSL-specific PATH, which was correct
+# on the machine this was written on and wrong everywhere else. A reader who cloned the
+# repository and ran `bash verify.sh` got a confusing toolchain failure, because `verify.sh`
+# carefully checks whether that home exists before using it — and then called this script,
+# which overrode the decision back.
+#
+# The rule now matches `verify.sh`: use the maintainer layout only when it is actually there.
+# On any other machine the ambient HOME and PATH are already right, which is what a judge, a
+# contributor or CI has.
+# ---------------------------------------------------------------------------
+if [ -d /home/dell2u/solana-current/bin ]; then
+    export HOME=/home/dell2u
+    export PATH="/home/dell2u/solana-current/bin:$HOME/.cargo/bin:$PATH"
+    # WSL-native storage: the repository lives on a Windows drive, so only the small .so and
+    # IDL artifacts land in the workspace while the multi-gigabyte build cache stays on Linux
+    # storage. Anywhere else the workspace copy is the sensible default.
+    export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-/home/dell2u/cot-target}"
+else
+    export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$REPO/target}"
+fi
+
 cd "$REPO"
 
 export COMMIT_ONCE_DEPLOY_DIR="${COMMIT_ONCE_DEPLOY_DIR:-$CARGO_TARGET_DIR/deploy}"

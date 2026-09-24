@@ -96,6 +96,35 @@ pin is what lets litesvm 0.16 build at all, so the arch flag and the toolchain m
 
 ---
 
+### Scripts must run on someone else's machine
+
+`scripts/build.sh` and `scripts/test.sh` used to begin with:
+
+```bash
+export HOME=/home/dell2u
+export PATH="/home/dell2u/solana-current/bin:$HOME/.cargo/bin:$PATH"
+```
+
+That was correct on the machine they were written on and wrong everywhere else, and it
+**undid** `verify.sh` — which carefully checks whether that home exists before using it,
+and then calls those scripts. A judge cloning the repository and running `bash verify.sh`
+would have hit a confusing toolchain failure at the first step.
+
+**Never pin HOME to an absolute path without testing it first.** The shape all three
+scripts now use is:
+
+```bash
+if [ -d /home/dell2u/solana-current/bin ]; then
+    export HOME=/home/dell2u
+    export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-/home/dell2u/cot-target}"
+else
+    export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$REPO/target}"
+fi
+```
+
+`scripts/check-docs.mjs` refuses a bare `export HOME=/abs/path` that has no earlier `-d`
+test of that path, so this cannot come back by accident.
+
 ## 2. Build and test commands
 
 | What | Command |

@@ -472,6 +472,48 @@ for (const log of logs) {
         problems.push(`${path}  is not linked from any document, so nothing will find it`);
     }
     console.log(`documents:      ${candidates.length} checked, ${orphans} unreachable`);
+
+// ---------------------------------------------------------------------------------------
+// 12. No script may pin HOME to an absolute path without checking it exists.
+//
+// `scripts/build.sh` and `scripts/test.sh` forced `HOME=/home/dell2u` and a WSL-specific PATH.
+// That was correct on the machine they were written on and wrong everywhere else, and it
+// **undid** `verify.sh`, which carefully checks whether that home exists before using it and
+// then calls those scripts. A judge cloning the repository would have hit a confusing toolchain
+// failure at the first step.
+//
+// A bare `export HOME=/abs/path` is the shape to refuse. `export HOME="$TOOLCHAIN_HOME"` inside
+// an `if [ -d ... ]` is the shape to allow, which is what all three scripts now do.
+// ---------------------------------------------------------------------------------------
+{
+    let pinned = 0;
+    for (const rel of ['verify.sh', 'scripts/build.sh', 'scripts/test.sh']) {
+        const full = join(ROOT, rel);
+        if (!existsSync(full)) continue;
+        const body = readFileSync(full, 'utf8');
+        for (const [i, line] of body.split('\n').entries()) {
+            const match = /^\s*export HOME=(\/[^\s"\']+)/.exec(line);
+            if (match === null) continue;
+
+            // The guard has to be *earlier in the file*, which is what the scripts do:
+            //
+            //     if [ -d /home/dell2u/solana-current/bin ]; then
+            //         export HOME=/home/dell2u
+            //
+            // Testing the path rather than tracking block depth keeps this simple, and it
+            // catches the failure that actually happened: an unconditional pin, which by
+            // definition has no earlier test of the path it pins.
+            const before = body.split('\n').slice(0, i).join('\n');
+            if (before.includes(`-d ${match[1]}`)) continue;
+
+            pinned += 1;
+            problems.push(
+                `${rel}:${i + 1} pins HOME to ${match[1]} with no earlier -d test of that path, so it is forced on every machine: ${line.trim()}`,
+            );
+        }
+    }
+    console.log(`scripts:        ${pinned} unconditional HOME pins (want 0)`);
+}
 }
 
 // ---------------------------------------------------------------------------------------
