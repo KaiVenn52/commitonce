@@ -155,6 +155,13 @@ pub fn sha256(bytes: &[u8]) -> [u8; 32] {
 /// Program ID derived from `deploy-keys/demo_counter-keypair.json`.
 pub const DEMO_COUNTER_ID: Pubkey = pubkey!("EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5");
 
+/// Program ID for the native (non-Anchor) test program.
+///
+/// Arbitrary, and deliberately not a real deploy key: `programs-native/native-guard` is never
+/// deployed. It exists so `tests/native_cpi.rs` can prove a program that does not use Anchor can
+/// still CPI into `claim`. See that crate's `Cargo.toml` for why it lives outside `programs/`.
+pub const NATIVE_GUARD_ID: Pubkey = pubkey!("NatvGrd111111111111111111111111111111111111");
+
 /// PDA seed prefix for the demo counter.
 pub const COUNTER_SEED: &[u8] = b"counter";
 
@@ -464,6 +471,8 @@ impl Env {
             .expect("failed to load commit_once program");
         svm.add_program(DEMO_COUNTER_ID, &program_bytes("demo_counter"))
             .expect("failed to load demo_counter program");
+        svm.add_program(NATIVE_GUARD_ID, &program_bytes("native_guard"))
+            .expect("failed to load native_guard program");
 
         let authority = Keypair::new();
         let stranger = Keypair::new();

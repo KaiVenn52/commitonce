@@ -1,0 +1,52 @@
+[package]
+name = "native-guard"
+version = "0.1.0"
+description = "A native (non-Anchor) Solana program that guards its own action with CommitOnce"
+edition = "2021"
+rust-version = "1.89.0"
+license = "Apache-2.0"
+repository = "https://github.com/commitonce-dev/commitonce"
+publish = false
+
+# Deliberately outside `programs/`, and `exclude`d from the root workspace.
+#
+# `anchor build` walks the Cargo workspace and refuses to build a member without an `idl-build`
+# feature; give it a stub and it fails with `IDL doesn't exist`, because a non-Anchor program has
+# nothing for Anchor to describe. There is no way to have `anchor build` skip a member — but
+# `exclude` keeps this crate out of the members list entirely, which is the same thing.
+#
+# It is still a path dependency of `commit-once`'s dev-dependencies, so the test harness can link
+# it and assert its hardcoded discriminator. `scripts/build.sh` builds it with `cargo-build-sbf`
+# directly, and `tests/native_cpi.rs` loads it into LiteSVM at an arbitrary address. It has no
+# deploy key and no program ID because it is never deployed: it exists to prove a CPI works, not to
+# run anywhere.
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "native_guard"
+
+[features]
+default = []
+# Lets the test harness link the program's logic without the SBF entrypoint symbol, which would
+# otherwise collide with the harness's own.
+no-entrypoint = []
+cpi = ["no-entrypoint"]
+
+[dependencies]
+# Deliberately **not** anchor-lang. This program exists to prove that a program which does not use
+# Anchor can still guard its actions with CommitOnce, and using Anchor here would defeat the
+# entire point of it.
+solana-account-info = "3.1.1"
+solana-cpi = "3.1.0"
+solana-instruction = "~3.4.0"
+solana-program-entrypoint = "3.1.1"
+solana-program-error = "3.0.1"
+solana-pubkey = "3.0.0"
+
+[lints.rust]
+# `solana_program_entrypoint::entrypoint!` expands to code that tests these cfgs, so cargo has to
+# be told they are expected rather than misspelled. Without this the build emits two
+# `unexpected cfg condition value` warnings that would drown out a real one.
+unexpected_cfgs = { level = "warn", check-cfg = [
+    'cfg(target_os, values("solana"))',
+    'cfg(feature, values("custom-heap", "custom-panic"))',
+] }

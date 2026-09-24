@@ -355,7 +355,12 @@ run_step "declare_id! matches deploy-keys (independent check)" verify_program_id
 # them unnoticed because nothing local ran the formatter.
 # ---------------------------------------------------------------------------------------
 
-run_step "formatting (cargo fmt --all --check)" cargo fmt --all --check
+# `cargo fmt --all` formats workspace members, and `programs-native/native-guard` is excluded
+# from the workspace so `anchor build` will not try to generate an IDL for it. Excluded means
+# unformatted unless it is named separately, which is how this step would have quietly stopped
+# covering the newest crate in the repository.
+run_step "formatting (cargo fmt --all --check)" bash -c \
+    'cargo fmt --all --check && cargo fmt --manifest-path programs-native/native-guard/Cargo.toml --check'
 
 if [ "$BUILD_OK" -eq 1 ]; then
     run_step "Rust suite (bash scripts/test.sh, LiteSVM on the compiled SBF)" bash scripts/test.sh

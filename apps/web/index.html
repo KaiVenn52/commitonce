@@ -605,8 +605,8 @@ isAlreadyCommitted(rpcError);                   // true — treat as success, do
           <p class="step-n">3</p>
           <h3>Then run the guard against a cluster you control</h3>
           <pre class="code"><code>bash scripts/build.sh   # builds, then verifies declare_id! against deploy-keys/
-bash scripts/test.sh    # 55 tests against the compiled SBF artifact, exit 0
-bash verify.sh          # everything, with a PASS/FAIL summary and the true exit code</code><button class="copy copy-block" type="button" data-copy="bash scripts/build.sh   # builds, then verifies declare_id! against deploy-keys/&#10;bash scripts/test.sh    # 55 tests against the compiled SBF artifact, exit 0&#10;bash verify.sh          # everything, with a PASS/FAIL summary and the true exit code">Copy</button></pre>
+bash scripts/test.sh    # 60 tests against the compiled SBF artifact, exit 0
+bash verify.sh          # everything, with a PASS/FAIL summary and the true exit code</code><button class="copy copy-block" type="button" data-copy="bash scripts/build.sh   # builds, then verifies declare_id! against deploy-keys/&#10;bash scripts/test.sh    # 60 tests against the compiled SBF artifact, exit 0&#10;bash verify.sh          # everything, with a PASS/FAIL summary and the true exit code">Copy</button></pre>
           <p class="step-note">
             The Rust suite needs no validator, no RPC and no funds — it runs the compiled program
             in-process through LiteSVM.
@@ -678,7 +678,7 @@ bash verify.sh          # everything, with a PASS/FAIL summary and the true exit
               <a href="https://explorer.solana.com/address/EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5?cluster=devnet" target="_blank" rel="noopener noreferrer">demo_counter <span class="ext" aria-hidden="true">↗</span></a>
             </dd>
           </div>
-          <div><dt>Rust tests</dt><dd>55 passing, exit 0, executing the real compiled SBF artifact through LiteSVM.</dd></div>
+          <div><dt>Rust tests</dt><dd>60 passing, exit 0, executing the real compiled SBF artifact through LiteSVM.</dd></div>
           <div>
             <dt>Live contention</dt>
             <dd>

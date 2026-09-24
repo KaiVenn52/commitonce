@@ -649,7 +649,7 @@ bash verify.sh
 
 # Or the same steps individually:
 bash scripts/build.sh                                     # builds both programs, verifies declare_id! against deploy-keys/
-bash scripts/test.sh                                      # 55 tests, expect exit 0
+bash scripts/test.sh                                      # 60 tests, expect exit 0
 bash scripts/test.sh --test benchmarks -- --nocapture      # the overhead table
 pnpm --filter @commitonce/solana test                      # 71 tests
 node packages/sdk/scripts/print-vectors.mjs                # vectors recomputed without importing the SDK

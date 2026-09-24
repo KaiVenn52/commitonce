@@ -1,5 +1,9 @@
 [workspace]
 members = ["programs/*"]
+# `programs-native/native-guard` is a non-Anchor program used only by `tests/native_cpi.rs`. It is
+# excluded because `anchor build` cannot build a member without an IDL, and a non-Anchor program
+# has none. It is still a path dependency of the test harness, so cargo can resolve and link it.
+exclude = ["programs-native"]
 resolver = "2"
 
 [workspace.package]

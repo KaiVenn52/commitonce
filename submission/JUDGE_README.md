@@ -49,7 +49,7 @@ Individual steps, if you prefer:
 
 ```bash
 bash scripts/build.sh                                  # build + verify program IDs
-bash scripts/test.sh                                   # 55 Rust tests, expect exit 0
+bash scripts/test.sh                                   # 60 Rust tests, expect exit 0
 bash scripts/test.sh --test benchmarks -- --nocapture   # the overhead table
 pnpm --filter @commitonce/solana test                   # 71 SDK tests
 ```
@@ -123,7 +123,7 @@ verified).
 | --- | --- |
 | Program ID (identical on all clusters) | `CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB` |
 | Devnet deployment | **live and executable**, deploy slot `503174994` |
-| Rust tests | **55 passing, exit 0**, executing the real compiled SBF artifact in LiteSVM |
+| Rust tests | **60 passing, exit 0**, executing the real compiled SBF artifact in LiteSVM |
 | Rent-exemption rule, checked against a real runtime | **Verified** on `solana-test-validator` 4.2.2: a one-lamport pre-fund of a receipt PDA is refused by the cluster with `InsufficientFundsForRent`, so that griefing vector cannot be set up. |
 | Composability, executed | System Program, SPL Token + Associated Token, **Token-2022**, an arbitrary Anchor program, a CPI from another program, and a **PDA authority via `invoke_signed`** |
 | SDK tests | **71 passing**, golden vectors cross-checked by an independent implementation |
@@ -150,6 +150,7 @@ Stated plainly, because a submission that only lists successes is not evidence.
 | Transaction v1 messages | **Not tested, and cannot be with a stable client** — the newest stable `@solana/kit` (8.3.0, which this repository pins) has no v1 support; it is canary-only. |
 | Address lookup tables / v0 end-to-end | **Tested** in `tests/versioned.rs`: the guard commits with all non-signer accounts loaded from a table, a rebuilt v0 retry is blocked, and a signer is never loaded from a table. |
 | Non-Anchor clients | **Verified.** The SDK has zero runtime dependencies and imports nothing from Anchor's JS library; it hand-encodes everything and runs against the deployed program. |
+| CPI from a **non-Anchor** program | **Tested** in `tests/native_cpi.rs` — five tests against a program with no Anchor dependency, which builds the instruction by hand. |
 | CPI into `claim` from another program | **Tested** in `tests/cpi.rs` — seven tests, including a **PDA authority signed through `invoke_signed`**, which is what a Squads vault needs. |
 | Genuine durable-nonce transactions | **Tested against devnet** in `apps/demo/nonce-policy.ts` — real nonce account, real nonce transaction, policy confirmed both ways. The harness cannot express one, which is why the Rust test injects the marker instead. |
 | Compute units | **Measured on two real runtimes: `claim` costs 9,292 CU.** devnet (4.3.0-rc.0) and a local `solana-test-validator` (4.2.2) report the identical figure, and the harness median is 9,283 CU — within 0.1%. The 14,669 CU figure this row used to quote was taken on a build from before the pre-funded-PDA fix and the CPI instruction, and was never re-measured. Raw output: [`submission/evidence/devnet-cu-measurement.log`](evidence/devnet-cu-measurement.log), [`submission/evidence/validator-cu-measurement.log`](evidence/validator-cu-measurement.log). |

@@ -876,6 +876,7 @@ version = "0.1.0"
 dependencies = [
  "anchor-lang",
  "litesvm",
+ "native-guard",
  "sha2 0.10.9",
  "solana-account",
  "solana-address-lookup-table-interface",
@@ -1749,6 +1750,18 @@ dependencies = [
  "keccak",
  "rand_core 0.6.4",
  "zeroize",
+]
+
+[[package]]
+name = "native-guard"
+version = "0.1.0"
+dependencies = [
+ "solana-account-info",
+ "solana-cpi",
+ "solana-instruction",
+ "solana-program-entrypoint",
+ "solana-program-error",
+ "solana-pubkey 3.0.0",
 ]
 
 [[package]]

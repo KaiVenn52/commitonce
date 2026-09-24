@@ -32,6 +32,14 @@ solana-instructions-sysvar = "3.0.0"
 [dev-dependencies]
 litesvm = "0.16.0"
 sha2 = "0.10"
+# The non-Anchor test program, so `tests/native_cpi.rs` can assert its hardcoded discriminator
+# and program ID against what Anchor derives. Built separately; see its own Cargo.toml.
+# `no-entrypoint` because the harness links this crate *and* `commit-once`, and both export an
+# `entrypoint` symbol. Without the feature the test binary fails to link with
+# `duplicate symbol: entrypoint` — the same collision the comment at the top of
+# `tests/common/mod.rs` describes for `demo-counter`, which is avoided there by never linking it
+# at all.
+native-guard = { path = "../../programs-native/native-guard", features = ["no-entrypoint"] }
 solana-account = "4.3.0"
 solana-address-lookup-table-interface = { version = "~3.1.0", features = ["bincode"] }
 solana-clock = "~3.1.1"

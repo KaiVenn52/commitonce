@@ -101,7 +101,7 @@ pin is what lets litesvm 0.16 build at all, so the arch flag and the toolchain m
 | What | Command |
 | --- | --- |
 | Build both programs + verify program IDs | `bash scripts/build.sh` |
-| Rust suite (55 tests, LiteSVM, real compiled artifact) | `bash scripts/test.sh` |
+| Rust suite (60 tests, LiteSVM, real compiled artifact) | `bash scripts/test.sh` |
 | SDK installs and works as a package (needs network) | `node scripts/check-package.mjs` |
 | One Rust test file | `cargo test -p commit-once --test invariant` |
 | Benchmarks with output visible | `cargo test -p commit-once --test benchmarks -- --nocapture` |

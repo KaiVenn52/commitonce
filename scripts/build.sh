@@ -73,6 +73,20 @@ echo "=== anchor build (sbpf ${ARCH}) ==="
 anchor build --arch "$ARCH" "$@"
 
 # ---------------------------------------------------------------------------
+# The non-Anchor test program.
+#
+# It lives in `programs-native/` and is `exclude`d from the workspace because `anchor build`
+# refuses to build a member without an IDL, and a program that is not written with Anchor has
+# none to give it. So it is built here, directly, and its artifact lands in the same deploy
+# directory as the others — `tests/native_cpi.rs` loads it from there at an arbitrary address.
+#
+# It is never deployed, so it has no keypair and no `declare_id!`, and the program-id check
+# below skips it by construction (that loop walks `deploy-keys/*-keypair.json`).
+# ---------------------------------------------------------------------------
+echo "=== cargo-build-sbf: native-guard (sbpf ${ARCH}) ==="
+cargo-build-sbf --manifest-path programs-native/native-guard/Cargo.toml --arch "$ARCH"
+
+# ---------------------------------------------------------------------------
 # Copy the build outputs back into the workspace so they are inspectable without knowing
 # where CARGO_TARGET_DIR points.
 # ---------------------------------------------------------------------------
