@@ -414,7 +414,6 @@ run_step "SDK resolves under both ESM and CJS (pnpm --filter @commitonce/solana 
 # ---------------------------------------------------------------------------------------
 
 run_step "brand assets consistent (node scripts/check-brand.mjs)" \
-run_step "SDK constants agree with the program (node scripts/check-brand.mjs)" \
     sdk_run node scripts/check-brand.mjs
 
 # ---------------------------------------------------------------------------------------

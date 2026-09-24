@@ -14,6 +14,9 @@
 mod common;
 
 use common::*;
+// `.data()` on an Anchor instruction struct comes from `InstructionData`, and the struct's
+// fields need `Pubkey` in scope.
+use anchor_lang::{prelude::Pubkey, InstructionData};
 
 /// Anchor derives a discriminator as `sha256("<namespace>:<name>")[0..8]`.
 fn anchor_discriminator(namespace: &str, name: &str) -> [u8; 8] {
@@ -42,9 +45,19 @@ fn demo_counter_discriminators_match_the_program() {
 
 #[test]
 fn commit_once_discriminators_are_well_formed() {
-    // The CommitOnce discriminators are also derivable, and asserting them here keeps the
-    // program's instruction names pinned: renaming `claim` would silently change the
-    // on-wire ABI, so it should fail loudly instead.
+    // Two things are checked here, and it is worth being precise about which one does the work.
+    //
+    // **What actually pins the instruction names is elsewhere, and it is a compile error.** This
+    // harness builds instructions through `commit_once::instruction::Claim`, so renaming the
+    // handler in the program makes that path fail to resolve and the test binary does not build
+    // at all. Verified by doing it: renaming `claim` yields `struct Claim is private` and the
+    // tests never run. So the pin is real, but it is implicit — a reader of this file would not
+    // see it.
+    //
+    // **The assertions below make this file self-contained.** They compare the compiled
+    // program's own instruction data against the derivation of the expected name, so the pin
+    // survives a refactor of `common/mod.rs` that stopped referencing the struct. That is a
+    // second line rather than the only one, and it is stated that way on purpose.
     let claim = anchor_discriminator("global", "claim");
     let close = anchor_discriminator("global", "close_receipt");
     let receipt = anchor_discriminator("account", "IntentReceipt");
@@ -54,6 +67,28 @@ fn commit_once_discriminators_are_well_formed() {
     assert_ne!(
         claim, receipt,
         "instruction and account namespaces must not collide"
+    );
+
+    // The program's real instruction data, whose first eight bytes are the discriminator.
+    let claim_data = commit_once::instruction::Claim {
+        namespace_hash: [0u8; 32],
+        idempotency_key_hash: [0u8; 32],
+        payload_hash: [0u8; 32],
+        retention_seconds: 0,
+        refund_destination: Pubkey::default(),
+    }
+    .data();
+    assert_eq!(
+        claim_data[..8],
+        claim,
+        "the compiled `claim` instruction is no longer named `claim`"
+    );
+
+    let close_data = commit_once::instruction::CloseReceipt {}.data();
+    assert_eq!(
+        close_data[..8],
+        close,
+        "the compiled `close_receipt` instruction is no longer named `close_receipt`"
     );
 }
 
