@@ -49,6 +49,7 @@ import {
     createSolanaRpc,
     createSolanaRpcSubscriptions,
     createTransactionMessage,
+    getBase64EncodedWireTransaction,
     getBase64Encoder,
     getCompiledTransactionMessageDecoder,
     getSignatureFromTransaction,
@@ -706,11 +707,59 @@ async function main(): Promise<void> {
         console.log('');
         console.log(`  supplied         ${swap.originalInstructionCount} instruction(s)`);
         console.log(`  composed         ${message.instructions.length} instruction(s)`);
+
+        /**
+         * The composed transaction's size, against the 1,232-byte limit.
+         *
+         * Jupiter's own documentation calls this out for exactly this case: *"When building
+         * custom transactions with `/build`, you may hit the 1232-byte transaction size limit,
+         * especially when adding custom instructions alongside the swap."* Prepending the guard
+         * is adding a custom instruction alongside the swap, and the guard is not small — 144
+         * bytes of instruction data plus four accounts.
+         *
+         * The dry run reported the *supplied* transaction's size and never the composed one, so
+         * a reader could not see how much headroom was left. That is the number that decides
+         * whether the integration works, and it is cheap to print.
+         *
+         * The two mitigations are Jupiter's, not ours, and they are named here because a caller
+         * who hits the limit will otherwise not know where to look:
+         *
+         *   - `maxAccounts` (1-64, default 64) limits the route's account count. Lower values
+         *     produce simpler routes and leave room for custom instructions, at the cost of
+         *     routing quality — Jupiter warns that very low values can yield no route at all.
+         *   - The `setupInstructions` from `/build` always include
+         *     `createAssociatedTokenAccountIdempotent`, even for accounts that already exist.
+         *     They are no-ops, but they consume space, and they can be filtered out after an
+         *     `getAccountInfo` check.
+         */
+        const composedBytes = getBase64EncodedWireTransaction(signed).length;
+        const wireBytes = Math.floor((composedBytes * 3) / 4);
+        const LIMIT = 1232;
+        const headroom = LIMIT - wireBytes;
+        const percent = Math.round((wireBytes / LIMIT) * 100);
+
+        console.log(
+            `  composed size    ~${wireBytes} bytes of ${LIMIT} (${percent}%), ` +
+                `${headroom >= 0 ? `${headroom} left` : `${-headroom} OVER`}`,
+        );
+        if (headroom < 0) {
+            console.log('');
+            console.log('  The composed transaction is over the limit and would be rejected. Reduce');
+            console.log('  `maxAccounts` on the Jupiter build request, or drop the');
+            console.log('  `createAssociatedTokenAccountIdempotent` setup instructions for accounts');
+            console.log('  that already exist. See Jupiter\'s "Reduce Transaction Size".');
+        } else if (headroom < 200) {
+            console.log(
+                `  Headroom is thin — a longer route would not fit. If this fails on a real swap,`,
+            );
+            console.log('  reduce `maxAccounts` or drop the no-op setup instructions.');
+        }
         console.log(`  signature        ${getSignatureFromTransaction(signed).slice(0, 16)}…`);
         console.log('');
         console.log('What this run verified: the guard prepends cleanly to a real third-party');
-        console.log('transaction, the supplied instructions keep their order and contents, and no');
-        console.log('duplicate ComputeBudget instruction was introduced.');
+        console.log('transaction, the supplied instructions keep their order and contents, no');
+        console.log('duplicate ComputeBudget instruction was introduced, and the composed');
+        console.log('transaction still fits in 1,232 bytes.');
         console.log('');
         console.log('What it did NOT verify: execution. That needs `commit_once` deployed on the');
         console.log('cluster the swap targets, plus a funded keypair there. Unset DRY_RUN to try');

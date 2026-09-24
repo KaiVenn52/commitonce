@@ -689,3 +689,16 @@ program, leaves nothing behind.
 - [ ] A keeper closes expired receipts, or you have consciously decided to leave them.
 - [ ] Alerts exist for `IdempotencyConflict` (6001) and for receipt-creation volume.
 - [ ] A rollback plan exists, including how the remaining receipts get closed.
+
+## Transaction size
+
+The guard is not small. Prepending it to the real Jupiter transaction in [`fixtures/`](../examples/jupiter-swap/fixtures/) takes the composed transaction to **~1,140 bytes of the 1,232-byte limit — 93%, with 92 bytes left.** That is the number Jupiter's own documentation warns about: *"When building custom transactions with `/build`, you may hit the 1232-byte transaction size limit, especially when adding custom instructions alongside the swap."* Prepending a guard is exactly that. The dry run measures and prints it, because the size decides whether an integration works and nothing else in this repository reported it.
+
+Both mitigations are Jupiter's, and they are named here because a caller who hits the limit will not know where to look:
+
+* **`maxAccounts`** (1-64, default 64) limits the route's account count. Lower values produce simpler routes and leave room for custom instructions, at the cost of routing quality — Jupiter warns that very low values can produce *no route at all*.
+* **Drop the no-op setup instructions.** The `setupInstructions` from `/build` always include `createAssociatedTokenAccountIdempotent`, even for accounts that already exist. They are no-ops, but they consume space, and they can be filtered out after an `getAccountInfo` check.
+
+This applies to any integration that composes the guard into a transaction someone else
+built, not only Jupiter. Measure before shipping: `getBase64EncodedWireTransaction(signed).length`
+gives the base64 length, which is `ceil(bytes / 3) * 4`.

@@ -39,11 +39,15 @@ Instructions that would be submitted (guard first, supplied order unchanged):
 
   supplied         8 instruction(s)
   composed         9 instruction(s)
-  signature        2wa7PMsDTUw6Z8Wm…
+  composed size    ~1140 bytes of 1232 (93%), 92 left
+  Headroom is thin — a longer route would not fit. If this fails on a real swap,
+  reduce `maxAccounts` or drop the no-op setup instructions.
+  signature        5BatswCAg9g4jB5p…
 
 What this run verified: the guard prepends cleanly to a real third-party
-transaction, the supplied instructions keep their order and contents, and no
-duplicate ComputeBudget instruction was introduced.
+transaction, the supplied instructions keep their order and contents, no
+duplicate ComputeBudget instruction was introduced, and the composed
+transaction still fits in 1,232 bytes.
 
 What it did NOT verify: execution. That needs `commit_once` deployed on the
 cluster the swap targets, plus a funded keypair there. Unset DRY_RUN to try

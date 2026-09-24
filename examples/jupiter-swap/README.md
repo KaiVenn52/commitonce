@@ -317,3 +317,15 @@ Two further boundaries, both deliberate:
 - **The window is finite unless you choose `permanent`.** After a receipt expires and is
   cleaned up, the key can be claimed again. `permanent` costs its rent deposit forever.
 - **The authority is a single key.** There is no multisig or threshold authority today.
+
+## Transaction size, which is the real constraint
+
+The guard is not small. Prepending it to the real Jupiter transaction in [`fixtures/`](fixtures/) takes the composed transaction to **~1,140 bytes of the 1,232-byte limit — 93%, with 92 bytes left.** That is the number Jupiter's own documentation warns about: *"When building custom transactions with `/build`, you may hit the 1232-byte transaction size limit, especially when adding custom instructions alongside the swap."* Prepending a guard is exactly that. The dry run measures and prints it, because the size decides whether an integration works and nothing else in this repository reported it.
+
+Both mitigations are Jupiter's, and they are named here because a caller who hits the limit will not know where to look:
+
+* **`maxAccounts`** (1-64, default 64) limits the route's account count. Lower values produce simpler routes and leave room for custom instructions, at the cost of routing quality — Jupiter warns that very low values can produce *no route at all*.
+* **Drop the no-op setup instructions.** The `setupInstructions` from `/build` always include `createAssociatedTokenAccountIdempotent`, even for accounts that already exist. They are no-ops, but they consume space, and they can be filtered out after an `getAccountInfo` check.
+
+Run `DRY_RUN=1 node examples/jupiter-swap/index.ts` to see the figure for the committed
+fixture. It will differ for a live quote, and a longer route will not fit.
