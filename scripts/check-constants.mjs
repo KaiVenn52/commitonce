@@ -1,0 +1,205 @@
+#!/usr/bin/env node
+/**
+ * Do the SDK's constants still agree with the program's?
+ *
+ * Six values are declared twice, once in Rust and once in TypeScript:
+ *
+ *   RECEIPT_SEED, RECEIPT_VERSION, PERMANENT_RETENTION,
+ *   MIN_RETENTION_SECONDS, MAX_RETENTION_SECONDS, SLOTS_PER_SECOND
+ *
+ * The SDK cannot import them — they are compiled into an onchain program — so they are copied by
+ * hand. Nothing checked that the copies agreed, which means a change to the program's retention
+ * bounds would leave the SDK validating against the old range: `prepare()` would happily build a
+ * transaction the program then rejects with `InvalidRetention`, and the failure would surface at
+ * the cluster rather than at the call site.
+ *
+ * This reads both files and compares. It is deliberately a source-level check rather than a
+ * runtime one, because the point is to catch the change at review time.
+ *
+ * Read-only. No network. Exit code 0 means the constants agree.
+ */
+
+import { readFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const ROOT = resolve(HERE, '..');
+
+const RUST = join(ROOT, 'programs', 'commit-once', 'src', 'constants.rs');
+const TS = join(ROOT, 'packages', 'sdk', 'src', 'constants.ts');
+
+const rust = readFileSync(RUST, 'utf8');
+const ts = readFileSync(TS, 'utf8');
+
+/** `pub const NAME: type = value;` — value kept as text, evaluated by `evalRust`. */
+function rustConst(name) {
+    const match = new RegExp(`pub const ${name}\\s*:\\s*[^=]+=\\s*([^;]+);`).exec(rust);
+    if (match === null) return null;
+    return evalRust(match[1].trim());
+}
+
+/**
+ * Evaluate the small arithmetic the Rust constants use (`60 * 60`, `365 * 24 * 60 * 60`).
+ * Deliberately not a general evaluator: anything outside digits, whitespace and `*` is rejected
+ * rather than guessed at.
+ */
+function evalRust(expression) {
+    const stripped = expression.replaceAll('_', '');
+    if (!/^[\d\s*()]+$/.test(stripped)) return { unsupported: expression };
+    // eslint-disable-next-line no-new-func -- input is restricted to digits and operators above
+    return { value: BigInt(Function(`"use strict";return (${stripped});`)()) };
+}
+
+/** `export const NAME = <literal>;` */
+function tsConst(name) {
+    const match = new RegExp(`export const ${name}\\s*=\\s*([^;]+);`).exec(ts);
+    if (match === null) return null;
+    return match[1].trim();
+}
+
+/** Pull a BigInt out of a TS literal: `3_600n`, `1`, `0n`. */
+function tsBigInt(literal) {
+    const cleaned = literal.replaceAll('_', '');
+    const match = /^(\d+)n?$/.exec(cleaned);
+    return match === null ? null : BigInt(match[1]);
+}
+
+const problems = [];
+
+// ---- the shared scalars ---------------------------------------------------------------
+const SHARED = [
+    ['RECEIPT_VERSION', 'u8'],
+    ['PERMANENT_RETENTION', 'u64'],
+    ['MIN_RETENTION_SECONDS', 'u64'],
+    ['MAX_RETENTION_SECONDS', 'u64'],
+    ['SLOTS_PER_SECOND', 'u64'],
+];
+
+let compared = 0;
+for (const [name] of SHARED) {
+    const fromRust = rustConst(name);
+    if (fromRust === null) {
+        problems.push(`programs/commit-once/src/constants.rs no longer declares ${name}`);
+        continue;
+    }
+    if (fromRust.unsupported !== undefined) {
+        problems.push(`${name} in Rust is not a plain integer expression: ${fromRust.unsupported}`);
+        continue;
+    }
+
+    const fromTs = tsConst(name);
+    if (fromTs === null) {
+        problems.push(`packages/sdk/src/constants.ts no longer declares ${name}`);
+        continue;
+    }
+    const tsValue = tsBigInt(fromTs);
+    if (tsValue === null) {
+        problems.push(`${name} in the SDK is not an integer literal: ${fromTs}`);
+        continue;
+    }
+
+    compared += 1;
+    if (fromRust.value !== tsValue) {
+        problems.push(
+            `${name} disagrees: program has ${fromRust.value}, SDK has ${tsValue}. ` +
+                'The SDK would validate against a range the program does not accept.',
+        );
+    }
+}
+
+// ---- the seed, which is bytes rather than a number ------------------------------------
+{
+    const rustSeed = /pub const RECEIPT_SEED\s*:\s*&\[u8\]\s*=\s*b"([^"]*)"/.exec(rust)?.[1];
+    // The SDK declaration carries a type annotation, so the `=` cannot be matched directly.
+    const tsSeed = /RECEIPT_SEED\s*(?::[^=]+)?=\s*new TextEncoder\(\)\.encode\('([^']*)'\)/.exec(ts)?.[1];
+    if (rustSeed === undefined || tsSeed === undefined) {
+        problems.push('RECEIPT_SEED could not be read from one of the two files');
+    } else {
+        compared += 1;
+        if (rustSeed !== tsSeed) {
+            problems.push(`RECEIPT_SEED disagrees: program has "${rustSeed}", SDK has "${tsSeed}"`);
+        }
+    }
+}
+
+// ---- the receipt size, which the Rust suite pins and the SDK restates -------------------
+//
+// The program computes `LEN` as `8 + Self::INIT_SPACE`, so there is no literal to read. The Rust
+// suite asserts it equals 202 in two places, and the SDK declares 202 independently. Comparing
+// the SDK against the number the Rust suite enforces is what keeps them from drifting: if the
+// receipt layout changes, the Rust assertion fails, and this check then fails too until the SDK
+// is updated.
+{
+    const testFiles = ['wire_format.rs', 'benchmarks.rs'];
+    let pinned = null;
+    let pinnedIn = null;
+    for (const name of testFiles) {
+        const text = readFileSync(join(ROOT, 'programs', 'commit-once', 'tests', name), 'utf8');
+        const match = /receipt_len\s*,\s*(\d+)|receipt_account_layout_is_exactly_(\d+)_bytes/.exec(text);
+        if (match !== null) {
+            pinned = Number(match[1] ?? match[2]);
+            pinnedIn = name;
+            break;
+        }
+    }
+
+    const declared = /RECEIPT_ACCOUNT_SIZE\s*=\s*(\d+)/.exec(ts)?.[1];
+
+    if (pinned === null) {
+        problems.push(
+            'no Rust test pins the receipt size any more, so the SDK value has nothing to agree with',
+        );
+    } else if (declared === undefined) {
+        problems.push('packages/sdk/src/constants.ts no longer declares RECEIPT_ACCOUNT_SIZE');
+    } else {
+        compared += 1;
+        if (Number(declared) !== pinned) {
+            problems.push(
+                `RECEIPT_ACCOUNT_SIZE disagrees: the Rust suite pins ${pinned} (${pinnedIn}), ` +
+                    `the SDK declares ${declared}`,
+            );
+        }
+    }
+}
+
+// ---- the rent derivation ----------------------------------------------------------------
+//
+// `RECEIPT_RENT_LAMPORTS` is a *formula*, not a literal, so there is no value to compare. What
+// can be checked is that the formula is the right one: it must reference all three inputs. The
+// first version of this check tried to read it as an integer, got `null`, and skipped — which
+// meant it reported success without checking anything. Failing loudly on an unparseable
+// declaration is the whole point.
+{
+    const declaration = /RECEIPT_RENT_LAMPORTS\s*=\s*([\s\S]*?);/.exec(ts)?.[1] ?? '';
+    compared += 1;
+
+    const REQUIRED = ['RECEIPT_ACCOUNT_SIZE', 'ACCOUNT_STORAGE_OVERHEAD', 'MAINNET_LAMPORTS_PER_BYTE'];
+    const missing = REQUIRED.filter((name) => !declaration.includes(name));
+    if (missing.length > 0) {
+        problems.push(
+            `RECEIPT_RENT_LAMPORTS does not derive from ${missing.join(', ')}; it reads ` +
+                `"${declaration.trim().replace(/\s+/g, ' ')}"`,
+        );
+    } else {
+        const size = Number(/RECEIPT_ACCOUNT_SIZE\s*=\s*(\d+)/.exec(ts)?.[1]);
+        const overhead = Number(/ACCOUNT_STORAGE_OVERHEAD\s*=\s*([\d_]+)n?/.exec(ts)?.[1]?.replaceAll('_', ''));
+        const perByte = Number(/MAINNET_LAMPORTS_PER_BYTE\s*=\s*([\d_]+)n?/.exec(ts)?.[1]?.replaceAll('_', ''));
+        if ([size, overhead, perByte].some((v) => Number.isNaN(v))) {
+            problems.push('could not read one of the three inputs to the rent derivation');
+        } else {
+            console.log(
+                `receipt rent:   (${size} + ${overhead}) * ${perByte} = ${(size + overhead) * perByte} lamports`,
+            );
+        }
+    }
+}
+
+console.log(`constants:      ${compared} compared across Rust and TypeScript`);
+if (problems.length === 0) {
+    console.log('\nCONSTANTS CHECK PASSED');
+    process.exit(0);
+}
+console.log(`\nCONSTANTS CHECK FAILED (${problems.length})`);
+for (const problem of problems) console.log(`  FAIL  ${problem}`);
+process.exit(1);

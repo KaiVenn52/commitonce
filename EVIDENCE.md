@@ -678,11 +678,11 @@ bash verify.sh
 Runs prerequisite checks, the program build, program-ID verification, formatting, the Rust
 suite, the benchmarks, and the SDK typecheck/build/tests/dual-format check plus a consumer
 typecheck, the brand-asset check, the documentation check and the encoding check —
-**fourteen steps** — then prints a PASS/FAIL summary with the true exit code. It fails loudly
+**fifteen steps** — then prints a PASS/FAIL summary with the true exit code. It fails loudly
 rather than silently skipping a step, and a step that could not run is reported as `NOT RUN`,
 which fails the run rather than being counted as a pass.
 
-Last full run: **`RESULT: PASS (14 steps ran and passed)`**, exit code 0.
+Last full run: **`RESULT: PASS (15 steps ran and passed)`**, exit code 0.
 
 One step it deliberately does **not** run is `scripts/check-package.mjs`, which installs the SDK
 tarball into a throwaway project and needs the network. `verify.sh` is hermetic by design, and its

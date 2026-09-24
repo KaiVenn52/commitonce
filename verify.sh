@@ -414,7 +414,21 @@ run_step "SDK resolves under both ESM and CJS (pnpm --filter @commitonce/solana 
 # ---------------------------------------------------------------------------------------
 
 run_step "brand assets consistent (node scripts/check-brand.mjs)" \
+run_step "SDK constants agree with the program (node scripts/check-brand.mjs)" \
     sdk_run node scripts/check-brand.mjs
+
+# ---------------------------------------------------------------------------------------
+# Cross-language constants. Six values are declared twice — once in Rust, once in TypeScript —
+# because the SDK cannot import from an onchain program. Nothing checked that the copies agreed,
+# so a change to the program's retention bounds would leave the SDK validating against the old
+# range: `prepare()` would build a transaction the program then rejects with `InvalidRetention`,
+# and the failure would surface at the cluster rather than at the call site. This also ties the
+# SDK's receipt size to the number the Rust suite pins, and checks the rent derivation still has
+# all three of its inputs. Hermetic.
+# ---------------------------------------------------------------------------------------
+
+run_step "SDK constants agree with the program (node scripts/check-constants.mjs)" \
+    sdk_run node scripts/check-constants.mjs
 
 # ---------------------------------------------------------------------------------------
 # Documentation consistency. Most of this project's claims live in prose, and prose rots:

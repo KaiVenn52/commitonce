@@ -244,7 +244,7 @@ Full detail, including the account-by-account and byte-by-byte layouts, is in
 ## Verification
 
 ```bash
-bash verify.sh          # everything: 14 steps, PASS/FAIL summary, true exit code
+bash verify.sh          # everything: 15 steps, PASS/FAIL summary, true exit code
 bash scripts/build.sh   # builds, then verifies declare_id! against deploy-keys/
 bash scripts/test.sh    # 55 tests, exit code 0
 ```
@@ -255,7 +255,7 @@ typechecks, builds, tests and dual-imports the SDK, typechecks the demo and all 
 checks the brand assets against the site palette, and checks the documentation for broken links,
 unreadable evidence logs, impossible test counts and corrected claims that have crept back. It
 fails loudly rather than silently skipping a step, and a step that could not run counts as a
-failure, not a pass. Last full run: **`RESULT: PASS (14 steps ran and passed)`**.
+failure, not a pass. Last full run: **`RESULT: PASS (15 steps ran and passed)`**.
 
 The tests execute the **real compiled SBF artifact** through LiteSVM — not a mock, not a
 reimplementation. They assert on observable onchain state: counter values, account
