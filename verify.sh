@@ -437,6 +437,12 @@ run_step "brand assets consistent (node scripts/check-brand.mjs)" \
 # claimed SBPFv2 for a round after the build moved to v3, and CI was pinned to v2 the whole
 # time.
 #
+# It also checks that **no document or script pins HOME to an absolute path** without
+# testing it first. Three scripts did, which undid this file's own careful check one level
+# down; then two markdown "Reproduce" blocks did, which a reader would copy verbatim and
+# break their own shell. The scope is every tracked text file, because the first version
+# named the three scripts and the markdown was sitting right there.
+#
 # The scope is every tracked text file rather than a list of documents, because the first
 # version named four documents and this script quotes the Rust pin in a prerequisite hint —
 # so it sat outside the check and drifted unnoticed. Historical narrative is explicitly

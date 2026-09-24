@@ -60,7 +60,6 @@ demo. Say so on camera rather than dressing it up.
 ### Gate 2 — the programs are live on devnet
 
 ```bash
-export HOME=/home/dell2u
 solana program show CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB --url devnet
 solana program show EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5 --url devnet
 ```

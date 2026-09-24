@@ -16,7 +16,7 @@ environment facts cause most setup failures, so they are handled explicitly by e
 
 | Fact | Why it matters |
 | --- | --- |
-| WSL's `HOME` is unset in this environment | Every script exports `HOME=/home/dell2u`. Without it, `cargo` and `solana` cannot find their config and fail with confusing errors. |
+| WSL's `HOME` is unset in this environment | Every script uses `/home/dell2u` **when that home exists**, and otherwise leaves `HOME` alone. Without the override here, `cargo` and `solana` cannot find their config and fail with confusing errors. |
 | The repository lives on a Windows drive | The Solana linker is slow on `/mnt/c`. Builds use `CARGO_TARGET_DIR=/home/dell2u/cot-target` on ext4. |
 
 Verified toolchain versions (see [`EVIDENCE.md`](EVIDENCE.md) §1):
@@ -109,11 +109,11 @@ pnpm test           # expect 48 passed
 Devnet is the safe rehearsal. Both programs are already live there (see `EVIDENCE.md` §3).
 
 ```bash
-export HOME=/home/dell2u
+# Run from the repository root. `solana` and `anchor` need to be on PATH; if the toolchains
+# live under /home/dell2u, scripts/build.sh will have used them already.
 solana config set --url https://api.devnet.solana.com
 solana balance            # needs ~1.5 SOL for both programs
 
-cd /mnt/c/Users/Dell2u/Downloads/commitonce
 solana program deploy target/deploy/commit_once.so \
   --program-id deploy-keys/commit_once-keypair.json \
   --url https://api.devnet.solana.com

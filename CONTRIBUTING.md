@@ -33,24 +33,30 @@ Contributions are welcome. The project is unaudited and not deployed to mainnet 
 for the recorded artifacts). A different platform-tools build changes the emitted ELF, so if
 your artifact hashes differ from `EVIDENCE.md` §2, check this first.
 
-### Two environment variables that are not optional in WSL
+### The environment, on this machine and on yours
 
-The repository is developed on a Windows drive and built under WSL2 Ubuntu. Both of the
-following are required, and `scripts/build.sh` / `scripts/test.sh` set them for you:
+The repository is developed on a Windows drive and built under WSL2 Ubuntu, where the
+toolchains live under `/home/dell2u`. **That layout is used when it is present and ignored
+when it is not**, so the same scripts work in CI, on a judge's laptop and here:
 
 ```bash
-export HOME=/home/dell2u
-export CARGO_TARGET_DIR=/home/dell2u/cot-target
+if [ -d /home/dell2u/solana-current/bin ]; then
+    export HOME=/home/dell2u
+    export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-/home/dell2u/cot-target}"
+else
+    export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$REPO/target}"
+fi
 ```
 
-**Why `HOME=/home/dell2u`.** The toolchains live under that home: `~/.cargo/bin` (cargo,
-`avm`-managed `anchor`), `~/.config/solana` (CLI config and keypair), and the nvm-managed
-Node installation. If you run the scripts with a different `HOME`, cargo looks for a registry
-and a toolchain in the wrong place, `anchor` disappears from `PATH`, and the failure surfaces
-as `command not found` or a missing-wallet error rather than as "your HOME is wrong". The
-scripts export it unconditionally for that reason. If your toolchains live elsewhere, edit
-the scripts rather than fighting them — and expect to update this document in the same
-commit.
+**Why the maintainer layout exists at all.** The toolchains live under that home:
+`~/.cargo/bin` (cargo, `avm`-managed `anchor`), `~/.config/solana` (CLI config and keypair),
+and the nvm-managed Node installation. Running with a different `HOME` there would make
+cargo look for its registry in the wrong place, drop `anchor` from `PATH`, and surface as
+`command not found` rather than as "your HOME is wrong".
+
+**On your machine, nothing needs to be set.** Put the Solana and Anchor toolchains on
+`PATH` and run `bash verify.sh`. If a tool is missing, the prerequisite step names it and
+says where to get it.
 
 **Why `CARGO_TARGET_DIR` points at ext4.** The repository lives on a Windows filesystem
 mounted into WSL (`/mnt/c/...`). Cargo's incremental cache and the Solana linker write

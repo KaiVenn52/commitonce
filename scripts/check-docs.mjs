@@ -20,6 +20,7 @@
  * Run: node scripts/check-docs.mjs
  */
 
+import { execSync } from 'node:child_process';
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { dirname, join, relative, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -487,7 +488,19 @@ for (const log of logs) {
 // ---------------------------------------------------------------------------------------
 {
     let pinned = 0;
-    for (const rel of ['verify.sh', 'scripts/build.sh', 'scripts/test.sh']) {
+    // **Every tracked text file**, not the three scripts.
+    //
+    // The first version named the scripts, and the same defect was sitting in two markdown
+    // "Reproduce" blocks that a reader would copy verbatim — `EVIDENCE.md` and
+    // `submission/DEMO_SCRIPT.md` each began a shell block with a bare
+    // `export HOME=/home/dell2u`, which on anyone else's machine breaks their own shell.
+    // Same hardcoded-scope failure as the version check, one round later.
+    const pinnedFiles = execSync('git ls-files', { cwd: ROOT, encoding: 'utf8' })
+        .split('\n')
+        .filter((f) => /\.(md|html|sh|mjs|yml|yaml|toml|ts)$/.test(f))
+        .filter((f) => !f.includes('WORK_LOG'));
+
+    for (const rel of pinnedFiles) {
         const full = join(ROOT, rel);
         if (!existsSync(full)) continue;
         const body = readFileSync(full, 'utf8');

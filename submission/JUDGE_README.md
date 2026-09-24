@@ -40,10 +40,11 @@ LiteSVM, runs the benchmarks with output visible, runs the SDK typecheck/build/t
 **PASS/FAIL summary with the true exit code**. A step that cannot run is reported as `NOT RUN`,
 never as a pass, and `NOT RUN` also exits non-zero.
 
-It requires the project's WSL2 Ubuntu toolchain home (`/home/dell2u`); if that directory is absent
-the script continues with your own `HOME` and fails with a specific message rather than a confusing
-cargo error. It does **not** deploy anything, does **not** contact a cluster, and does **not**
-audit the code.
+**It needs no configuration.** The toolchains are looked for on `PATH`; a layout specific to the
+maintainer's machine (`/home/dell2u`) is used only when it is actually present, so a fresh clone
+on macOS, Linux or a CI runner takes the ordinary path. A missing prerequisite is reported by name
+with where to get it, rather than surfacing as a confusing cargo error. It does **not** deploy
+anything, does **not** contact a cluster, and does **not** audit the code.
 
 Individual steps, if you prefer:
 
