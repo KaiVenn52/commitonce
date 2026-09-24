@@ -624,7 +624,7 @@ the reasoning.
 | --- | --- | --- |
 | Framework | **Anchor 1.2.0** | Prebuilt CLI, IDL generation, ecosystem familiarity, and its official test path is LiteSVM. |
 | Test harness | **LiteSVM 0.10.0** | Executes the real compiled SBF artifact, not a mock or a reimplementation. Tests assert on observable state, never on error strings. |
-| SBPF target | **v2** (`--arch v2`) | `anchor build` defaults to v3, whose ELF (`e_flags = 0x3`) LiteSVM 0.10.0 rejects with `Instruction(InvalidAccountData)`. Shipping v3 would mean shipping a program this project's own suite cannot execute. v2 is accepted by LiteSVM, devnet and mainnet. Overridable with `SBPF_ARCH=v3`. |
+| SBPF target | **v3** (`--arch v3`) | The Anchor default. v2 was used while LiteSVM 0.10.0 could not verify a v3 ELF; LiteSVM 0.16 accepts both, and a real Agave validator *rejects* v2. LiteSVM 0.10.0 rejects with `Instruction(InvalidAccountData)`. Shipping v3 would mean shipping a program this project's own suite cannot execute. v2 is accepted by LiteSVM, devnet and mainnet. Overridable with `SBPF_ARCH=v3`. |
 | Receipt as a plain PDA, not compressed state | **plain 202-byte PDA** | Visible to any standard indexer, no prover dependency, no Light state tree, refundable, and the address is derivable offline. |
 | Hashing | **WebCrypto `crypto.subtle`** | Zero runtime dependencies; available in Node 18+, browsers, Deno, Bun and workers. Async, which is not a real cost since PDA derivation and RPC are async anyway. |
 | Authority scoping | **in the program's `seeds` constraint** | Makes the anti-griefing property structural instead of a convention integrators must remember. |
@@ -671,7 +671,7 @@ and reproduced against `target/deploy/` when this document was written):
 | `commit_once.so` | 148,640 bytes | `af31807802e6f82e917e93e4f42172c23bbdda0dc1b2d609281d045364f6df45` |
 | `demo_counter.so` | 158,432 bytes | `dc524ce0d166eaf5305951fc41e97004c4c0b37ffee00c1c84c3f5f37df583c7` |
 
-Both are built for SBPFv2 (`readelf -h` reports `Flags: 0x2`).
+Both are built for SBPFv3 (`readelf -h` reports `Flags: 0x3`).
 
 Test suite composition: `invariant.rs` 10 tests (the core guarantee, atomic rollback, scoping,
 races, guard transparency), `retention.rs` 9 (expiry gates, rent refund, permissionless cleanup,

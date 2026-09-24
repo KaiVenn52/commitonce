@@ -310,7 +310,7 @@ Recorded here so it is not mistaken for a blocker:
 
 | Capability | Status |
 | --- | --- |
-| Program build | Works. SBPFv2, IDs verified against `deploy-keys/`. |
+| Program build | Works. SBPFv3, IDs verified against `deploy-keys/`. |
 | Rust test suite | **55 passing, exit 0.** Executes the real compiled artifact. |
 | SDK build (ESM + CJS + types) | Works. Verified by importing both ways. |
 | SDK test suite | **71 passing**, golden vectors cross-checked by an independent implementation. |

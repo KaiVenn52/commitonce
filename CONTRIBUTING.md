@@ -86,16 +86,13 @@ Adding a dependency that needs a build script means adding it there deliberately
 justifying it, because a dependency with a postinstall script is a supply-chain surface the
 rest of this tree does not have.
 
-### SBPF target: v2, not v3
+### SBPF target: v3
 
-`anchor build` defaults to `--arch v3`, whose ELF carries `e_flags = 0x3`. **LiteSVM 0.10.0
-cannot verify a v3 ELF** and rejects it with `Instruction(InvalidAccountData)`, so a v3 build
-would produce a program that this project's own test suite cannot execute. The build
-therefore pins `--arch v2` (SBPFv2, accepted by LiteSVM, devnet and mainnet), overridable
-with `SBPF_ARCH=v3` once the harness supports it.
+`anchor build` defaults to `--arch v3`, and **v3 is what this project ships**. It was v2 for most of the project, because LiteSVM 0.10.0 could not verify a v3 ELF and the test suite is the only thing that executes the compiled artifact. A real Agave validator then showed that it **rejects a v2 artifact** — *"Detected sbpf_version required by the executable which are not enabled"* — while accepting v3, and LiteSVM **0.16.0 accepts both**, so the trade is gone. `rust-toolchain.toml` moved to 1.98.0 at the same time, because litesvm 0.16 will not build on the old pin. `SBPF_ARCH=v2` still builds the old artifact.
 
 Do not change this default without also changing the test harness and recording why in
-`docs/ARCHITECTURE.md` §10 and `EVIDENCE.md`.
+`docs/ARCHITECTURE.md` §10 and `EVIDENCE.md`. **`rust-toolchain.toml` is load-bearing**: the
+pin is what lets litesvm 0.16 build at all, so the arch flag and the toolchain move together.
 
 ---
 

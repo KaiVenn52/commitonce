@@ -34,7 +34,7 @@ program does not change.
 bash verify.sh
 ```
 
-It runs the prerequisite checks, builds both programs (SBPFv2), verifies every `declare_id!`
+It runs the prerequisite checks, builds both programs (SBPFv3), verifies every `declare_id!`
 against its `deploy-keys/*-keypair.json`, runs the Rust suite against the compiled SBF artifact in
 LiteSVM, runs the benchmarks with output visible, runs the SDK typecheck/build/tests, and prints a
 **PASS/FAIL summary with the true exit code**. A step that cannot run is reported as `NOT RUN`,
@@ -129,7 +129,7 @@ verified).
 | SDK tests | **71 passing**, golden vectors cross-checked by an independent implementation |
 | Measured overhead | +404 bytes, +4 accounts (usually +3); `claim` ~14,000 CU on devnet |
 | Receipt | 202 bytes, 1,676,400 lamports rent, fully refundable on cleanup |
-| Build | SBPFv2, `readelf -h` reports `Flags: 0x2` |
+| Build | SBPFv3, `readelf -h` reports `Flags: 0x3` |
 
 ---
 

@@ -9,7 +9,7 @@
 #
 # What it does:
 #   1. checks the prerequisites and fails with a specific message for each one that is missing
-#   2. builds both programs (SBPFv2) via scripts/build.sh
+#   2. builds both programs (SBPFv3) via scripts/build.sh
 #   3. verifies that every declare_id! matches its deploy-keys/*-keypair.json pubkey
 #   4. checks formatting (cargo fmt --all --check)
 #   5. runs the Rust suite against the compiled SBF artifact in LiteSVM
@@ -120,7 +120,7 @@ echo "date (UTC):            $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 echo "HOME:                  $HOME"
 echo "CARGO_TARGET_DIR:      $CARGO_TARGET_DIR"
 echo "COMMIT_ONCE_DEPLOY_DIR:$COMMIT_ONCE_DEPLOY_DIR"
-echo "SBPF_ARCH:             ${SBPF_ARCH:-v2 (default)}"
+echo "SBPF_ARCH:             ${SBPF_ARCH:-v3 (default)}"
 echo "SDK toolchain mode:    $SDK_MODE${REPO_ROOT_WIN:+  ($REPO_ROOT_WIN)}"
 
 # ---------------------------------------------------------------------------------------
@@ -428,6 +428,17 @@ run_step "brand assets consistent (node scripts/check-brand.mjs)" \
 
 run_step "SDK constants agree with the program (node scripts/check-constants.mjs)" \
     sdk_run node scripts/check-constants.mjs
+
+# ---------------------------------------------------------------------------------------
+# The quickstart's own script. `docs/QUICKSTART.md` Step 4 told readers to run
+# `node packages/sdk/quickstart.mjs` and **that file did not exist**, so the documented path
+# failed at the first thing a newcomer tried. It exists now, and it asserts the four claims
+# the document makes rather than only printing them, so the document cannot drift from the
+# package. Needs the SDK built, which the step above this one guarantees.
+# ---------------------------------------------------------------------------------------
+
+run_step "quickstart script runs and its claims hold (node packages/sdk/quickstart.mjs)" \
+    sdk_run node packages/sdk/quickstart.mjs
 
 # ---------------------------------------------------------------------------------------
 # Documentation consistency. Most of this project's claims live in prose, and prose rots:

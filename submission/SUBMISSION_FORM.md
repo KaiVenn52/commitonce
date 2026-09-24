@@ -64,7 +64,7 @@ Solana-specific.
 
 Language and framework:
 - Rust, Anchor 1.2.0 (program framework and IDL)
-- SBPFv2 target, built with cargo-build-sbf from the Solana 4.2.2 toolchain
+- SBPFv3 target, built with cargo-build-sbf from the Solana 4.2.2 toolchain
 
 Client:
 - TypeScript 7.0.2

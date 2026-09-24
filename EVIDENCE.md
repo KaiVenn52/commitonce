@@ -56,7 +56,7 @@ Flags:   0x2                   # SBPF v2
 
 `anchor build` defaults to `--arch v3`, which produces `e_flags = 0x3`. LiteSVM 0.10.0
 rejects v3 ELFs with `Instruction(InvalidAccountData)` — the failure that stalled this
-project until the header was inspected. The build therefore pins **SBPFv2**
+project until the header was inspected. The build therefore pinned **SBPFv2**
 (`scripts/build.sh`, overridable with `SBPF_ARCH=v3`). Shipping v3 would mean shipping a
 program the project's own test suite cannot execute. v2 is accepted by LiteSVM, devnet and
 mainnet.
@@ -680,11 +680,11 @@ bash verify.sh
 Runs prerequisite checks, the program build, program-ID verification, formatting, the Rust
 suite, the benchmarks, and the SDK typecheck/build/tests/dual-format check plus a consumer
 typecheck, the brand-asset check, the documentation check and the encoding check —
-**fifteen steps** — then prints a PASS/FAIL summary with the true exit code. It fails loudly
+**sixteen steps** — then prints a PASS/FAIL summary with the true exit code. It fails loudly
 rather than silently skipping a step, and a step that could not run is reported as `NOT RUN`,
 which fails the run rather than being counted as a pass.
 
-Last full run: **`RESULT: PASS (15 steps ran and passed)`**, exit code 0.
+Last full run: **`RESULT: PASS (16 steps ran and passed)`**, exit code 0.
 
 One step it deliberately does **not** run is `scripts/check-package.mjs`, which installs the SDK
 tarball into a throwaway project and needs the network. `verify.sh` is hermetic by design, and its
@@ -701,7 +701,7 @@ toolchain it runs everything natively.
 ### CI — and why it caught what `verify.sh` could not
 
 **CI is green on a clean Ubuntu runner that has never seen this repository.** It installs the
-pinned Solana 4.2.2 and Anchor 1.2.0 toolchains, builds both programs for SBPFv2, verifies every
+pinned Solana 4.2.2 and Anchor 1.2.0 toolchains, builds both programs for SBPFv3, verifies every
 `declare_id!` against its committed keypair, runs `cargo fmt --all --check` and
 `cargo clippy --workspace --all-targets`, runs the full Rust suite against the compiled SBF
 artifact in LiteSVM, re-runs the benchmarks with output visible, and runs the SDK typecheck,

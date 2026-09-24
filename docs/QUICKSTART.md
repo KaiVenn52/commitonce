@@ -204,7 +204,7 @@ ship a deployment.** You have to deploy it yourself:
 
 ```bash
 # Requires the Solana CLI + Anchor 1.2.0 and a funded deployer keypair.
-anchor build --arch v2          # or: bash scripts/build.sh
+anchor build --arch v3          # or: bash scripts/build.sh
 anchor deploy --provider.cluster devnet
 ```
 

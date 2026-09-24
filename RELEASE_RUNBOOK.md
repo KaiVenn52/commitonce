@@ -39,7 +39,7 @@ What it does, in order:
 1. Pins `HOME`, `PATH` (Solana + Cargo), and `CARGO_TARGET_DIR`.
 2. Force-copies `deploy-keys/*.json` into **both** `$CARGO_TARGET_DIR/deploy/` and
    `<repo>/target/deploy/`.
-3. Runs `anchor build --arch "${SBPF_ARCH:-v2}"`.
+3. Runs `anchor build --arch "${SBPF_ARCH:-v3}"`.
 4. Copies the `.so` files and IDLs back into `<repo>/target/`.
 5. **Verifies every `declare_id!` against its `deploy-keys/*.json` pubkey and exits 1 on
    mismatch.**
@@ -52,16 +52,17 @@ What it does, in order:
 repeatedly. The script instead places the keypairs deterministically and verifies the result
 instead of trusting a tool to repair it.
 
-**SBPFv2, not the Anchor default.** `anchor build` defaults to `--arch v3`, producing
-`e_flags = 0x3`. LiteSVM 0.10.0 rejects v3 ELFs with `Instruction(InvalidAccountData)`, so
-a default build yields a program the test suite cannot execute. Confirm the target with:
+**SBPFv3, which is also the Anchor default.** This used to be v2, because
+`e_flags = 0x3`, which is what this project ships. A v2 artifact is **rejected by a real
+Agave validator** with *"Detected sbpf_version required by the executable which are not
+enabled"*, so a v2 build is the one that cannot be deployed. Confirm the target with:
 
 ```bash
-readelf -h target/deploy/commit_once.so | grep Flags    # expect: Flags: 0x2
+readelf -h target/deploy/commit_once.so | grep Flags    # expect: Flags: 0x3
 ```
 
-Override with `SBPF_ARCH=v3 bash scripts/build.sh` only if you have verified that your
-runtime accepts v3.
+Use `SBPF_ARCH=v2 bash scripts/build.sh` only to reproduce the old artifact. It will not
+deploy to a current-feature-set runtime.
 
 ### Expected artifacts
 
@@ -254,7 +255,7 @@ vectors in **both** `programs/commit-once/tests/wire_format.rs` and
 
 | Symptom | Almost certainly |
 | --- | --- |
-| `Instruction(InvalidAccountData)` when loading the program in tests | Built SBPFv3. Rebuild with `SBPF_ARCH=v2`. |
+| `Detected sbpf_version required by the executable which are not enabled` at deploy | Built SBPFv2. Rebuild with the default `bash scripts/build.sh`, which produces SBPFv3. |
 | `declare_id!` mismatch on build | `deploy-keys/*.json` does not match the source. Do **not** run `anchor keys sync`; reconcile the keypair instead. |
 | `BlockhashNotFound` in tests | LiteSVM accepts only one recent blockhash. Rebuild the transaction against the current one, or `expire_blockhash()` between attempts. |
 | `AlreadyProcessed` where `AlreadyCommitted` was expected | The test sent byte-identical transactions, so runtime dedup fired first. Rebuild properly — change the blockhash or the priority fee. |

@@ -159,6 +159,24 @@ const RETIRED_CLAIMS = [
         why: 'the demo entry point is commitonce-demo.ts',
     },
     {
+        // The project switched to SBPFv3 and the switch missed ten places: the README, the
+        // judge readme, the submission form, the project description, CONTRIBUTING, the
+        // release runbook, ARCHITECTURE, the quickstart, EVIDENCE and verify.sh's own
+        // default report. A reader of any of them would have built the artifact a real Agave
+        // validator rejects. The historical narrative ("shipped SBPFv2 for most of its
+        // life") is legitimate, so these patterns are written not to match it.
+        pattern: /Flags: 0x2\b/,
+        why: 'SBPFv3 is what ships; readelf -h reports Flags: 0x3',
+    },
+    {
+        pattern: /SBPF_ARCH:-v2/,
+        why: 'the build default is v3; SBPF_ARCH=v2 only reproduces the old artifact',
+    },
+    {
+        pattern: /\(SBPFv2\)|SBPFv2 target|built for SBPFv2|for SBPFv2,|SBPFv2, `readelf/,
+        why: 'SBPFv3 is what ships',
+    },
+    {
         // The slot deadline is one of TWO gates and `close_receipt` requires both, so the
         // effective deadline is the later of the two and a wrong constant can only delay
         // cleanup. The sentence that claimed otherwise survived in five files at once — the

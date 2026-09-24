@@ -137,7 +137,7 @@ end to end, because Jupiter's aggregator is mainnet-only and CommitOnce is devne
 ## Blockchains and tools integrated
 
 Solana only, deliberately. **Anchor 1.2.0** (program framework, IDL), **Solana toolchain
-4.2.2** with `cargo-build-sbf`, **LiteSVM 0.10.0** (tests execute the real `.so`), **SBPFv2**
+4.2.2** with `cargo-build-sbf`, **LiteSVM 0.16.0** (tests execute the real `.so`), **SBPFv3**
 target, **TypeScript 7.0.2** and **`@solana/kit` 8.3.0** for the SDK, which has **zero runtime
 dependencies** and uses WebCrypto for hashing. Apache-2.0. Full dependency and provenance
 inventory in [`TECHNICAL_OVERVIEW.md`](TECHNICAL_OVERVIEW.md) §13.

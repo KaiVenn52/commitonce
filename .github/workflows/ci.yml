@@ -7,7 +7,7 @@
 #
 # What it does:
 #   * program job — installs the pinned Solana and Anchor toolchains, builds both programs for
-#     SBPFv2, verifies declare_id! against the committed keypairs, runs the Rust suite against
+#     SBPFv3, verifies declare_id! against the committed keypairs, runs the Rust suite against
 #     the compiled SBF artifacts, then re-runs the benchmark with output visible.
 #   * sdk job — installs Node and pnpm, then runs the SDK typecheck, build and test suite.
 #
@@ -62,9 +62,17 @@ env:
   # Set explicitly, as the project does locally, so that the artifact directory is
   # predictable: Anchor writes its deploy directory and IDLs under $CARGO_TARGET_DIR.
   CARGO_TARGET_DIR: ${{ github.workspace }}/target
-  # SBPFv2. LiteSVM 0.10.0 cannot verify a v3 ELF (e_flags = 0x3), so a v3 build could not be
-  # executed by this project's own test suite. See docs/ARCHITECTURE.md §10.
-  SBPF_ARCH: v2
+  # SBPFv3, which is what the project ships and what scripts/build.sh defaults to.
+  #
+  # This was pinned to v2 for most of the project's life, because LiteSVM 0.10.0 could not verify
+  # a v3 ELF and the test suite is the only thing that executes the compiled artifact. A real
+  # Agave validator then showed that it *rejects* a v2 artifact, and LiteSVM 0.16.0 accepts both,
+  # so the trade is gone.
+  #
+  # **The pin being stale meant CI never built what shipped.** A green run validated a v2 artifact
+  # while devnet ran v3, which is worse than having no pin: it reported success for a build nobody
+  # deploys. See docs/ARCHITECTURE.md §10.
+  SBPF_ARCH: v3
 
 jobs:
   program:
@@ -167,7 +175,7 @@ jobs:
       # HOME=/home/dell2u and prepends a WSL-specific PATH, because that is where the
       # maintainer's toolchains live. On a GitHub runner that home directory does not exist,
       # so cargo and anchor would look in the wrong places and fail confusingly. The steps
-      # below replicate what it does — force-copy the committed keypairs, build for SBPFv2,
+      # below replicate what it does — force-copy the committed keypairs, build for SBPFv3,
       # verify declare_id! — using the runner's own environment.
       #
       # If you change scripts/build.sh, change these steps in the same commit, or better:
@@ -197,7 +205,7 @@ jobs:
             -o "$HOME/.config/solana/id.json"
           solana address
 
-      - name: Build programs (SBPFv2)
+      - name: Build programs (SBPFv3)
         run: anchor build --arch "$SBPF_ARCH"
 
       - name: Verify declare_id! against deploy-keys

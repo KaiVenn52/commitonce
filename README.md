@@ -12,7 +12,7 @@ you already build, and a *rebuilt* retry can no longer execute the same logical 
 second time.
 
 CI runs on a clean Ubuntu runner that has never seen this repository: it installs the pinned
-Solana and Anchor toolchains, builds both programs for SBPFv2, verifies every `declare_id!`
+Solana and Anchor toolchains, builds both programs for SBPFv3, verifies every `declare_id!`
 against its committed keypair, checks formatting and lints, runs the full Rust suite against
 the compiled SBF artifact in LiteSVM, and runs the SDK typecheck, build, tests and
 dual-format check. **That is the strongest evidence in this repository** — every other number
@@ -244,7 +244,7 @@ Full detail, including the account-by-account and byte-by-byte layouts, is in
 ## Verification
 
 ```bash
-bash verify.sh          # everything: 15 steps, PASS/FAIL summary, true exit code
+bash verify.sh          # everything: 16 steps, PASS/FAIL summary, true exit code
 bash scripts/build.sh   # builds, then verifies declare_id! against deploy-keys/
 bash scripts/test.sh    # 55 tests, exit code 0
 ```
@@ -255,7 +255,7 @@ typechecks, builds, tests and dual-imports the SDK, typechecks the demo and all 
 checks the brand assets against the site palette, and checks the documentation for broken links,
 unreadable evidence logs, impossible test counts and corrected claims that have crept back. It
 fails loudly rather than silently skipping a step, and a step that could not run counts as a
-failure, not a pass. Last full run: **`RESULT: PASS (15 steps ran and passed)`**.
+failure, not a pass. Last full run: **`RESULT: PASS (16 steps ran and passed)`**.
 
 The tests execute the **real compiled SBF artifact** through LiteSVM — not a mock, not a
 reimplementation. They assert on observable onchain state: counter values, account
@@ -415,7 +415,7 @@ deploy-keys/            the program keypairs the program IDs are derived from
 | Demo counter program | `EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5` |
 | Rust tests | 55 passing, exit 0 |
 | SDK tests | 71 passing |
-| Built for | SBPFv2, Anchor 1.2.0, Solana 4.x toolchain |
+| Built for | SBPFv3, Anchor 1.2.0, Solana 4.x toolchain |
 | Mainnet | **not deployed** |
 | Devnet | **deployed and verified live** — see [`EVIDENCE.md`](EVIDENCE.md) §3 |
 | Audited | **no** |
