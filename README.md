@@ -243,6 +243,15 @@ Full detail, including the account-by-account and byte-by-byte layouts, is in
 
 ## Verification
 
+**Is the devnet deployment the code in this repository?** One command answers it:
+
+```bash
+bash scripts/verify-deployment.sh
+```
+
+It dumps both programs from devnet and compares them against the built artifacts. See
+[`EVIDENCE.md`](EVIDENCE.md) §3.
+
 ```bash
 bash verify.sh          # everything: 17 steps, PASS/FAIL summary, true exit code
 bash scripts/build.sh   # builds, then verifies declare_id! against deploy-keys/

@@ -1,0 +1,13 @@
+=== https://api.devnet.solana.com ===
+  ok      commit_once is live at CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB
+  ok      commit_once deployed in slot 503174994, as documented
+  ok      commit_once upgrade authority is the documented one
+  ok      commit_once: the first 148640 bytes are byte-identical to the committed artifact
+  ok      commit_once: the loader appended 15072 zero bytes of padding (ignored)
+  ok      demo_counter is live at EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5
+  ok      demo_counter deployed in slot 503175063, as documented
+  ok      demo_counter upgrade authority is the documented one
+  ok      demo_counter: the first 158432 bytes are byte-identical to the committed artifact
+  ok      demo_counter: the loader appended 10808 zero bytes of padding (ignored)
+
+DEPLOYMENT MATCHES THE REPOSITORY

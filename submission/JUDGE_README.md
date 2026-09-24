@@ -62,6 +62,19 @@ solana program show CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB --url devnet
 solana program show EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5 --url devnet
 ```
 
+**Or check that the deployed code is the code in this repository**, which is stronger:
+
+```bash
+bash scripts/verify-deployment.sh
+```
+
+It dumps both programs from devnet and compares them against `target/deploy/*.so`. The
+first 148,640 bytes of `commit_once` and the first 158,432 bytes of `demo_counter` are
+byte-identical to the committed artifacts; the loader appends zero padding, which the
+script reports rather than counting as a difference. It also checks the slots and the
+upgrade authority. It needs a built tree and network access, so it is not part of
+`verify.sh`, which is deliberately offline.
+
 Expect `Last Deployed In Slot` **503174994** and **503175063**. The guard's deploy signature is
 `274PANsUJf4N9jtP8arkuSmzP15TctKk4vgHHJupYHt14JsgwieEYhm1pYmtYVxcwfFUbdUcdFzvNH1cfRTWpui9`,
 visible on any devnet explorer.
