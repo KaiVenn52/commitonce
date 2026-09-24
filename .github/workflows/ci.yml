@@ -90,7 +90,7 @@ jobs:
       # Toolchains
       # ---------------------------------------------------------------------------------
 
-      # rust-toolchain.toml pins channel 1.89.0 with rustfmt and clippy. Installing the same
+      # rust-toolchain.toml pins channel 1.98.0 with rustfmt and clippy. Installing the same
       # toolchain here keeps rustup from downloading it implicitly later, and keeps the
       # rustfmt/clippy versions used by review identical to the pinned ones.
       - name: Install Rust (rustup, pinned to rust-toolchain.toml)

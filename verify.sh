@@ -201,7 +201,7 @@ require_cmd() {
 }
 
 require_cmd bash "this script is bash; run it with: bash verify.sh"
-require_cmd cargo "install Rust; rust-toolchain.toml pins 1.89.0 (https://rustup.rs)"
+require_cmd cargo "install Rust; rust-toolchain.toml pins 1.98.0 (https://rustup.rs)"
 require_cmd solana-keygen "install the Solana CLI; cargo-build-sbf comes from the same release"
 require_cmd anchor "install the Anchor CLI, pinned to 1.2.0 (Anchor.toml, docs/ARCHITECTURE.md)"
 require_cmd sed "coreutils are required for the declare_id! check"
@@ -430,12 +430,17 @@ run_step "brand assets consistent (node scripts/check-brand.mjs)" \
 # SDK's receipt size to the number the Rust suite pins, and checks the rent derivation still has
 # all three of its inputs.
 #
-# It also checks the **version pins** — litesvm and Rust — against the versions the documents
-# quote. That is the same defect class as the SBPF arch flag, and it has happened three times
-# here: the manifest moves and several documents keep stating the old value as current. The
-# README, the judge readme, the submission form and the project description all claimed SBPFv2
-# for a round after the build moved to v3, and CI was pinned to v2 the whole time. Historical
-# narrative is explicitly allowed; a bare version in a table is not. Hermetic.
+# It also checks the **version pins** — litesvm and Rust — against the versions every tracked
+# text file quotes. That is the same defect class as the SBPF arch flag, and it has happened
+# four times here: the manifest moves and something else keeps stating the old value as
+# current. The README, the judge readme, the submission form and the project description all
+# claimed SBPFv2 for a round after the build moved to v3, and CI was pinned to v2 the whole
+# time.
+#
+# The scope is every tracked text file rather than a list of documents, because the first
+# version named four documents and this script quotes the Rust pin in a prerequisite hint —
+# so it sat outside the check and drifted unnoticed. Historical narrative is explicitly
+# allowed; a version stated as what the manifest pins is not. Hermetic.
 #
 # And the **error range**: the program gained a twelfth error and four documents kept saying
 # "6000-6010". The codes are implicit — Anchor assigns 6000 + the variant index — so the range

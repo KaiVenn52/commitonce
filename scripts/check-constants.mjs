@@ -19,6 +19,7 @@
  * Read-only. No network. Exit code 0 means the constants agree.
  */
 
+import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -211,17 +212,26 @@ for (const [name] of SHARED) {
     const cargo = readFileSync(join(ROOT, 'programs', 'commit-once', 'Cargo.toml'), 'utf8');
     const toolchain = readFileSync(join(ROOT, 'rust-toolchain.toml'), 'utf8');
 
+    // Scanned files: **every tracked text file**, not a list of documents.
+    //
+    // The first version named four documents for litesvm and two for Rust, and `verify.sh`
+    // quotes the Rust pin in a prerequisite hint — so it sat outside the check and drifted from
+    // 1.89.0 to 1.98.0 unnoticed. A hardcoded scope is the same failure as a workspace-scoped
+    // `cargo fmt`: the thing that is not named is the thing that goes stale.
+    const SCANNED = execSync('git ls-files', { cwd: ROOT, encoding: 'utf8' })
+        .split('\n')
+        .filter((f) => /\.(md|html|sh|mjs|yml|yaml|json|toml|ts)$/.test(f))
+        // The work log records history and legitimately names old versions.
+        .filter((f) => !f.includes('WORK_LOG') && !f.endsWith('Cargo.lock'));
+
     const PINS = [
         {
             name: 'litesvm',
             actual: /^litesvm = "([^"]+)"/m.exec(cargo)?.[1],
-            // Documents that state it as the current test harness.
-            docs: ['EVIDENCE.md', 'docs/ARCHITECTURE.md', 'submission/TECHNICAL_OVERVIEW.md', 'submission/SUBMISSION_FORM.md'],
         },
         {
             name: 'rust',
             actual: /^channel = "([^"]+)"/m.exec(toolchain)?.[1],
-            docs: ['CONTRIBUTING.md', 'docs/QUICKSTART.md'],
         },
     ];
 
@@ -231,13 +241,25 @@ for (const [name] of SHARED) {
             continue;
         }
         compared += 1;
-        for (const rel of pin.docs) {
+        for (const rel of SCANNED) {
             const body = readFileSync(join(ROOT, rel), 'utf8');
             // Any version-shaped mention of this tool, then check whether it is the current one.
             const pattern =
                 pin.name === 'litesvm'
                     ? /[Ll]ite[Ss][Vv][Mm][^\d\n]{0,4}(\d+\.\d+\.\d+)/g
-                    : /Rust[^\d\n]{0,8}(\d+\.\d+\.\d+)/g;
+                    // Anchored on `rust-toolchain`, because the claim being checked is
+                    // specifically "what the toolchain manifest pins".
+                    //
+                    // A bare `Rust <version>` pattern was tried first and produced five false
+                    // positives out of seven hits: the Solana platform-tools rustc (1.95.0-dev,
+                    // a genuinely different toolchain), the deliberate `rust-version` MSRV in two
+                    // Cargo.toml files (1.89.0, kept low on purpose and documented as such),
+                    // Anchor's own 1.2.0 sitting next to the word "Rust", and an unrelated crate
+                    // version in a research note. All five are correct text.
+                    //
+                    // what the pattern matches.
+                    // what the pattern matches.
+                    : /rust-toolchain[^\d\n]{0,40}(\d+\.\d+\.\d+)/gi;
             for (const match of body.matchAll(pattern)) {
                 const found = match[1];
                 if (found === pin.actual) continue;
