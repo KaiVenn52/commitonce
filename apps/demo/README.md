@@ -8,7 +8,7 @@ checked. Each one is listed below with the question it answers.
 
 | Script | What it does | Needs |
 | --- | --- | --- |
-| [`commitonce-demo.ts`](#the-a-b-demo) | the same rebuilt retry, with and without the guard | devnet, ~0.1 SOL |
+| [`commitonce-demo.ts`](#the-ab-demo) | the same rebuilt retry, with and without the guard | devnet, ~0.1 SOL |
 | [`concurrent-claim.ts`](#the-live-contention-test) | many claims of one key, fired at once | devnet |
 | [`receipt-lifecycle.ts`](#the-receipt-lifecycle) | claim, wait out the retention, close, get the rent back | devnet, **~1 hour** |
 | [`nonce-policy.ts`](#the-durable-nonce-policy) | the durable-nonce policy against a real nonce account | devnet |

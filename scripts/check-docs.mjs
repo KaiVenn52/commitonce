@@ -16,6 +16,19 @@
  *   4. every evidence log is UTF-8 without a BOM (one was once written as UTF-16LE by a
  *      Windows redirect, which made it unreadable on Linux and binary to git)
  *   5. the test counts quoted in the documents are the counts the suites actually produce
+ *   6. no orphaned row in a markdown table (a row whose neighbours were reflowed away)
+ *   7. every test `docs/SECURITY_MODEL.md` cites as a guard actually exists
+ *   8. the website's numbers are the numbers `EVIDENCE.md` records
+ *   9. every evidence log is referenced by at least one document
+ *  10. every document under `docs/` and `submission/` is reachable from somewhere
+ *  11. the website's hosting contract (`.nojekyll` while it has repo-relative links)
+ *  12. `prepare()` examples use the argument names the SDK actually accepts
+ *  13. no script pins `HOME` to an absolute path without testing it exists first
+ *  14. every anchor link (`#section`) resolves to a heading
+ *
+ * The list above is part of the check. It said "five" for most of this project's life while
+ * the file implemented thirteen, which is the same drift this script exists to catch — in the
+ * script itself. Adding a rule means adding a line here.
  *
  * Run: node scripts/check-docs.mjs
  */
@@ -362,7 +375,7 @@ if (existsSync(securityModelPath)) {
 }
 
 // ---------------------------------------------------------------------------------------
-// 9. The website's numbers must be the same numbers EVIDENCE.md records.
+// 8. The website's numbers must be the same numbers EVIDENCE.md records.
 //
 // The site is the artifact a judge is most likely to read, and it quotes test counts, deploy
 // slots and measured overhead. `EVIDENCE.md` is the authority on those. Nothing else compares
@@ -424,7 +437,7 @@ if (existsSync(evidencePath) && existsSync(sitePath)) {
 }
 
 // ---------------------------------------------------------------------------------------
-// 10. Every evidence log must be referenced by at least one document, or it is dead weight
+// 9. Every evidence log must be referenced by at least one document, or it is dead weight
 //     that nobody will ever find.
 // ---------------------------------------------------------------------------------------
 for (const log of logs) {
@@ -441,7 +454,7 @@ for (const log of logs) {
 }
 
 // ---------------------------------------------------------------------------------------
-// 11. Every document under docs/ and submission/ must be reachable from somewhere.
+// 10. Every document under docs/ and submission/ must be reachable from somewhere.
 //
 // A document nothing links to is invisible in practice, however good it is. `submission/` had
 // nine files in that state — including `TECHNICAL_OVERVIEW.md` and `PROJECT_DESCRIPTION.md` —
@@ -475,7 +488,7 @@ for (const log of logs) {
     console.log(`documents:      ${candidates.length} checked, ${orphans} unreachable`);
 
 // ---------------------------------------------------------------------------------------
-// 13. The website's hosting contract.
+// 11. The website's hosting contract.
 //
 // `apps/web/index.html` links to 13 paths elsewhere in the tree, so it is not a self-contained
 // bundle and it cannot be published from `apps/web` alone. That has a consequence for GitHub
@@ -512,7 +525,7 @@ for (const log of logs) {
 }
 
 // ---------------------------------------------------------------------------------------
-// 14. prepare() examples in the documents must use the real field names.
+// 12. prepare() examples in the documents must use the real field names.
 //
 // Three of them did not. README.md — the front page — passed { namespace, key, payload };
 // packages/sdk/README.md passed payload instead of intent; submission/GTM.md passed key and
@@ -595,7 +608,7 @@ for (const log of logs) {
 }
 
 // ---------------------------------------------------------------------------------------
-// 12. No script may pin HOME to an absolute path without checking it exists.
+// 13. No script may pin HOME to an absolute path without checking it exists.
 //
 // `scripts/build.sh` and `scripts/test.sh` forced `HOME=/home/dell2u` and a WSL-specific PATH.
 // That was correct on the machine they were written on and wrong everywhere else, and it
@@ -660,6 +673,82 @@ for (const log of logs) {
     }
     console.log(`scripts:        ${pinned} unconditional HOME pins (want 0)`);
 }
+}
+
+// ---------------------------------------------------------------------------------------
+// 14. Every anchor link resolves to a heading.
+//
+// Rule 1 checks that a relative link points at a file that exists. It says nothing about the
+// fragment on the end, so `[Costs](./FAQ.md#costs)` passes whether or not `FAQ.md` has a
+// `## Costs` heading — and a link that lands at the top of a long document is nearly as
+// annoying as one that 404s. **An anchor is a link too**, and the check described itself as
+// covering links while silently skipping these.
+//
+// The anchor algorithm is GitHub's: lowercase, drop anything that is not a word character, a
+// space or a hyphen, then turn spaces into hyphens. That is why "Timing, expiry and cleanup"
+// becomes `#timing-expiry-and-cleanup` and not `#timing,-expiry-and-cleanup`.
+// ---------------------------------------------------------------------------------------
+{
+    const anchorFor = (title) =>
+        title
+            .toLowerCase()
+            .replace(/[^\w\s-]/g, '')
+            .trim()
+            .replace(/\s+/g, '-');
+
+    const markdownFiles = execSync('git ls-files', { cwd: ROOT, encoding: 'utf8' })
+        .split('\n')
+        .filter((f) => /\.md$/.test(f));
+
+    let anchorsChecked = 0;
+    let anchorsBroken = 0;
+
+    for (const rel of markdownFiles) {
+        const raw = readFileSync(join(ROOT, rel), 'utf8');
+
+        // **Strip code before looking for links.** A work-log entry that says "an anchor is
+        // `](#section)`" is describing a link, not making one, and the first version of this
+        // rule failed the work log that documented it. The same shape as the version rule
+        // flagging its own comment and the HOME rule flagging the warning it warns about.
+        const body = raw
+            .replace(/```[\s\S]*?```/g, '')
+            .replace(/`[^`\n]*`/g, '');
+
+        // Every heading in this file, as anchors. Taken from the raw text, because a heading
+        // can legitimately contain a code span.
+        const here = new Set(
+            [...raw.matchAll(/^#{1,6} (.+)$/gm)].map((m) => anchorFor(m[1].trim())),
+        );
+
+        // Same-file anchors: `](#section)`.
+        for (const match of body.matchAll(/\]\(#([^)]+)\)/g)) {
+            anchorsChecked += 1;
+            if (here.has(match[1])) continue;
+            anchorsBroken += 1;
+            const line = body.slice(0, match.index).split('\n').length;
+            problems.push(`${rel}:${line} links to #${match[1]}, which is not a heading in that file`);
+        }
+
+        // Cross-file anchors: `](./OTHER.md#section)`.
+        // Any relative path, with or without a leading `./`. The first version required a dot,
+        // so `docs/FAQ.md#section` — the form this repository actually uses — was skipped, and
+        // the negative test that introduced a bad cross-file anchor did not fire.
+        for (const match of body.matchAll(/\]\(([^):#\s][^)#\s]*)#([^)]+)\)/g)) {
+            anchorsChecked += 1;
+            const target = join(dirname(join(ROOT, rel)), match[1]);
+            if (!existsSync(target)) continue; // rule 1 already reports this
+            // Headings come from the raw text; see above for why links do not.
+            const targetBody = readFileSync(target, 'utf8');
+            const targetAnchors = new Set(
+                [...targetBody.matchAll(/^#{1,6} (.+)$/gm)].map((m) => anchorFor(m[1].trim())),
+            );
+            if (targetAnchors.has(match[2])) continue;
+            anchorsBroken += 1;
+            const line = body.slice(0, match.index).split('\n').length;
+            problems.push(`${rel}:${line} links to ${match[1]}#${match[2]}, which is not a heading there`);
+        }
+    }
+    console.log(`anchors:        ${anchorsChecked} checked, ${anchorsBroken} broken`);
 }
 
 // ---------------------------------------------------------------------------------------
