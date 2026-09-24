@@ -205,6 +205,12 @@ jobs:
             -o "$HOME/.config/solana/id.json"
           solana address
 
+      # CI takes the portable branch of the environment block by definition — there is no
+      # /home/dell2u on a runner — so this is the one place the other branch is exercised
+      # for real. It runs before the build, and it costs nothing.
+      - name: Script environment block, both branches
+        run: bash scripts/check-script-env.sh
+
       - name: Build programs (SBPFv3)
         run: anchor build --arch "$SBPF_ARCH"
 

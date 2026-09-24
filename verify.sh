@@ -54,7 +54,9 @@ cd "$REPO_ROOT" || {
 
 # The toolchain home. Overriding HOME is only correct when that home actually exists; on a
 # machine whose toolchains live elsewhere, forcing it would hide them instead of finding them.
-TOOLCHAIN_HOME=/home/dell2u
+# Configurable for the same reason the scripts make it configurable: so this branch can be
+# exercised on a machine that would always take it otherwise.
+TOOLCHAIN_HOME="${COMMIT_ONCE_TOOLCHAIN_HOME:-/home/dell2u}"
 if [ -d "$TOOLCHAIN_HOME" ]; then
     export HOME="$TOOLCHAIN_HOME"
 fi
@@ -66,7 +68,7 @@ if ! command -v node >/dev/null 2>&1 && [ -s "$HOME/.nvm/nvm.sh" ]; then
     . "$HOME/.nvm/nvm.sh" >/dev/null 2>&1 || true
 fi
 
-export PATH="/home/dell2u/solana-current/bin:$HOME/.cargo/bin:$HOME/.local/bin:$PATH"
+export PATH="$TOOLCHAIN_HOME/solana-current/bin:$HOME/.cargo/bin:$HOME/.local/bin:$PATH"
 
 # Same defaults as scripts/build.sh and scripts/test.sh.
 export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-/home/dell2u/cot-target}"
@@ -359,6 +361,19 @@ run_step "declare_id! matches deploy-keys (independent check)" verify_program_id
 # from the workspace so `anchor build` will not try to generate an IDL for it. Excluded means
 # unformatted unless it is named separately, which is how this step would have quietly stopped
 # covering the newest crate in the repository.
+# ---------------------------------------------------------------------------------------
+# The environment block in scripts/build.sh, on both branches.
+#
+# The maintainer machine always takes the first branch, so the portable one — the one a
+# judge, a contributor or CI takes — would otherwise never be executed by anything. That
+# is exactly how the hardcoded HOME survived for so long: `verify.sh` checked whether
+# /home/dell2u exists and then called a script that overrode the decision, and nothing
+# ran the other path to notice.
+# ---------------------------------------------------------------------------------------
+
+run_step "script environment block, both branches (bash scripts/check-script-env.sh)" \
+    bash scripts/check-script-env.sh
+
 run_step "formatting (cargo fmt --all --check)" bash -c \
     'cargo fmt --all --check && cargo fmt --manifest-path programs-native/native-guard/Cargo.toml --check'
 

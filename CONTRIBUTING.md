@@ -40,13 +40,21 @@ toolchains live under `/home/dell2u`. **That layout is used when it is present a
 when it is not**, so the same scripts work in CI, on a judge's laptop and here:
 
 ```bash
-if [ -d /home/dell2u/solana-current/bin ]; then
-    export HOME=/home/dell2u
-    export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-/home/dell2u/cot-target}"
+COMMIT_ONCE_TOOLCHAIN_HOME="${COMMIT_ONCE_TOOLCHAIN_HOME:-/home/dell2u}"
+if [ -d "$COMMIT_ONCE_TOOLCHAIN_HOME/solana-current/bin" ]; then
+    export HOME="$COMMIT_ONCE_TOOLCHAIN_HOME"
+    export PATH="$COMMIT_ONCE_TOOLCHAIN_HOME/solana-current/bin:$HOME/.cargo/bin:$PATH"
+    export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$COMMIT_ONCE_TOOLCHAIN_HOME/cot-target}"
 else
     export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$REPO/target}"
 fi
 ```
+
+`COMMIT_ONCE_TOOLCHAIN_HOME` is what makes the branch reachable *and* testable: a
+contributor whose toolchains live elsewhere can point at them, and
+`scripts/check-script-env.sh` points it at a path that does not exist to exercise the
+portable branch on a machine that would otherwise always take the other one. `verify.sh`
+and CI both run that check.
 
 **Why the maintainer layout exists at all.** The toolchains live under that home:
 `~/.cargo/bin` (cargo, `avm`-managed `anchor`), `~/.config/solana` (CLI config and keypair),

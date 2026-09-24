@@ -516,8 +516,21 @@ for (const log of logs) {
             // Testing the path rather than tracking block depth keeps this simple, and it
             // catches the failure that actually happened: an unconditional pin, which by
             // definition has no earlier test of the path it pins.
-            const before = body.split('\n').slice(0, i).join('\n');
+            const lines = body.split('\n');
+            const before = lines.slice(0, i).join('\n');
+
+            // A `-d` test of the pinned path earlier in the file is the guard the scripts use.
             if (before.includes(`-d ${match[1]}`)) continue;
+
+            // A **historical quote** is also fine. `CONTRIBUTING.md` shows the broken form it
+            // is warning about — "`scripts/build.sh` and `scripts/test.sh` used to begin with:"
+            // followed by the two lines — and a rule that cannot tell a warning from the thing
+            // it warns about would force the warning to be deleted. The window is ten lines,
+            // which reaches the introducing sentence but not unrelated prose, and the markers
+            // are phrases this project actually uses to mean "this was true once".
+            const window = lines.slice(Math.max(0, i - 10), i).join('\n');
+            const historical = /used to|previously|no longer|before this|would have hit/i.test(window);
+            if (historical) continue;
 
             pinned += 1;
             problems.push(

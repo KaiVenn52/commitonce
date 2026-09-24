@@ -25,13 +25,18 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # On any other machine the ambient HOME and PATH are already right, which is what a judge, a
 # contributor or CI has.
 # ---------------------------------------------------------------------------
-if [ -d /home/dell2u/solana-current/bin ]; then
-    export HOME=/home/dell2u
-    export PATH="/home/dell2u/solana-current/bin:$HOME/.cargo/bin:$PATH"
+# `COMMIT_ONCE_TOOLCHAIN_HOME` exists so this branch is **reachable and testable** rather than
+# hardcoded. A contributor whose toolchains live elsewhere can point at them; `verify.sh`
+# points it at a path that does not exist to exercise the portable branch on a machine that
+# would otherwise always take the other one.
+COMMIT_ONCE_TOOLCHAIN_HOME="${COMMIT_ONCE_TOOLCHAIN_HOME:-/home/dell2u}"
+if [ -d "$COMMIT_ONCE_TOOLCHAIN_HOME/solana-current/bin" ]; then
+    export HOME="$COMMIT_ONCE_TOOLCHAIN_HOME"
+    export PATH="$COMMIT_ONCE_TOOLCHAIN_HOME/solana-current/bin:$HOME/.cargo/bin:$PATH"
     # WSL-native storage: the repository lives on a Windows drive, so only the small .so and
     # IDL artifacts land in the workspace while the multi-gigabyte build cache stays on Linux
     # storage. Anywhere else the workspace copy is the sensible default.
-    export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-/home/dell2u/cot-target}"
+    export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$COMMIT_ONCE_TOOLCHAIN_HOME/cot-target}"
 else
     export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$REPO/target}"
 fi
