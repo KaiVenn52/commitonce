@@ -208,6 +208,16 @@ jobs:
       - name: Build programs (SBPFv3)
         run: anchor build --arch "$SBPF_ARCH"
 
+      # The non-Anchor test program, which `anchor build` cannot build: it is `exclude`d from
+      # the workspace because it has no IDL for Anchor to generate. `scripts/build.sh` builds
+      # it, and this step exists because **this workflow does not call that script** — it
+      # replicates it, as the comment above says. The first version of the native program was
+      # added to `build.sh` only, and CI failed with
+      # `could not read compiled program artifact .../native_guard.so`, which is CI doing its
+      # job on a change that was locally complete and not repository-complete.
+      - name: Build the non-Anchor test program
+        run: cargo-build-sbf --manifest-path programs-native/native-guard/Cargo.toml --arch "$SBPF_ARCH"
+
       - name: Verify declare_id! against deploy-keys
         run: |
           set -euo pipefail
@@ -241,10 +251,20 @@ jobs:
           fi
 
       - name: Check formatting (rustfmt)
-        run: cargo fmt --all --check
+        run: |
+          # `--all` means workspace members, and `programs-native/native-guard` is excluded
+          # from the workspace so `anchor build` will not demand an IDL for it. Excluded
+          # means unchecked unless it is named separately.
+          cargo fmt --all --check
+          cargo fmt --manifest-path programs-native/native-guard/Cargo.toml --check
 
       - name: Lints (clippy)
-        run: cargo clippy --workspace --all-targets
+        run: |
+          cargo clippy --workspace --all-targets
+          # The excluded crate again. `-D warnings` is deliberately NOT used here,
+          # matching the workspace line: enabling it repo-wide would mean fixing the
+          # test suite's existing lint debt, which is a separate change.
+          cargo clippy --manifest-path programs-native/native-guard/Cargo.toml --all-targets
 
       # ---------------------------------------------------------------------------------
       # Tests
