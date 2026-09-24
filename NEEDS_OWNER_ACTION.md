@@ -251,14 +251,48 @@ own risk" notice and a bug bounty.
 
 **Blocked on:** a domain purchase. This requires a payment method.
 
+**But the site does not need a domain to be reachable.** GitHub Pages is free, needs no build,
+and is **two clicks** — so this is worth doing today even if the domain waits.
+
+### The free option, first
+
+**Repository → Settings → Pages → Source: `Deploy from a branch` → Branch: `main`, folder `/`.**
+Save. The site is then live at:
+
+```text
+https://<your-github-username>.github.io/commitonce/apps/web/
+```
+
+Two things make that work, and both are already in the repository:
+
+1. **Publishing from the repository root, not from `apps/web`.** The page has **13 links to
+   paths elsewhere in the tree** — `../../docs/*.md`, `../../EVIDENCE.md`, `../../README.md`,
+   `../../LICENSE`, `../../packages/sdk/src/index.ts`, and the brand assets under
+   `../../assets/brand/`. Publishing only `apps/web` would leave every documentation link
+   broken, and it is not obvious from looking at the page.
+2. **The `.nojekyll` file at the root.** Without it GitHub Pages runs Jekyll, which rewrites
+   `docs/API_REFERENCE.md` to `docs/API_REFERENCE.html` — so the page's link to the `.md` URL
+   returns 404. `.nojekyll` is committed for exactly this reason. It is empty; its presence is
+   the whole signal.
+
+If you would rather publish only `apps/web`, the 13 links have to be rewritten first. They are
+listed in [`apps/web/README.md`](apps/web/README.md).
+
+### The domain
+
 **Actions required:**
 
 1. Register a domain. `commitonce.dev` or `commitonce.xyz` are the natural choices; verify
    availability at purchase time, since availability changes.
-2. Point it at the site, then update the canonical URL wherever it appears.
+2. Point it at the site — on GitHub Pages this is a `CNAME` file plus a DNS record, and the
+   Settings page walks through it.
+3. Then add the two absolute URLs the page is waiting for. `apps/web/index.html` has
+   `og:url` and an absolute `og:image` deliberately **absent** with a comment saying why:
+   inventing a URL would make the social card point somewhere that does not exist.
 
 Until then, the site should not claim a domain it does not have. Do not put a placeholder URL
-in the submission — judges click links.
+in the submission — judges click links. The submission form leaves the website field blank for
+this reason; see [`submission/SUBMISSION_FORM.md`](submission/SUBMISSION_FORM.md).
 
 ---
 

@@ -475,6 +475,43 @@ for (const log of logs) {
     console.log(`documents:      ${candidates.length} checked, ${orphans} unreachable`);
 
 // ---------------------------------------------------------------------------------------
+// 13. The website's hosting contract.
+//
+// `apps/web/index.html` links to 13 paths elsewhere in the tree, so it is not a self-contained
+// bundle and it cannot be published from `apps/web` alone. That has a consequence for GitHub
+// Pages: Jekyll rewrites `docs/API_REFERENCE.md` to `docs/API_REFERENCE.html`, so the page's
+// link to the `.md` URL 404s unless a `.nojekyll` file is present at the published root.
+//
+// The two facts are coupled, so the check is conditional: **if the site still has repo-relative
+// links, `.nojekyll` must exist.** Make the site self-contained and this rule stops applying,
+// which is the right behaviour — the file is only there to serve those links.
+// ---------------------------------------------------------------------------------------
+{
+    const site = readFileSync(join(ROOT, 'apps', 'web', 'index.html'), 'utf8');
+    // Unique paths, not occurrences: the page links some assets twice (once as a `src`, once
+    // as a `href` for the copy button), and the number the README quotes is the count of
+    // distinct files it depends on.
+    const repoRelative = [
+        ...new Set([...site.matchAll(/(?:src|href)="(\.\.\/\.\.[^"]+)"/g)].map((m) => m[1])),
+    ];
+
+    if (repoRelative.length === 0) {
+        console.log('site hosting:   self-contained, .nojekyll not required');
+    } else {
+        const hasNojekyll = existsSync(join(ROOT, '.nojekyll'));
+        console.log(
+            `site hosting:   ${repoRelative.length} repo-relative links, .nojekyll ${hasNojekyll ? 'present' : 'MISSING'}`,
+        );
+        if (!hasNojekyll) {
+            problems.push(
+                `apps/web/index.html links to ${repoRelative.length} paths elsewhere in the tree, ` +
+                    'so publishing it needs .nojekyll at the root or those links 404 on GitHub Pages',
+            );
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------------------
 // 12. No script may pin HOME to an absolute path without checking it exists.
 //
 // `scripts/build.sh` and `scripts/test.sh` forced `HOME=/home/dell2u` and a WSL-specific PATH.

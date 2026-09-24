@@ -35,7 +35,28 @@ python -m http.server 8080 --directory apps/web
 npx --yes serve apps/web
 ```
 
-Hosting is a file copy: drop these four files on any static host. There is nothing to compile.
+**Hosting is not a four-file copy.** The page itself is four files, but it links to **13
+paths elsewhere in the repository** — `../../docs/*.md`, `../../EVIDENCE.md`,
+`../../README.md`, `../../LICENSE`, `../../packages/sdk/src/index.ts`, and the brand assets
+under `../../assets/brand/`. Copying only `apps/web/` produces a page whose every
+documentation link is broken, and it is not obvious from looking at it. Host the
+**repository root** and let `apps/web/index.html` sit at its natural path, or rewrite the
+13 links.
+
+### GitHub Pages
+
+Pages needs **no domain and no build**. Two things make it work:
+
+1. **Publish from the repository root** (branch `main`, folder `/`). The site is then at
+   `https://<user>.github.io/commitonce/apps/web/`, and the `../../` links resolve because
+   the tree above it is served too.
+2. **Keep the `.nojekyll` file at the root.** Without it GitHub Pages runs Jekyll, which
+   turns `docs/API_REFERENCE.md` into `docs/API_REFERENCE.html` — so the link to the `.md`
+   URL 404s. `.nojekyll` is committed for this reason; it is empty, and its presence is the
+   whole signal.
+
+A custom domain is a nicety, not a prerequisite. See
+[`NEEDS_OWNER_ACTION.md`](../../NEEDS_OWNER_ACTION.md) §5.
 
 > **Note on the root workspace scripts.** There is deliberately no `dev:web` or `build:web`
 > script in the root `package.json`, and no `package.json` in this directory. A static site with
