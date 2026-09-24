@@ -341,3 +341,50 @@ The accelerator is **12 weeks in San Francisco**, with **$250,000 pre-seed** to 
 worth noting because "would this team be worth 12 weeks of Colosseum's time" is a different
 question from "is this a good hackathon project", and the answer has to come through in the
 founder story.
+
+## 11. Re-verification, 2026-09-24
+
+Fetched again from primary sources: `https://colosseum.com/worldsfair` and
+`https://colosseum.com/hackathon`. **Nothing binding changed.** Every figure, date and name
+below was read off the live pages rather than recalled.
+
+**Confirmed unchanged, verbatim from the live pages:**
+
+* `Submissions due October 12, 2026` — the hero states it directly, and the hackathon page
+  renders the window as `Hackathon Sep 14 — Oct 12`.
+* `Compete for $840,000 in prizes and $2.5 million in seed funding`.
+* `$30,000` Grand Prize; `$300,000` shared across the next 20 best projects at `$15,000` each;
+  `$5,000` Public Good Prize; `$5,000` University Prize.
+* The Solana Ecosystem track at `$100,000`, `10 projects receive $10,000 each`.
+* The accelerator: `$250,000` pre-seed, `12 weeks`, `in San Francisco`.
+* The **Colosseum team** judges — Clay Robbins, Matty Taylor, Nate Levine, Max Monciardini,
+  Michael Rinko — and the same **16 track judges**, including Jed Halfon, Chief Strategy Officer
+  at Anza.
+* `Workshops stream live on Discord`, calendar at `https://colosseum.com/events`.
+
+**One URL note, re-confirmed — and corrected.** `/worldsfair/rules` returns **404**, and
+`/worldsfair/faqs` does too. Neither is the rules location. The rulebook is a **PDF**:
+
+```
+https://colosseum.com/legal/Crypto%20World's%20Fair%20Hackathon%20Rules.pdf
+HTTP 200, 219,506 bytes, magic bytes 25 50 44 46 2D 31 2E 34 (%PDF-1.4)
+```
+
+and the FAQ anchor is `/hackathon#faqs`.
+
+**The first version of this paragraph said the rules were "served from the hackathon page and its
+FAQ anchors, not from a dedicated rules path", which was wrong.** It was written from the 404
+alone, without looking for the canonical link — and
+[`COLOSSEUM_GUIDES_BRIEF.md`](../submission/COLOSSEUM_GUIDES_BRIEF.md) §"COULD NOT RETRIEVE"
+already recorded the correct URL, the byte count and the magic bytes, having confirmed it from
+the `href` in the page HTML. The PDF was re-fetched for this check and matches those figures
+exactly. Reading one adjacent file would have prevented the error; the file existed and said so.
+
+**What this check is worth.** It cost one fetch of each page and it is the only thing that keeps
+§1–§7 from becoming a memory. The deadline in particular is the one fact in this repository whose
+being wrong would be unrecoverable, and it is now confirmed three times: 2026-09-19, 2026-09-22
+and 2026-09-24.
+
+**Remaining owner actions are unchanged** and are listed in
+[`../NEEDS_OWNER_ACTION.md`](../NEEDS_OWNER_ACTION.md): the Colosseum account and submission
+form, the two videos, and the weekly one-minute updates.
