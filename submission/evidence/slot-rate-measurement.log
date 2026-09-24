@@ -1,0 +1,38 @@
+########## mainnet ##########
+CommitOnce — what is the real slot rate?
+  rpc      https://api.mainnet-beta.solana.com
+  version  4.3.0-rc.0
+  window   30s
+
+  slots    449856594 -> 449856711  (117 slots)
+  elapsed  31.03s  (26 advancing samples)
+  rate     3.770 slots/second  (265.2 ms/slot)
+
+  the constant in the program is 4 slots/second.
+  measured is SLOWER by 5.7%.
+
+  Consequence, given that `close_receipt` requires BOTH deadlines:
+    faster than 4  -> the slot gate passes early, the wall-clock gate binds,
+                      so the window is exactly as advertised.
+    slower than 4  -> the slot gate passes late, so cleanup is delayed.
+    Either way cleanup can only be delayed, never accelerated.
+
+########## devnet ##########
+CommitOnce — what is the real slot rate?
+  rpc      https://api.devnet.solana.com
+  version  4.3.0-rc.0
+  window   30s
+
+  slots    503191644 -> 503191832  (188 slots)
+  elapsed  30.85s  (26 advancing samples)
+  rate     6.094 slots/second  (164.1 ms/slot)
+
+  the constant in the program is 4 slots/second.
+  measured is FASTER by 52.3%.
+
+  Consequence, given that `close_receipt` requires BOTH deadlines:
+    faster than 4  -> the slot gate passes early, the wall-clock gate binds,
+                      so the window is exactly as advertised.
+    slower than 4  -> the slot gate passes late, so cleanup is delayed.
+    Either way cleanup can only be delayed, never accelerated.
+

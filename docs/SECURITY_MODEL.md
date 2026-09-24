@@ -244,8 +244,8 @@ wall-clock deadline. See §4.
 
 ### T7 — Reopen window from an expired but still-valid transaction
 
-**Threat.** A signed transaction remains executable until its blockhash expires (~38s at
-mainnet's 250 ms slots). If a receipt could be cleaned up inside that window, a still-valid
+**Threat.** A signed transaction remains executable until its blockhash expires (~40s at
+mainnet's measured 265 ms). If a receipt could be cleaned up inside that window, a still-valid
 duplicate could execute after cleanup, breaking the guarantee.
 
 **Mitigation.** `MIN_RETENTION_SECONDS` is one hour — roughly 95× the blockhash validity
@@ -294,8 +294,11 @@ The asymmetry is deliberate: the two gates are combined with AND, so a change in
 timing can only ever **delay** cleanup (the receipt lives longer than advertised — safe) and
 never **accelerate** it into a live-duplicate window.
 
-**Test:** `slot_deadline_uses_current_mainnet_slot_rate` pins the derivation to mainnet's
-250 ms slots (4/second) rather than the historical 400 ms target.
+**Test:** `slot_deadline_uses_current_mainnet_slot_rate` pins the derivation to
+`SLOTS_PER_SECOND = 4`, and `receipt_cannot_be_closed_before_expiry` proves the AND: a slot
+deadline already passed with the wall clock still short must not permit cleanup.
+
+The constant was chosen as "mainnet's 250 ms slots", a figure mainnet has since moved past: Measured rather than assumed: [`apps/demo/slot-rate.ts`](../apps/demo/slot-rate.ts) samples the live counter, and reports **3.77 slots/second on mainnet** (265 ms) and **6.09 on devnet** (164 ms). Raw output: [`submission/evidence/slot-rate-measurement.log`](../submission/evidence/slot-rate-measurement.log). So `4` is slightly **above** mainnet's real rate and well below devnet's, and both directions are safe for the reason below.
 
 ---
 
@@ -318,10 +321,12 @@ never **accelerate** it into a live-duplicate window.
 | `expires_at_slot` | `created_slot + retention * SLOTS_PER_SECOND` | monotonic; not validator-manipulable |
 | `expires_at_unix_ts` | `created_unix_ts + retention` | keeps advertised retention honest if slots run fast |
 
-`SLOTS_PER_SECOND = 4`, matching mainnet's 250 ms slots since epoch 1036. Underestimating
-it would silently shorten the advertised window; overestimating it would make the slot gate
-the binding constraint and delay cleanup. Because cleanup requires *both*, the failure mode
-of a wrong constant is a delayed cleanup, never a premature one.
+`SLOTS_PER_SECOND = 4`, measured at **3.77 slots/second on mainnet** (265 ms) and **6.09 on devnet** (164 ms). Because cleanup requires *both* deadlines,
+the effective deadline is the **later** of the two, so the failure mode of a wrong constant is
+always a delayed cleanup — never a premature one — in either direction. An earlier version of
+this paragraph said that underestimating the constant "would silently shorten the advertised
+window", which contradicted the very next sentence: if both gates must pass, an early slot gate
+cannot shorten anything.
 
 ---
 

@@ -231,7 +231,7 @@ These are exported in the IDL (`target/idl/commit_once.json`) except where noted
 | `PERMANENT_RETENTION` | `u64` | `0` | Retention sentinel: never expires, can never be closed. |
 | `MIN_RETENTION_SECONDS` | `u64` | `3600` | Shortest accepted non-zero retention. |
 | `MAX_RETENTION_SECONDS` | `u64` | `31536000` | Longest accepted finite retention (365 days). |
-| `SLOTS_PER_SECOND` | `u64` | `4` | Slot-rate assumption (250 ms slots since epoch 1036) used to derive `expires_at_slot`. |
+| `SLOTS_PER_SECOND` | `u64` | `4` | Slot-rate assumption used to derive `expires_at_slot`. |
 | `ADVANCE_NONCE_ACCOUNT_DISCRIMINATOR` | `u32` | `4` | System Program `AdvanceNonceAccount` discriminator, used for nonce detection. |
 | `MAX_INSTRUCTION_SCAN` | `usize` | `128` | Upper bound on instructions scanned for nonce semantics. A **refusal threshold**, not just a work bound: past it `claim` returns `InstructionScanInconclusive` rather than assuming the transaction is nonce-free. Deliberately **not** in the IDL: it is an implementation detail. |
 

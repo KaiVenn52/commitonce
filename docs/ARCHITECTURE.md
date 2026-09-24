@@ -181,8 +181,17 @@ change in slot timing can therefore only ever *delay* cleanup (safe — the rece
 longer than advertised) and never *accelerate* it into a window where a still-valid signed
 duplicate could execute.
 
-`SLOTS_PER_SECOND` is `4`, reflecting mainnet's 250 ms slots since epoch 1036, not the
-historical 400 ms target. Underestimating it would silently shorten the advertised window.
+`SLOTS_PER_SECOND` is `4`. Measured rather than assumed: [`apps/demo/slot-rate.ts`](../apps/demo/slot-rate.ts) samples the live counter, and reports **3.77 slots/second on mainnet** (265 ms) and **6.09 on devnet** (164 ms). Raw output: [`submission/evidence/slot-rate-measurement.log`](../submission/evidence/slot-rate-measurement.log). So `4` is slightly **above** mainnet's real rate and well below devnet's, and both directions are safe for the reason below.
+
+**This constant cannot shorten the advertised window, in either direction.** `close_receipt`
+requires *both* deadlines, so the effective deadline is the **later** of the two: the window is
+exactly `retention` seconds when the slot gate falls early, and longer when it falls late.
+Getting the constant wrong therefore moves the slot gate, not the window — cleanup can only be
+delayed. An earlier version of this paragraph said the opposite, that underestimating it "would
+silently shorten the advertised window"; that contradicted the AND-combination described three
+lines above it, and contradicted `docs/SECURITY_MODEL.md` §4, which had it right. The test
+`receipt_cannot_be_closed_before_expiry` covers exactly that case: the slot deadline passed
+with the wall clock still short must *not* permit cleanup.
 
 ### Cleanup is permissionless and cannot steal
 

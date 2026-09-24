@@ -292,14 +292,15 @@ whole point of having two: because the gates are combined with AND, a change in 
 only ever **delay** cleanup — the receipt lives longer than advertised, which is safe — and
 never **accelerate** it into a window where a still-valid signed duplicate could execute.
 
-`SLOTS_PER_SECOND` is `4`, matching mainnet's 250 ms slots since epoch 1036, not the historical
-400 ms target. Underestimating it would silently shorten the advertised window; overestimating
-it would make the slot gate the binding constraint and delay cleanup. Under either error the
-failure mode is a delayed cleanup, never a premature one.
+`SLOTS_PER_SECOND` is `4`, measured at **3.77 slots/second on mainnet** (265 ms) and **6.09 on
+devnet** (164 ms). Because cleanup requires *both* gates, the effective deadline is the
+**later** of the two, so a wrong constant in either direction delays cleanup — it cannot
+shorten the advertised window. (An earlier version of this paragraph claimed the opposite,
+which contradicted the sentence after it.)
 *Test:* `slot_deadline_uses_current_mainnet_slot_rate`.
 
 **Why one hour is the floor.** A signed transaction built on a recent blockhash is executable
-for roughly 38 seconds at 250 ms slots. `MIN_RETENTION_SECONDS` is one hour — roughly 95× that
+for roughly 40 seconds at mainnet's measured 265 ms. `MIN_RETENTION_SECONDS` is one hour — roughly 90× that
 window — so there is no accepted configuration in which cleanup can outrun a live duplicate.
 *Test:* `retention_below_minimum_is_rejected`, `retention_above_maximum_is_rejected`,
 `retention_boundaries_are_accepted`.

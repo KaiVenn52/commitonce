@@ -158,6 +158,16 @@ const RETIRED_CLAIMS = [
         pattern: /node\s+run\.ts/,
         why: 'the demo entry point is commitonce-demo.ts',
     },
+    {
+        // The slot deadline is one of TWO gates and `close_receipt` requires both, so the
+        // effective deadline is the later of the two and a wrong constant can only delay
+        // cleanup. The sentence that claimed otherwise survived in five files at once — the
+        // architecture doc, the concepts doc, the security model, the technical overview and
+        // the source constant's own comment — and contradicted the sentence immediately after
+        // it every time. Measured slot rates: 3.77/s mainnet, 6.09/s devnet.
+        pattern: /would silently shorten the advertised window/,
+        why: 'cleanup requires both deadlines, so a wrong slot rate delays cleanup; it cannot shorten the window',
+    },
 ];
 
 /** The checker itself declares these patterns, and the work log quotes the bugs it fixed. */

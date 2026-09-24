@@ -19,8 +19,8 @@ pub const PERMANENT_RETENTION: u64 = 0;
 /// Shortest accepted non-zero retention: 1 hour.
 ///
 /// A signed transaction built on a recent blockhash is only valid for roughly
-/// `MAX_PROCESSING_AGE` slots. Mainnet has run 250ms slots since epoch 1036, so that
-/// window is now roughly **38 seconds**. One hour is nearly two orders of magnitude
+/// `MAX_PROCESSING_AGE` slots — about **40 seconds** at mainnet's measured 265 ms.
+/// One hour is nearly two orders of magnitude
 /// longer, so a receipt can never be cleaned up while a blockhash-based duplicate of the
 /// same transaction is still executable.
 #[constant]
@@ -33,10 +33,10 @@ pub const MAX_RETENTION_SECONDS: u64 = 365 * 24 * 60 * 60;
 /// Slot-time assumption used to derive the monotonic slot deadline from a
 /// second-based retention.
 ///
-/// Mainnet activated 250ms slots in epoch 1036, i.e. 4 slots/second. This constant is
-/// deliberately set to the *current* mainnet rate rather than the 400ms historical
-/// target, because underestimating it would make `expires_at_slot` land earlier than the
-/// advertised wall-clock retention.
+/// Mainnet activated 250ms slots in epoch 1036, and has since moved: the live counter
+/// measures **3.77 slots/second** (265 ms) on mainnet and 6.09 (164 ms) on devnet. The
+/// constant stays at 4 rather than tracking either, because 4 is at or above mainnet's real
+/// rate and the direction that matters is the safe one — see below.
 ///
 /// The slot deadline is only ever used as an *additional* gate alongside the wall-clock
 /// deadline, never as a replacement for it. See `close_receipt`: a receipt closes only

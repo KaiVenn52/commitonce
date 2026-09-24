@@ -48,8 +48,9 @@ export const MIN_RETENTION_SECONDS = 3_600n;
 export const MAX_RETENTION_SECONDS = 31_536_000n;
 
 /**
- * Slot-time assumption used onchain to derive the monotonic slot deadline. Mainnet has
- * run 250ms slots since epoch 1036, i.e. 4 slots per second.
+ * Slot-time assumption used onchain to derive the monotonic slot deadline. Mainnet ran
+ * 250 ms slots from epoch 1036 and now measures 265 ms (3.77 slots/second); the value is 4,
+ * which is at or above mainnet's real rate. See docs/ARCHITECTURE.md.
  */
 export const SLOTS_PER_SECOND = 4n;
 

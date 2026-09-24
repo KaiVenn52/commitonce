@@ -297,7 +297,7 @@ false.
 Three design points explain the shape of that table.
 
 **Why a one-hour floor.** A transaction built on a recent blockhash is valid only for
-roughly `MAX_PROCESSING_AGE` slots — about **38 seconds** at mainnet's 250 ms slots. If a
+roughly `MAX_PROCESSING_AGE` slots — about **40 seconds** at mainnet's measured 265 ms. If a
 receipt could be cleaned up inside that window, a still-valid signed duplicate could execute
 *after* cleanup, silently reopening the duplicate window. One hour is nearly two orders of
 magnitude longer than the blockhash window, so no accepted configuration allows cleanup to
@@ -375,9 +375,9 @@ A receipt records **two** expiry values:
 `close_receipt` requires **both** gates to have passed. The asymmetry is the point:
 
 * The slot counter cannot be manipulated by a validator, but it assumes a slot rate.
-  `SLOTS_PER_SECOND = 4` reflects mainnet's 250 ms slots since epoch 1036, not the
-  historical 400 ms target — underestimating it would silently shorten the advertised
-  window.
+  `SLOTS_PER_SECOND = 4` (measured at **3.77 slots/second on mainnet**, 265 ms, and **6.09 on
+  devnet**, 164 ms), and because cleanup requires *both* gates the effective deadline is the
+  **later** of the two — so a wrong constant delays cleanup rather than shortening the window.
 * The wall clock is what the user actually cares about, but a program cannot independently
   verify `Clock::unix_timestamp`.
 

@@ -211,7 +211,7 @@ clock while the slot deadline is unmet still fails, and vice versa.
 ### 12. Why is the minimum retention one hour, and not one minute?
 
 Because a signed transaction built on a recent blockhash stays executable for roughly
-`MAX_PROCESSING_AGE` slots — about **38 seconds** at mainnet's 250 ms slots. If a receipt
+`MAX_PROCESSING_AGE` slots — about **40 seconds** at mainnet's measured 265 ms. If a receipt
 could be cleaned up inside that window, a still-valid signed duplicate could execute *after*
 cleanup, silently reopening the duplicate window. One hour is nearly two orders of magnitude
 longer, so no accepted configuration allows cleanup to outrun a live duplicate.
@@ -591,8 +591,8 @@ give up every lever a client normally uses.
 * Re-submitting the **byte-identical** transaction is genuinely deduplicated by the runtime's
   status cache (`AlreadyProcessed`), because the message hash is unchanged. That is the case
   CommitOnce does not need to handle, and it keeps working.
-* But a blockhash is only valid for roughly `MAX_PROCESSING_AGE` slots — about 38 seconds at
-  mainnet's 250 ms slots. After that, the signed transaction is dead and you *must* rebuild,
+* But a blockhash is only valid for roughly `MAX_PROCESSING_AGE` slots — about 40 seconds at
+  mainnet's measured 265 ms. After that, the signed transaction is dead and you *must* rebuild,
   which changes the message bytes and therefore the signature. No deduplication applies.
 * Rebuilding is also what you want to do: raise the priority fee, change the compute budget,
   use a different route or provider. All of those change the bytes.

@@ -76,9 +76,18 @@ fn retention_boundaries_are_accepted() {
     assert_eq!(stored.expires_at_unix_ts, 0);
 }
 
-/// The slot deadline must be derived from the *current* mainnet slot rate (4/second),
-/// not the historical 400ms assumption. Underestimating it would silently shorten the
-/// advertised window.
+/// The slot deadline must be derived from `SLOTS_PER_SECOND`, and that constant must be at or
+/// above mainnet's real rate.
+///
+/// Mainnet measures **3.77 slots/second** (265 ms) and devnet **6.09** (164 ms), sampled live by
+/// `apps/demo/slot-rate.ts`. The constant is `4`: above mainnet's real rate, so the slot gate
+/// lands *later* than the wall-clock gate there and cleanup is delayed rather than early.
+///
+/// The direction does not actually decide the window, because `close_receipt` requires both
+/// gates — the effective deadline is the later of the two. An earlier version of this comment
+/// said underestimating the constant "would silently shorten the advertised window", which is
+/// false for exactly that reason, and contradicted `receipt_cannot_be_closed_before_expiry`,
+/// which is the test that proves it.
 #[test]
 fn slot_deadline_uses_current_mainnet_slot_rate() {
     let (mut env, claim, _) = claim_with_retention(MIN_RETENTION);
@@ -87,7 +96,7 @@ fn slot_deadline_uses_current_mainnet_slot_rate() {
     assert_eq!(
         stored.expires_at_slot,
         stored.created_slot + MIN_RETENTION * 4,
-        "slot deadline must assume 250ms slots (4 per second)"
+        "slot deadline must assume 4 slots per second, the value SLOTS_PER_SECOND pins"
     );
 }
 
