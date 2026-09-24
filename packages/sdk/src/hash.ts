@@ -155,6 +155,33 @@ function encodeValue(value: CanonicalIntent, chunks: Chunk[]): void {
                         'Only finite numbers can be canonically encoded.',
                 );
             }
+            /**
+             * An integer outside the safe range is refused rather than encoded.
+             *
+             * `Number("9007199254740993")` is `9007199254740992`, and `String` of that is
+             * `"9007199254740992"` — so a caller who parses a large amount out of a string gets a
+             * **silently different number**, and this SDK would fingerprint it. The fingerprint
+             * would then describe an intent nobody wrote, which is the one thing the payload hash
+             * exists to prevent.
+             *
+             * The check cannot tell a deliberate `1e21` from a lost-precision parse, and it
+             * refuses both. That is the right trade for a fingerprint: an integer beyond 2^53 is
+             * far more likely to be a parse artifact than a value someone meant exactly, and
+             * `bigint` — which is exact and already supported — is the correct type. The error
+             * says so.
+             *
+             * Non-integers are unaffected: `1.5` is exactly representable and encodes as `1.5`.
+             */
+            if (Number.isInteger(value) && !Number.isSafeInteger(value)) {
+                throw new TypeError(
+                    `CommitOnce: intent contains the integer ${String(value)}, which is outside ` +
+                        'the safe range (±2^53 − 1) and may not be the number you wrote. ' +
+                        '`Number("9007199254740993")` is `9007199254740992`, so a parsed large ' +
+                        'amount silently changes and the fingerprint would describe an intent ' +
+                        'nobody wrote. Pass it as a `bigint` — `9007199254740993n` — which is ' +
+                        'exact and encodes differently from its neighbours.',
+                );
+            }
             const repr = String(value);
             chunks.push(`d${repr.length}:${repr}`);
             return;

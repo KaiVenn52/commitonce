@@ -860,7 +860,7 @@ if (status.status === 'committed' && status.matchesIntent === true) {
 ## 10. Verifying the implementation yourself
 
 ```bash
-# TypeScript side: 71 tests, including the cross-language vectors.
+# TypeScript side: 79 tests, including the cross-language vectors.
 pnpm --filter @commitonce/solana test
 
 # Print the pinned vectors, recomputed from @solana/kit primitives without importing the SDK.

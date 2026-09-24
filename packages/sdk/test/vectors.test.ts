@@ -75,6 +75,59 @@ describe('program identity', () => {
     });
 });
 
+describe('integers outside the safe range', () => {
+    // The failure this guards against is real and quiet:
+    //
+    //   Number("9007199254740993") === 9007199254740992
+    //
+    // so a caller who parses a large amount out of a string gets a different number than they
+    // wrote, and the fingerprint would describe an intent nobody wrote. `bigint` is exact.
+    it('refuses an integer beyond 2^53', () => {
+        expect(() => encodeIntent({ amount: Number('9007199254740993') })).toThrow(
+            /outside the safe range/,
+        );
+    });
+
+    it('refuses it by name, so the fix is obvious', () => {
+        expect(() => encodeIntent({ amount: 1e21 })).toThrow(/bigint/);
+    });
+
+    it('accepts the same value as a bigint', () => {
+        expect(() => encodeIntent({ amount: 9007199254740993n })).not.toThrow();
+    });
+
+    it('and the bigint distinguishes neighbours the number cannot', () => {
+        // This is the whole point: the two values a number conflates are different intents.
+        expect(bytesToHex(encodeIntent({ amount: 9007199254740993n }))).not.toBe(
+            bytesToHex(encodeIntent({ amount: 9007199254740992n })),
+        );
+    });
+
+    it('leaves the largest safe integer alone', () => {
+        expect(() => encodeIntent({ amount: Number.MAX_SAFE_INTEGER })).not.toThrow();
+        expect(() => encodeIntent({ amount: -Number.MAX_SAFE_INTEGER })).not.toThrow();
+    });
+
+    it('leaves a genuine non-integer alone, because it is exact', () => {
+        expect(() => encodeIntent({ ratio: 1.5 })).not.toThrow();
+        expect(() => encodeIntent({ ratio: -0.125 })).not.toThrow();
+    });
+
+    it('and refuses a large value even when written with a fraction', () => {
+        // `1e21 + 0.5` IS `1e21`: the spacing between doubles at that magnitude is about
+        // 131072, so the fraction is absorbed before this SDK ever sees it. It is an integer,
+        // and refusing it is right — the caller wrote a fraction and got an integer.
+        expect(1e21 + 0.5).toBe(1e21);
+        expect(Number.isInteger(1e21)).toBe(true);
+        expect(() => encodeIntent({ amount: 1e21 + 0.5 })).toThrow(/outside the safe range/);
+    });
+
+    it('still refuses non-finite numbers, for the older reason', () => {
+        expect(() => encodeIntent({ amount: Number.POSITIVE_INFINITY })).toThrow(/non-finite/);
+        expect(() => encodeIntent({ amount: Number.NaN })).toThrow(/non-finite/);
+    });
+});
+
 describe('anchor discriminators', () => {
     it('matches sha256("global:claim")[0..8]', () => {
         expect(bytesToHex(CLAIM_DISCRIMINATOR)).toBe(

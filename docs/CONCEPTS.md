@@ -43,6 +43,46 @@ rebuilding.
 
 ---
 
+### Numbers: use `bigint` past 2^53
+
+The payload fingerprint hashes what you pass, so it is only as faithful as the value that
+reaches it. JavaScript cannot represent every integer exactly:
+
+```js
+Number("9007199254740993") === 9007199254740992   // true
+String(Number("9007199254740993"))                // "9007199254740992"
+```
+
+A caller who parses a large amount out of a string — a lamport total, a token amount in
+base units, an id — gets **a different number than they wrote**, and the fingerprint would
+describe an intent nobody wrote. That is the one thing the payload hash exists to prevent.
+
+The SDK refuses an integer outside the safe range (±2^53 − 1) rather than encoding it:
+
+```text
+TypeError: CommitOnce: intent contains the integer 9007199254740992, which is outside the
+safe range (±2^53 − 1) and may not be the number you wrote. `Number("9007199254740993")`
+is `9007199254740992`, so a parsed large amount silently changes and the fingerprint would
+describe an intent nobody wrote. Pass it as a `bigint` — `9007199254740993n` — which is
+exact and encodes differently from its neighbours.
+```
+
+`bigint` is exact and already supported, so the fix is a one-character change:
+
+```js
+await prepareIntent({ intent: { amount: 9007199254740993n }, ... })   // fine
+await prepareIntent({ intent: { amount: 1.5 } })                      // fine, exact
+await prepareIntent({ intent: { amount: Number.MAX_SAFE_INTEGER } })  // fine, the boundary
+```
+
+Non-integers are unaffected — `1.5` is exactly representable. And the check cannot
+distinguish a deliberate `1e21` from a lost-precision parse, so it refuses both. That is
+the right trade for a fingerprint: an integer beyond 2^53 is far more likely to be a parse
+artifact than a value someone meant exactly.
+
+See `packages/sdk/test/vectors.test.ts` — eight tests, including one that pins the
+boundary case where a written fraction is absorbed by the magnitude.
+
 ## 2. Why message-hash deduplication is not intent deduplication
 
 Solana's runtime deduplicates transactions by **message hash**. Two transactions with

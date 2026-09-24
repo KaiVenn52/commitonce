@@ -313,7 +313,7 @@ Recorded here so it is not mistaken for a blocker:
 | Program build | Works. SBPFv3, IDs verified against `deploy-keys/`. |
 | Rust test suite | **60 passing, exit 0.** Executes the real compiled artifact. |
 | SDK build (ESM + CJS + types) | Works. Verified by importing both ways. |
-| SDK test suite | **71 passing**, golden vectors cross-checked by an independent implementation. |
+| SDK test suite | **79 passing**, golden vectors cross-checked by an independent implementation. |
 | Devnet deployment | **Done and verified.** See `EVIDENCE.md` §3. |
 | Benchmarks | Measured. See `EVIDENCE.md` §6. |
 | Documentation | Written. |

@@ -67,7 +67,7 @@ pnpm --filter @commitonce/solana test
 node packages/sdk/scripts/print-vectors.mjs
 ```
 
-The first runs 71 tests, including the cross-language vectors. The second recomputes those
+The first runs 79 tests, including the cross-language vectors. The second recomputes those
 same vectors from `@solana/kit` primitives *without importing the SDK*, and ends with:
 
 ```text

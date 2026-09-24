@@ -107,7 +107,7 @@ pin is what lets litesvm 0.16 build at all, so the arch flag and the toolchain m
 | Benchmarks with output visible | `cargo test -p commit-once --test benchmarks -- --nocapture` |
 | SDK typecheck | `pnpm --filter @commitonce/solana typecheck` |
 | SDK build (ESM + CJS + types) | `pnpm --filter @commitonce/solana build` |
-| SDK tests (71 tests) | `pnpm --filter @commitonce/solana test` |
+| SDK tests (79 tests) | `pnpm --filter @commitonce/solana test` |
 | Recompute golden vectors independently | `pnpm --filter @commitonce/solana vectors` |
 | Formatting check | `cargo fmt --all --check` |
 | Lints | `cargo clippy --workspace --all-targets` |

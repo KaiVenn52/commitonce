@@ -445,16 +445,16 @@ load-bearing. The assertion is still the probe, not the document.
 
 ---
 
-## 5. SDK test suite — 71 passing
+## 5. SDK test suite — 79 passing
 
 Run: `pnpm --filter @commitonce/solana test`
 
 ```
-Test Files  2 passed (2)
-     Tests  71 passed (71)
+2 passed (2)
+Tests  79 passed (79)
 ```
 
-48 of these pin the derivation to **golden hex vectors**: namespace hashes, key hashes, payload
+56 of these pin the derivation to **golden hex vectors**: namespace hashes, key hashes, payload
 fingerprints, and receipt PDA addresses.
 
 The vectors are cross-checked by a second, independent implementation:

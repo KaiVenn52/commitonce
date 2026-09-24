@@ -69,7 +69,7 @@ document and section it draws on. The mapping:
 | On the page | Source |
 | --- | --- |
 | 60 Rust tests, exit 0; per-file counts 11/11/12/3/7/10/1/5 | `EVIDENCE.md` §4 |
-| 71 SDK tests | `EVIDENCE.md` §5 |
+| 79 SDK tests | `EVIDENCE.md` §5 |
 | +404 bytes / +4 accounts (exact); compute units as a range | `EVIDENCE.md` §6 |
 | Compute-unit ranges, and the measured 9,292 / 8,407 / 4,067 / 7,067 |
 | 202 bytes, 1,676,400 lamports, 0.0016764 SOL, 144 bytes, 4 accounts | `EVIDENCE.md` §6 |

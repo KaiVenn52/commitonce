@@ -422,7 +422,7 @@ directly by `scripts/build.sh`. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.m
 | Program ID (all clusters) | `CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB` |
 | Demo counter program | `EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11LdeSh5` |
 | Rust tests | 60 passing, exit 0 |
-| SDK tests | 71 passing |
+| SDK tests | 79 passing |
 | Built for | SBPFv3, Anchor 1.2.0, Solana 4.x toolchain |
 | Mainnet | **not deployed** |
 | Devnet | **deployed and verified live** — see [`EVIDENCE.md`](EVIDENCE.md) §3 |
