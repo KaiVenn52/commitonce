@@ -1,15 +1,21 @@
 # CommitOnce demos
 
-Two runnable programs. Both talk to **devnet** against the deployed programs, and both print
-real explorer links.
+Eight runnable scripts, all talking to **devnet** against the deployed programs.
 
-| | `commitonce-demo.ts` | `concurrent-claim.ts` |
+Two of them demonstrate the product. The other six **measure things the product's claims rest
+on** — they exist because those claims were, at some point in this project, asserted rather than
+checked. Each one is listed below with the question it answers.
+
+| Script | What it does | Needs |
 | --- | --- | --- |
-| What it shows | the same rebuilt retry, with and without the guard | many claims of one key, fired at once |
-| Result | counter reaches **2** unguarded, **1** guarded | exactly **1** of N commits; the rest fail `AlreadyCommitted` |
-| Runtime | sequential, two transactions | concurrent, 5–8 transactions |
-| Costs | ~0.1 SOL of devnet SOL, not recovered | ~0.003 SOL net; the unspent balance is swept back |
-| Evidence | [`devnet-demo-run.log`](../../submission/evidence/devnet-demo-run.log) | [`devnet-contention-run.log`](../../submission/evidence/devnet-contention-run.log) |
+| [`commitonce-demo.ts`](#the-a-b-demo) | the same rebuilt retry, with and without the guard | devnet, ~0.1 SOL |
+| [`concurrent-claim.ts`](#the-live-contention-test) | many claims of one key, fired at once | devnet |
+| [`receipt-lifecycle.ts`](#the-receipt-lifecycle) | claim, wait out the retention, close, get the rent back | devnet, **~1 hour** |
+| [`nonce-policy.ts`](#the-durable-nonce-policy) | the durable-nonce policy against a real nonce account | devnet |
+| [`rent-exemption-check.ts`](#rent-exemption-on-a-real-validator) | does the runtime refuse a non-rent-exempt writable account? | a local validator |
+| [`cu-on-runtime.ts`](#compute-units-on-a-real-runtime) | what `claim` actually costs | devnet or a local validator |
+| [`slot-rate.ts`](#the-slot-rate) | the real slots-per-second, on mainnet and devnet | either cluster |
+| [`blockhash-window.ts`](#the-blockhash-window) | how long a signed transaction stays executable | either cluster |
 
 ## Setup
 
@@ -78,12 +84,98 @@ bug in the script, not in the product: confirming each transaction separately me
 in `src/solana.ts` fixes it with one batched status call and a retry that honours the server's
 `retry-after`.
 
+## The receipt lifecycle
+
+```bash
+node apps/demo/receipt-lifecycle.ts
+```
+
+Claims with the **minimum finite retention (one hour)**, waits for both deadlines to pass, then
+closes the receipt and checks that the deposit reached the configured refund destination.
+
+**It takes about an hour, and that is the point.** Every other on-chain path in this repository
+has been executed against devnet; this one had not, for the boring reason that demonstrating a
+refund means waiting out the retention. The Rust suite covers it in LiteSVM by warping the
+clock, which is a real test of the program but not a real demonstration of the refund — and
+"an explicit retention window with a full rent refund" is a claim this project makes, where the
+refund is the half that returns the user's money.
+
+Run it in the background. It prints a timestamped line every 30 seconds while it waits.
+
+## The durable-nonce policy
+
+```bash
+node apps/demo/nonce-policy.ts
+```
+
+Creates a **real nonce account**, then builds transactions whose blockhash *is* the stored nonce
+with `AdvanceNonceAccount` first — genuine durable-nonce transactions, not an injected marker.
+Finite retention is refused with `DurableNonceUnsupported`; `permanent` is accepted.
+
+This exists because LiteSVM cannot express a real nonce transaction, so the Rust test asserts
+the program's stricter behaviour by injecting the marker. The policy needed checking somewhere
+real.
+
+## Rent-exemption on a real validator
+
+```bash
+RPC_URL=http://127.0.0.1:8899 node apps/demo/rent-exemption-check.ts
+```
+
+Has an attacker send a receipt PDA **one lamport** and then has the victim claim. The runtime
+refuses the attacker's own transfer with `InsufficientFundsForRent`, so the account is never
+created.
+
+LiteSVM 0.16 implements that rule; whether real Agave did was inference until this ran. It does.
+
+## Compute units on a real runtime
+
+```bash
+node apps/demo/cu-on-runtime.ts
+```
+
+Reads the runtime's own per-program figures. `claim` costs **9,292 CU** on devnet and on a local
+validator, against a harness median of 9,283 — within 0.1%.
+
+The repository used to say the harness under-reported and that devnet cost 14,669 CU. That
+figure came from a build predating the pre-funded-PDA fix and was never re-measured.
+
+## The slot rate
+
+```bash
+node apps/demo/slot-rate.ts
+```
+
+Samples the live slot counter. **3.77 slots/second on mainnet** (265 ms), **6.09 on devnet**
+(164 ms). The program's `SLOTS_PER_SECOND` is 4, which is at or above mainnet's real rate.
+
+Because `close_receipt` requires **both** deadlines, the effective window is the later of the
+two — so a wrong constant can only delay cleanup, never shorten the window.
+
+## The blockhash window
+
+```bash
+node apps/demo/blockhash-window.ts
+```
+
+Takes a blockhash and polls `isBlockhashValid` until the cluster says no. **40.1 s / 145 slots on
+mainnet**, 24.4 s / 149 slots on devnet.
+
+This is the window `MIN_RETENTION_SECONDS` (one hour) is a margin against, and it is the
+quantity `the_retention_floor_dwarfs_the_blockhash_window` asserts in the Rust suite.
+
 ## Layout
 
 ```text
 apps/demo/
-├── commitonce-demo.ts    the A/B: same rebuilt retry, with and without the guard
-├── concurrent-claim.ts   one idempotency key in N transactions, at real validators
+├── commitonce-demo.ts       the A/B: same rebuilt retry, with and without the guard
+├── concurrent-claim.ts      one idempotency key in N transactions, at real validators
+├── receipt-lifecycle.ts     claim, wait out the retention, close, get the rent back
+├── nonce-policy.ts          the durable-nonce policy, against a real nonce account
+├── rent-exemption-check.ts  does the runtime refuse a non-rent-exempt writable account?
+├── cu-on-runtime.ts         what claim actually costs, from the runtime's own figures
+├── slot-rate.ts             the real slots-per-second, on mainnet and devnet
+├── blockhash-window.ts      how long a signed transaction stays executable
 └── src/
     ├── solana.ts         RPC plumbing: build, sign, submit, confirm, read back
     ├── payer.ts          where the funding keypair comes from
