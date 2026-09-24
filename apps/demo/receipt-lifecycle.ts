@@ -137,28 +137,46 @@ async function main(): Promise<void> {
 
     // ---------------------------------------------------------------------------------
     // 2. Wait for BOTH deadlines.
+    //
+    // The receipt stores `expires_at_unix_ts`, so the wait can end when the deadline actually
+    // passes rather than after a fixed guess. The first version of this script polled for
+    // `MAX_WAIT_SECONDS` and then closed, which meant it always took 75 minutes to demonstrate a
+    // 60-minute window — correct, and 15 minutes of nothing.
+    //
+    // The wall-clock deadline is only one of the two gates. The slot deadline is derived from
+    // `SLOTS_PER_SECOND`, which is at or above mainnet's real rate, so on a faster cluster the
+    // slot gate can fall *after* the wall-clock gate. The close is therefore attempted, and a
+    // `ReceiptNotExpired` response is treated as "not yet" rather than as a failure.
     // ---------------------------------------------------------------------------------
     const startedAt = Date.now();
     log(`2. waiting for the retention window to pass (${RETENTION_SECONDS}s)`);
 
-    let closed = false;
-    let attempts = 0;
-    while ((Date.now() - startedAt) / 1000 < MAX_WAIT_SECONDS) {
-        await new Promise((resolve) => setTimeout(resolve, 30_000));
-        attempts += 1;
-        const elapsed = Math.round((Date.now() - startedAt) / 1000);
-        const exists = (await rpc.getAccountInfo(guard.receipt, { encoding: 'base64' }).send()).value !== null;
-        if (!exists) {
-            log(`   receipt is gone at ${elapsed}s — something else closed it`);
-            closed = true;
-            break;
+    let deadlineMs = startedAt + Number(RETENTION_SECONDS) * 1000;
+    const info = await rpc.getAccountInfo(guard.receipt, { encoding: 'base64' }).send();
+    if (info.value !== null) {
+        const decoded = commitOnce.decodeReceipt(info.value.data);
+        if (decoded !== null) {
+            deadlineMs = Number(decoded.expiresAtUnixTs) * 1000;
+            log(
+                `   expires_at_unix_ts ${decoded.expiresAtUnixTs} ` +
+                    `(${Math.round((deadlineMs - startedAt) / 1000)}s from now)`,
+            );
         }
-        log(`   ${elapsed}s elapsed; receipt still present (as it must be)`);
     }
 
-    if (closed) {
+    while (Date.now() < deadlineMs) {
+        const remaining = Math.round((deadlineMs - Date.now()) / 1000);
+        if (remaining > 0) {
+            log(`   ${remaining}s remaining; receipt still present (as it must be)`);
+        }
+        await new Promise((resolve) => setTimeout(resolve, Math.min(30_000, Math.max(1_000, remaining * 1000))));
+    }
+
+    const exists = (await rpc.getAccountInfo(guard.receipt, { encoding: 'base64' }).send()).value !== null;
+    if (!exists) {
         throw new Error('the receipt disappeared before this script closed it');
     }
+    log(`   deadline passed after ${Math.round((Date.now() - startedAt) / 1000)}s`);
 
     // ---------------------------------------------------------------------------------
     // 3. Close, and verify the rent came back.
@@ -180,13 +198,30 @@ async function main(): Promise<void> {
             ),
         );
         const signature = getSignatureFromTransaction(tx);
-        await rpc
-            .sendTransaction(getBase64EncodedWireTransaction(tx), {
-                encoding: 'base64',
-                preflightCommitment: 'confirmed',
-            })
-            .send();
-        log(`   closed ${signature}`);
+
+        // The slot gate may not have passed yet even though the wall-clock gate has, so retry
+        // rather than treating a rejection as fatal.
+        let sent = false;
+        for (let attempt = 0; attempt < 20 && !sent; attempt += 1) {
+            try {
+                await rpc
+                    .sendTransaction(getBase64EncodedWireTransaction(tx), {
+                        encoding: 'base64',
+                        preflightCommitment: 'confirmed',
+                    })
+                    .send();
+                sent = true;
+                log(`   closed ${signature}`);
+            } catch (error: unknown) {
+                const message = error instanceof Error ? error.message : String(error);
+                const logs = (error as { context?: { logs?: readonly string[] } })?.context?.logs ?? [];
+                const notExpired = logs.some((l) => /ReceiptNotExpired|0x1779|6009/.test(l));
+                if (!notExpired) throw error;
+                log(`   slot gate has not passed yet; retrying in 30s (${message.slice(0, 40)})`);
+                await new Promise((resolve) => setTimeout(resolve, 30_000));
+            }
+        }
+        if (!sent) throw new Error('close_receipt was still refused after 20 attempts');
     }
 
     // Poll rather than sleep a guessed amount: `sendTransaction` returns a signature, not a

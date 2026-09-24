@@ -172,7 +172,7 @@ and untouched.
 
 1. `IntentReceiptClosed` is emitted.
 2. The account is closed: its lamports are transferred to `refund_destination` and the
-   account data is zeroed. The deposit is refunded in full — no fee is taken by the program.
+   account data is zeroed. The deposit is refunded in full — no fee is taken by the program. **Executed on devnet:** a receipt holding 1,676,400 lamports was closed and the refund destination went from 0 to 1,676,400. See [`../submission/evidence/devnet-receipt-lifecycle.log`](../submission/evidence/devnet-receipt-lifecycle.log).
 3. The `(authority, namespace, key)` tuple becomes claimable again. This is deliberate and
    documented: the protection window ends at cleanup.
 

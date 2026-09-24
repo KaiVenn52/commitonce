@@ -225,6 +225,8 @@ with `InvalidRetention` (6003).
 (**permanent**), which is the only value outside the `[3600, 31536000]` range that is
 accepted.
 
+
+**Verified on devnet:** a one-hour receipt holding 1,676,400 lamports was closed, and the configured refund destination went from 0 to 1,676,400. The script is `apps/demo/receipt-lifecycle.ts`; it takes an hour, which is the point.
 Note what permanent means: the receipt never expires and **can never be closed**, so the
 1,676,400-lamport deposit is never refunded and the key is never reusable. That is a
 deliberate one-way door, not an oversight.
