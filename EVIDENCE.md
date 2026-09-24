@@ -21,7 +21,7 @@ Recorded **2026-09-20** (UTC), during the Colosseum Crypto World's Fair 2026 Con
 | `anchor-cli` | 1.2.0 | `anchor --version` |
 | `cargo-build-sbf` | 4.1.0 | `cargo-build-sbf --version` |
 | platform-tools | v1.54 | `cargo-build-sbf --version` |
-| LiteSVM | 0.10.0 | `programs/commit-once/Cargo.toml` |
+| LiteSVM | 0.16.0 | `programs/commit-once/Cargo.toml` |
 | Node.js | 24.20.0 | `node --version` |
 | pnpm | 11.24.0 | `pnpm --version` |
 | TypeScript | 7.0.2 | resolved in `pnpm-lock.yaml` |

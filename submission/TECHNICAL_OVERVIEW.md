@@ -593,7 +593,7 @@ or adapted from another Solana project. The durable-nonce *technique* is attribu
 | `anchor-lang` | 1.2.0 | program framework, IDL generation, account constraints |
 | `solana-instructions-sysvar` | 3.0.0 | official Instructions-sysvar reader for nonce detection |
 
-**Rust (tests only — not shipped in the program).** `litesvm` 0.10.0, `sha2` 0.10,
+**Rust (tests only — not shipped in the program).** `litesvm` 0.16.0, `sha2` 0.10,
 `solana-account` 3.0.0, `solana-clock` 3.0.1, `solana-hash` 3.0.0, `solana-instruction` 3.0.0,
 `solana-keypair` 3.0.1, `solana-message` 3.0.1, `solana-pubkey` 3.0.0, `solana-rent` 3.0,
 `solana-signer` 3.0.0, `solana-system-interface` 2.0.0, `solana-transaction` 3.0.2,
@@ -623,7 +623,7 @@ the reasoning.
 | Decision | Choice | Why |
 | --- | --- | --- |
 | Framework | **Anchor 1.2.0** | Prebuilt CLI, IDL generation, ecosystem familiarity, and its official test path is LiteSVM. |
-| Test harness | **LiteSVM 0.10.0** | Executes the real compiled SBF artifact, not a mock or a reimplementation. Tests assert on observable state, never on error strings. |
+| Test harness | **LiteSVM 0.16.0** | Executes the real compiled SBF artifact, not a mock or a reimplementation. Tests assert on observable state, never on error strings. |
 | SBPF target | **v3** (`--arch v3`) | The Anchor default. v2 was used while LiteSVM 0.10.0 could not verify a v3 ELF; LiteSVM 0.16 accepts both, and a real Agave validator *rejects* v2. LiteSVM 0.10.0 rejects with `Instruction(InvalidAccountData)`. Shipping v3 would mean shipping a program this project's own suite cannot execute. v2 is accepted by LiteSVM, devnet and mainnet. Overridable with `SBPF_ARCH=v3`. |
 | Receipt as a plain PDA, not compressed state | **plain 202-byte PDA** | Visible to any standard indexer, no prover dependency, no Light state tree, refundable, and the address is derivable offline. |
 | Hashing | **WebCrypto `crypto.subtle`** | Zero runtime dependencies; available in Node 18+, browsers, Deno, Bun and workers. Async, which is not a real cost since PDA derivation and RPC are async anyway. |

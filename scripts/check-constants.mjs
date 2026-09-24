@@ -195,6 +195,76 @@ for (const [name] of SHARED) {
     }
 }
 
+// ---- version pins, which the documents quote ------------------------------------------
+//
+// Same defect class as the SBPF arch flag, and it has already happened three times in this
+// project: litesvm 0.10 -> 0.16, Rust 1.89 -> 1.98, and the arch itself. In each case the
+// manifest changed and several documents kept stating the old value as current. The README,
+// the judge readme, the submission form and the project description all claimed SBPFv2 for a
+// round after the build had moved to v3, and CI was pinned to v2 the whole time — so a green
+// run never built what shipped.
+//
+// This reads the manifest and fails if a document states a different version as current. The
+// historical narrative ("LiteSVM 0.10.0 could not verify a v3 ELF") is explicitly allowed,
+// because a project that records its own history will legitimately mention old versions.
+{
+    const cargo = readFileSync(join(ROOT, 'programs', 'commit-once', 'Cargo.toml'), 'utf8');
+    const toolchain = readFileSync(join(ROOT, 'rust-toolchain.toml'), 'utf8');
+
+    const PINS = [
+        {
+            name: 'litesvm',
+            actual: /^litesvm = "([^"]+)"/m.exec(cargo)?.[1],
+            // Documents that state it as the current test harness.
+            docs: ['EVIDENCE.md', 'docs/ARCHITECTURE.md', 'submission/TECHNICAL_OVERVIEW.md', 'submission/SUBMISSION_FORM.md'],
+        },
+        {
+            name: 'rust',
+            actual: /^channel = "([^"]+)"/m.exec(toolchain)?.[1],
+            docs: ['CONTRIBUTING.md', 'docs/QUICKSTART.md'],
+        },
+    ];
+
+    for (const pin of PINS) {
+        if (pin.actual === undefined) {
+            problems.push(`could not read the ${pin.name} version from its manifest`);
+            continue;
+        }
+        compared += 1;
+        for (const rel of pin.docs) {
+            const body = readFileSync(join(ROOT, rel), 'utf8');
+            // Any version-shaped mention of this tool, then check whether it is the current one.
+            const pattern =
+                pin.name === 'litesvm'
+                    ? /[Ll]ite[Ss][Vv][Mm][^\d\n]{0,4}(\d+\.\d+\.\d+)/g
+                    : /Rust[^\d\n]{0,8}(\d+\.\d+\.\d+)/g;
+            for (const match of body.matchAll(pattern)) {
+                const found = match[1];
+                if (found === pin.actual) continue;
+                // Historical statements are fine; a bare version in a table is not.
+                //
+                // The window is the match's line **plus the next one**, because prose wraps and
+                // the qualifier that makes a mention historical ("could not verify") frequently
+                // lands on the following line. A one-line window reported EVIDENCE.md:57 as a
+                // stale claim when the sentence two lines down says exactly why it is not.
+                const lineStart = body.lastIndexOf('\n', match.index) + 1;
+                const afterNext = body.indexOf('\n', body.indexOf('\n', match.index) + 1);
+                const line = body.slice(lineStart, afterNext === -1 ? undefined : afterNext);
+                // Phrases that mark a mention as a record of the past rather than a claim about
+                // the present. Every one of them is a sentence this project actually wrote.
+                const historical =
+                    /could not verify|rejects v3 ELFs|did not implement|for most of|was v2 for|pinning \*\*Rust|shipped an \*\*SBPFv2|inexpressible|passes the transaction/.test(
+                        line,
+                    );
+                if (historical) continue;
+                problems.push(
+                    `${rel} states ${pin.name} ${found}, but the manifest pins ${pin.actual}`,
+                );
+            }
+        }
+    }
+}
+
 console.log(`constants:      ${compared} compared across Rust and TypeScript`);
 if (problems.length === 0) {
     console.log('\nCONSTANTS CHECK PASSED');

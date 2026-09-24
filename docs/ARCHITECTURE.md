@@ -335,7 +335,7 @@ primitives whose instruction cannot be built without a proof fetch.
 | Decision | Choice | Rationale |
 | --- | --- | --- |
 | Framework | **Anchor 1.2.0** | Prebuilt CLI, IDL generation, ecosystem familiarity, and its official test path is LiteSVM. |
-| Test harness | **LiteSVM 0.10.0** | Executes the real compiled SBF artifact, not a mock. Tests assert on observable state, never on error strings. |
+| Test harness | **LiteSVM 0.16.0** | Executes the real compiled SBF artifact, not a mock. Tests assert on observable state, never on error strings. |
 | SBPF target | **v3** (`--arch v3`) | The Anchor default. v2 was used while LiteSVM 0.10.0 could not verify a v3 ELF; LiteSVM 0.16 accepts both, and a real Agave validator *rejects* v2. LiteSVM 0.10.0 rejects with `InvalidAccountData`. Building v3 would mean shipping a program the project's own test suite cannot run. v2 is accepted by LiteSVM, devnet and mainnet. Override with `SBPF_ARCH=v3`. |
 | Build cache | `CARGO_TARGET_DIR` on ext4 | The repo lives on a Windows drive; only small artifacts land in the workspace. |
 | Program IDs | identical on all clusters | `declare_id!` is compiled in; a program deployed at a different address than its `declare_id!` refuses to run. `scripts/build.sh` verifies the pairing after every build. |

@@ -423,7 +423,14 @@ run_step "brand assets consistent (node scripts/check-brand.mjs)" \
 # range: `prepare()` would build a transaction the program then rejects with `InvalidRetention`,
 # and the failure would surface at the cluster rather than at the call site. This also ties the
 # SDK's receipt size to the number the Rust suite pins, and checks the rent derivation still has
-# all three of its inputs. Hermetic.
+# all three of its inputs.
+#
+# It also checks the **version pins** — litesvm and Rust — against the versions the documents
+# quote. That is the same defect class as the SBPF arch flag, and it has happened three times
+# here: the manifest moves and several documents keep stating the old value as current. The
+# README, the judge readme, the submission form and the project description all claimed SBPFv2
+# for a round after the build moved to v3, and CI was pinned to v2 the whole time. Historical
+# narrative is explicitly allowed; a bare version in a table is not. Hermetic.
 # ---------------------------------------------------------------------------------------
 
 run_step "SDK constants agree with the program (node scripts/check-constants.mjs)" \

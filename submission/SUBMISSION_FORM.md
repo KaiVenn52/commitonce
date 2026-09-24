@@ -74,7 +74,7 @@ Client:
   nothing from Anchor's JavaScript library.
 
 Testing:
-- LiteSVM 0.10.0, executing the real compiled .so in-process — not a mock, not a
+- LiteSVM 0.16.0, executing the real compiled .so in-process — not a mock, not a
   reimplementation. The tests assert on observable onchain state: account existence, lamport
   balances, PDA addresses, account data lengths, counter values.
 

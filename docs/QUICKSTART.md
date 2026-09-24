@@ -23,7 +23,7 @@ anywhere. Paths A and C below need no cluster at all.
 | --- | --- | --- |
 | Node.js | **20.18.0 or newer** (`engines.node` in both `package.json` files) | Paths A and B |
 | pnpm | 11 (the repo pins `packageManager: pnpm@11.24.0`) | installing and building |
-| Rust + Solana/Anchor toolchain | Rust 1.89.0 (`rust-toolchain.toml`) | Path C (builds and runs the on-chain tests) |
+| Rust + Solana/Anchor toolchain | Rust 1.98.0 (`rust-toolchain.toml`) | Path C (builds and runs the on-chain tests) |
 | A Solana cluster, a funded keypair, and the program deployed on it | — | Path B (a live send) |
 
 Path A takes a couple of minutes and needs nothing but Node and pnpm. Path C is the fastest

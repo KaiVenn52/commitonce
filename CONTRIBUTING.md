@@ -23,7 +23,7 @@ Contributions are welcome. The project is unaudited and not deployed to mainnet 
 | Tool | Version | Notes |
 | --- | --- | --- |
 | WSL2 Ubuntu | any current release | Rust and the Solana toolchain do **not** run on Windows natively for this project |
-| Rust | 1.89.0 | pinned by `rust-toolchain.toml`, with `rustfmt` and `clippy` components |
+| Rust | 1.98.0 | pinned by `rust-toolchain.toml`, with `rustfmt` and `clippy` components. **Load-bearing:** litesvm 0.16 will not build on the old pin |
 | Solana CLI | 4.2.2 | supplies `cargo-build-sbf`; version recorded in `EVIDENCE.md` §1 |
 | Anchor CLI | 1.2.0 | pinned; `anchor build` behaviour differs across versions |
 | Node.js | >= 20.18.0 | required by `@solana/kit`; `apps/demo` declares >= 22.18.0 |
