@@ -337,7 +337,7 @@ The same applies to a native (non-Anchor) program, a Pinocchio program, or a CPI
 guard is just the first instruction in the transaction.
 
 The CommitOnce program *itself* is Anchor-built, so its errors are Anchor custom codes
-(6000–6010), and Anchor framework constraint failures use Anchor's own error range. That is
+(6000–6011), and Anchor framework constraint failures use Anchor's own error range. That is
 a property of the guard program, not a requirement on yours.
 
 ### 20. Does it work with v0 transactions?

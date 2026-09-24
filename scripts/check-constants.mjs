@@ -265,6 +265,43 @@ for (const [name] of SHARED) {
     }
 }
 
+// ---- the error range, which the documents quote ----------------------------------------
+//
+// Same class again: the program gained a twelfth error (6011, `InstructionScanInconclusive`) and
+// four documents kept saying "6000–6010". The range appears in the architecture tree, the FAQ,
+// an example's README and the API reference, and nothing tied any of them to the enum.
+//
+// This reads the program's error codes and fails if a document quotes a different range.
+{
+    const errorRs = readFileSync(join(ROOT, 'programs', 'commit-once', 'src', 'error.rs'), 'utf8');
+
+    // The codes are **implicit**: Anchor's `#[error_code]` assigns 6000 + the variant's index,
+    // and the source never writes a number. So the range is derived by counting the variants,
+    // which also means inserting one in the middle renumbers everything after it — the reason
+    // CONTRIBUTING says to append rather than insert.
+    const body = /pub enum CommitOnceError \{([\s\S]*?)\n\}/.exec(errorRs)?.[1];
+    const variants = body === undefined ? [] : [...body.matchAll(/^\s{4}([A-Z]\w*),\s*$/gm)].map((m) => m[1]);
+
+    if (variants.length === 0) {
+        problems.push('could not read any variants from the CommitOnceError enum');
+    } else {
+        const low = 6000;
+        const high = 6000 + variants.length - 1;
+        compared += 1;
+        console.log(`error range:    ${low}-${high} (${variants.length} variants)`);
+        for (const rel of ['docs/ARCHITECTURE.md', 'docs/FAQ.md', 'docs/API_REFERENCE.md', 'examples/custom-program/README.md']) {
+            const body = readFileSync(join(ROOT, rel), 'utf8');
+            // Any "6000" followed by a dash and another code.
+            for (const match of body.matchAll(/(60\d\d)\s*[–—-]\s*(60\d\d)/g)) {
+                if (Number(match[1]) === low && Number(match[2]) === high) continue;
+                problems.push(
+                    `${rel} quotes the error range as ${match[1]}–${match[2]}, but the program declares ${low}–${high}`,
+                );
+            }
+        }
+    }
+}
+
 console.log(`constants:      ${compared} compared across Rust and TypeScript`);
 if (problems.length === 0) {
     console.log('\nCONSTANTS CHECK PASSED');

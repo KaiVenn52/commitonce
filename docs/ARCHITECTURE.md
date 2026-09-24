@@ -310,12 +310,16 @@ commitonce/
 │   │   ├── src/lib.rs              entrypoint, declare_id!
 │   │   ├── src/constants.rs        seeds, retention bounds, slot rate, nonce discriminator
 │   │   ├── src/state.rs            IntentReceipt layout
-│   │   ├── src/error.rs            11 custom errors, codes 6000–6010
+│   │   ├── src/error.rs            12 custom errors, codes 6000–6011
 │   │   ├── src/events.rs           IntentCommitted, IntentReceiptClosed
 │   │   └── src/instructions/
 │   │       ├── claim.rs            create-or-abort + nonce policy
 │   │       └── close_receipt.rs    dual-gate expiry + rent refund
 │   └── demo-counter/         a business program that knows nothing about CommitOnce
+├── programs-native/
+│   └── native-guard/         no Anchor dependency; proves a non-Anchor program can CPI into
+│                             `claim`. Outside `programs/` because `anchor build` cannot
+│                             build a member with no IDL to generate
 ├── packages/sdk/             @commitonce/solana — dual ESM/CJS, zero runtime deps
 ├── apps/demo/                the A/B failure reproduction
 ├── examples/                 SOL transfer, SPL transfer, generic program, Jupiter-style swap

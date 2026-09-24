@@ -393,6 +393,9 @@ productization around it.
 programs/
   commit-once/          the guard program (Anchor 1.2.0)
   demo-counter/         a business program that knows nothing about CommitOnce
+programs-native/
+  native-guard/         a program with no Anchor dependency, used only by tests/native_cpi.rs
+                        to prove a non-Anchor program can CPI into `claim`
 packages/sdk/           @commitonce/solana — dual ESM/CJS, zero runtime dependencies
 apps/
   demo/                 the A/B demo CLI, and the live contention test — both run against devnet
@@ -404,6 +407,11 @@ scripts/                build.sh, test.sh
 verify.sh               one command that checks all of the above
 deploy-keys/            the program keypairs the program IDs are derived from
 ```
+
+`programs-native/` is separate from `programs/` because it **cannot** be a member of the Anchor
+workspace: `anchor build` refuses a member without an `idl-build` feature, and a program that is
+not written with Anchor has no IDL to give it. It is excluded from the Cargo workspace and built
+directly by `scripts/build.sh`. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) §12.
 
 ---
 

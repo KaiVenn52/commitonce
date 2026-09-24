@@ -436,6 +436,11 @@ run_step "brand assets consistent (node scripts/check-brand.mjs)" \
 # README, the judge readme, the submission form and the project description all claimed SBPFv2
 # for a round after the build moved to v3, and CI was pinned to v2 the whole time. Historical
 # narrative is explicitly allowed; a bare version in a table is not. Hermetic.
+#
+# And the **error range**: the program gained a twelfth error and four documents kept saying
+# "6000-6010". The codes are implicit — Anchor assigns 6000 + the variant index — so the range
+# is derived by counting variants, which is also why inserting one in the middle renumbers
+# everything after it. Hermetic.
 # ---------------------------------------------------------------------------------------
 
 run_step "SDK constants agree with the program (node scripts/check-constants.mjs)" \

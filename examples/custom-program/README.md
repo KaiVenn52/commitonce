@@ -182,7 +182,7 @@ On an ambiguous first attempt you will see a `retry` line instead, naming what c
 
 `demo-counter`'s own error (`Overflow`, code 6000 in *its* program) is a different program's
 error space and is not conflated with these: `classifyError` reads the custom error code out
-of the transaction error, and the guard's codes 6000–6010 are the ones it maps.
+of the transaction error, and the guard's codes 6000–6011 are the ones it maps.
 
 ## Why the idempotency key is semantic
 
