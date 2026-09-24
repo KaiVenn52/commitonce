@@ -158,8 +158,9 @@ import { createCommitOnceClient } from '@commitonce/solana';
 
 const commitOnce = createCommitOnceClient({ rpc });
 const claim = await commitOnce.prepare({
+  authority,
   namespace: 'payments',
-  key: orderId,                       // stable across retries — this is the whole discipline
+  idempotencyKey: orderId,            // stable across retries — this is the whole discipline
   intent: { recipient, amount, mint, memo },   // semantic fields only
 });
 const transaction = [claim.instruction, ...yourBusinessInstructions];

@@ -105,13 +105,13 @@ const commitOnce = createCommitOnceClient({ rpc });
 
 // The fingerprint covers what the intent *is* — never how it was transported.
 // Including a blockhash, priority fee or signature here would defeat the product.
-const intent = {
-  namespace: 'payments',
-  key: 'order-928',
-  payload: { recipient, amount, mint, memo: 'invoice-928' },
-};
-
-const claim = await commitOnce.prepare(intent);
+const claim = await commitOnce.prepare({
+  authority,                 // must be a signer on the transaction
+  namespace: 'payments',     // stable scope, so two apps can reuse the same key text
+  idempotencyKey: 'order-928',
+  intent: { recipient, amount, mint, memo: 'invoice-928' },
+  retention: '24h',          // optional; defaults to 24h
+});
 
 // Prepend to the transaction you were already building. Same atomic transaction.
 const transaction = [claim.instruction, ...yourBusinessInstructions];

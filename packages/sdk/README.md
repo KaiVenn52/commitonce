@@ -20,7 +20,7 @@ const prepared = await client.prepare({
     namespace: 'payments:transfer',
     idempotencyKey: orderId,
     retention: '7d',
-    payload: { recipient, amount },
+    intent: { recipient, amount },
 });
 
 // Prepend the guard to the SAME atomic transaction as the business instruction.

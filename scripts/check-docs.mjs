@@ -512,6 +512,89 @@ for (const log of logs) {
 }
 
 // ---------------------------------------------------------------------------------------
+// 14. prepare() examples in the documents must use the real field names.
+//
+// Three of them did not. README.md — the front page — passed { namespace, key, payload };
+// packages/sdk/README.md passed payload instead of intent; submission/GTM.md passed key and
+// omitted authority. All three were unrunnable, and the front-page one is the first code a
+// reader meets.
+//
+// The failure was worse than a type error: prepare destructures authority and intent from the
+// argument, so the missing fields arrived as undefined and the error surfaced as
+// "intent contains undefined" — pointing at the payload when the real mistake was the
+// argument shape.
+//
+// The rule reads only inside a prepare({ ... }) call, so prose that mentions the word "key"
+// is untouched. The known names are taken from PrepareIntentArgs.
+// ---------------------------------------------------------------------------------------
+{
+    const KNOWN = new Set([
+        'authority',
+        'namespace',
+        'idempotencyKey',
+        'intent',
+        'retention',
+        'refundDestination',
+        'programAddress',
+    ]);
+    const REQUIRED = ['authority', 'namespace', 'idempotencyKey', 'intent'];
+
+    const examplesFiles = execSync('git ls-files', { cwd: ROOT, encoding: 'utf8' })
+        .split('\n')
+        .filter((f) => /\.(md|html)$/.test(f))
+        .filter((f) => !f.includes('WORK_LOG'));
+
+    let examples = 0;
+    let bad = 0;
+
+    for (const rel of examplesFiles) {
+        const body = readFileSync(join(ROOT, rel), 'utf8');
+
+        // Bounded, so a runaway match cannot swallow a whole file.
+        for (const match of body.matchAll(/prepare\(\{([\s\S]{0,400}?)\}\)/g)) {
+            examples += 1;
+            const args = match[1];
+            const line = body.slice(0, match.index).split('\n').length;
+
+            // Top-level keys only: the argument list is at one indent and the nested intent
+            // payload is indented further, so the shallowest indent is the argument list.
+            //
+            // **Both spellings count.** `namespace: value` has a colon; `authority,` is ES6
+            // shorthand for `authority: authority` and is what every example in this repository
+            // actually uses. The first version matched only the colon form, so all three fixed
+            // examples still reported "omits the required authority" — a check reading its own
+            // blind spot as a defect in the document.
+            //
+            // `[ \t]` and not `\s`: `\s` matches the newline, so the first key in the list
+            // started its match one character early and reported indent 3 while every other key
+            // reported 2 — and the shallowest-indent filter then dropped it, making every
+            // example look like it omitted `authority`.
+            const keys = [...args.matchAll(/^[ \t]*([A-Za-z_$][\w$]*)[ \t]*(?::|,|$)/gm)].map((m) => ({
+                name: m[1],
+                indent: m[0].length - m[0].trimStart().length,
+            }));
+            if (keys.length === 0) continue;
+            const shallowest = Math.min(...keys.map((k) => k.indent));
+            const top = keys.filter((k) => k.indent === shallowest).map((k) => k.name);
+
+            for (const name of top) {
+                if (KNOWN.has(name)) continue;
+                bad += 1;
+                problems.push(
+                    `${rel}:${line} prepare() uses ${name}, which is not an argument it accepts`,
+                );
+            }
+            for (const name of REQUIRED) {
+                if (top.includes(name)) continue;
+                bad += 1;
+                problems.push(`${rel}:${line} prepare() example omits the required ${name}`);
+            }
+        }
+    }
+    console.log(`${examples} prepare() examples checked, ${bad} problems`);
+}
+
+// ---------------------------------------------------------------------------------------
 // 12. No script may pin HOME to an absolute path without checking it exists.
 //
 // `scripts/build.sh` and `scripts/test.sh` forced `HOME=/home/dell2u` and a WSL-specific PATH.
