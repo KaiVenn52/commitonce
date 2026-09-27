@@ -1,8 +1,7 @@
 # CommitOnce — founder story
 
-Written in the first person, because this is the part of the submission where a judge is deciding
-whether to believe the rest of it. Everything here is true, including the parts that are not
-impressive.
+Written in the first person where the founder's facts are confirmed. This is a draft for owner
+review, not a source of invented personal history.
 
 **Two fields are deliberately left for the submission form rather than guessed at here: my name,
 and where I am located.** They are facts about a person, and this repository does not invent
@@ -12,61 +11,47 @@ facts about people.
 
 ## Who I am
 
-I am a **university engineering student**, and a solo founder. I am actively learning and building
-on Solana, which is an accurate description of my experience and not a euphemism for something
-more impressive.
+I am a **university engineering student** and a solo founder. I have built other Solana
+prototypes, but I do not claim to have operated production Solana infrastructure. I led
+CommitOnce's development with AI coding assistance during the Contest Period. The work log and
+commit history document that work; I am responsible for the claims in this submission.
 
-What I am not: I have no infrastructure background. I have not worked at an RPC provider, a
-validator operator, or a protocol team. I have no previous exit. I have no professional trading
-experience. I have no team, no cofounder, no advisor, and no funding. Every line of code in this
-repository, and every document in it, was written by me during the Contest Period.
-
-I am saying that plainly at the top because judges verify, the rules require disclosure, and
-overstating experience is the fastest way to lose the room. The honest case for this project is
-not that I have done this before. It is that I hit the problem myself, and then did the work
-properly.
+The case for this project is the checkable work, not a fabricated personal incident or an
+inflated résumé.
 
 ---
 
-## Why I started building it
+## The question behind the product
 
-I was withdrawing USDC from a Solana wallet, and the transaction failed.
+A client can submit a Solana transaction, time out, and have no conclusive answer about whether
+the transaction landed. Rebuilding it with a fresh blockhash creates a different signed message;
+both attempts can land. This is a concrete developer failure mode, not a claim about a personal
+wallet incident.
 
-What stuck with me was not the failure. It was that **I could not tell what had failed.** The
-error did not say whether the problem was my wallet, my account setup, or the chain. There was no
-way to look at the outcome and know which of those three things to go and fix. So like anyone
-else, I hit retry.
-
-And then I realised I had a worse problem than the first one. If the first attempt had actually
-gone through, and my retry also went through, then I had just sent it twice — and nothing in the
-interface, the error, or my own understanding could tell me whether that had happened.
-
-The question that came out of that is the one this project is built on:
+The question CommitOnce addresses is:
 
 > **After a transaction error, what is safe to do next?**
 
-That question is not really about a wallet, and it is not about USDC. It is about the fact that
-"the transaction failed" and "the intent did not happen" are two different statements, and a user
-is given no way to tell them apart.
+"The client did not receive a success response" and "the intent did not happen" are different
+statements. A safe retry path has to account for that difference.
 
 ---
 
 ## How that question led here
 
-I went looking for the answer, and it turned out to be a protocol-level gap rather than a UX bug.
+The answer lies at the boundary between transaction delivery and application intent.
 
 Solana's runtime deduplicates transactions by **message hash** — that is in Agave's own runtime
 source, which says the message hash is added to the status cache *"to ensure that this message
 won't be processed again with a different signature."* That protects *signed bytes*.
 
-But the thing I actually cared about — *did my payment happen?* — is not signed bytes. It is an
-intent. And the moment a client retries properly, it does the sensible engineering thing: it
+But what the application cares about — *did this action happen?* — is not signed bytes. It is an
+intent. And the moment a client retries, it does the sensible engineering thing: it
 rebuilds. Fresh blockhash, a higher priority fee because the first attempt was slow, maybe a
 different route, re-signed. New bytes, new message hash, and the runtime sees a brand new
 transaction. **Both can land.**
 
-The part that made me decide to build rather than write a blog post: Solana's own
-production-readiness guide names this and then hands the problem back to the application —
+Solana's own production-readiness guide names this and hands the problem back to the application —
 *"A rebuilt transaction has a new signature, so preserve application-level idempotency before
 sending it."* The same page adds that a `null` result from the recent signature-status cache is
 inconclusive, so even *asking* whether the first attempt landed is not reliable.
@@ -74,7 +59,7 @@ inconclusive, so even *asking* whether the first attempt landed is not reliable.
 The chain tells you to solve it yourself, at the application layer, with the tools you have. The
 tool that would let the chain answer the question directly did not exist as a product.
 
-So I built it. One instruction, prepended to the transaction you were already building, that makes
+CommitOnce addresses it with one instruction, prepended to the transaction you were already building, that makes
 a rebuilt retry unable to execute the same intent twice — **at-most-once successful execution of a
 guarded logical intent, within the configured retention window.**
 
@@ -88,41 +73,34 @@ and what I do not.
 
 **What I have.**
 
-1. **I have had the failure myself, as a user, before I had any theory about it.** I was not
-   looking for a protocol gap to build on; I was confused by a wallet and annoyed about it. The
-   product's framing — *"after a transaction error, what is safe to do next?"* — comes from that,
-   and it is the framing that makes the problem legible to developers who have not thought about
-   message hashes.
-2. **I read the primary sources and quoted them.** The claim that the runtime deduplicates by
+1. **The failure mode is demonstrable.** The A/B demo rebuilds two transactions for one intent.
+   Without the guard the counter reaches two; with the guard it reaches one. The framing —
+   *"after an ambiguous outcome, what is safe to retry?"* — is grounded in that behavior,
+   not in an invented personal wallet story.
+2. **The repository cites primary sources.** The claim that the runtime deduplicates by
    message hash is backed by Agave's own source comment, not by a blog post. The claim that
    Solana hands the problem to the application is a verbatim quote from Solana's documentation.
    The prior-art survey was built from primary sources and on-chain reads, and it says in its first
    section that the mechanism I used is **not novel** — which is the least comfortable and most
    useful thing in the whole repository.
-3. **I built the boring parts that make a claim checkable.** A test suite that executes the real
+3. **The build includes the boring parts that make a claim checkable.** A test suite that executes the real
    compiled SBF artifact through LiteSVM rather than a mock. Assertions on observable onchain
    state — counter values, account existence, lamport balances — rather than on error strings. A
    matched pair of tests that demonstrates the bug without the guard and the fix with it. Golden
    vectors pinned in three independent implementations. Measured overhead instead of "negligible".
    And an evidence document whose most important section is the list of what is **not** verified.
-4. **I had the time and treated it as a full engineering sprint.** Four weeks, one program, one
-   SDK, one test suite, one devnet deployment, one security model, one prior-art survey.
+4. **The work is dated.** The visible repository history starts on September 21, inside the
+   Contest Period. One program, one SDK, test suites, devnet deployment evidence, a security
+   model, and a prior-art survey can all be inspected independently.
 
-**What I do not have, stated without hedging.**
+**What the project does not claim.**
 
-- **No infrastructure or protocol-team background.** I have not operated production Solana
-  infrastructure. When a judge asks what I know about validator behaviour under load, the honest
-  answer is "less than someone who has run it."
-- **No prior company, exit, or funding.**
-- **No professional trading experience** — which matters specifically for the trading-bot segment
-  in [`GTM.md`](GTM.md). I can argue why a duplicated order is a risk; I cannot claim I have
-  managed that risk with real capital.
-- **No team.** Solo. The average winning Colosseum team is larger than one, and the guidance says
-  so openly.
-- **No security-audit experience.** I wrote a threat model with the specific failure modes that
-  would break the guarantee, and paired each with the test that guards it — but a security model
-  written by the author is a specification to be checked, not evidence, and I have said that in
-  [`docs/SECURITY_MODEL.md`](../docs/SECURITY_MODEL.md) rather than letting it read as reassurance.
+- No mainnet deployment, external security audit, production usage, customers, or revenue.
+- No production infrastructure operation or professional trading record is offered as a
+  qualification; the submission stands on the checkable artifact instead.
+- No team. This is a solo-founder entry, developed with AI coding assistance.
+- The threat model is a specification for review, not an independent audit; see
+  [`docs/SECURITY_MODEL.md`](../docs/SECURITY_MODEL.md).
 
 **What I would want a judge to weigh instead of credentials.** Whether the work is real, whether
 the numbers are checkable, and whether the founder is honest about the limits. All three are
@@ -131,14 +109,14 @@ verifiable in about ten minutes with `bash verify.sh` and a read of
 
 ---
 
-## Why I am building this as a company rather than a public good
+## A possible business beyond the public-good code
 
 Both are defensible, and the repository is Apache-2.0 either way, so the code is a public good
 regardless of what happens commercially.
 
-The reason it is a company: **a primitive that sits in front of money movement has to be
+The business case to validate is that **a primitive that sits in front of money movement has to be
 maintained, audited and supported for years.** Someone has to answer "is this still safe to use in
-production?" after I stop being the only person who has read the code. The audit, the
+production?" over time. The audit, the
 observability around receipt state, the cleanup automation, and the on-call answer are real work
 that has to be paid for — see [`GTM.md`](GTM.md) §5. A public good with no maintenance path is a
 liability in exactly the place this product is meant to be trustworthy.
@@ -151,25 +129,19 @@ stronger than a log line.
 
 ## Being a student, and the University Award
 
-There is a **$5,000 University Award** in this competition, and I am directly eligible: I am a
-university engineering student.
+There is a **$5,000 University Award** in this competition. I am a university engineering
+student, so I may qualify, subject to the organizer's award criteria and verification.
 
-I am not hiding it, and I am not leading with it either. Being a student is a real constraint on
-what I can claim — it is why there is no audit, no mainnet deployment, and no team in this
-submission. It is also why the four weeks of the Contest Period were spent on the program, the
-tests and the evidence rather than on a website, and why the pitch says the next three steps are
-publish, validate, and audit rather than anything more glamorous.
-
-What a student has, in this particular case, is the willingness to read the primary sources
-instead of the summary, and the time to write the test that proves the claim instead of asserting
-it.
+Student status is a confirmed fact, not an explanation for every product limitation. The lack
+of an audit, mainnet deployment, team, and external users is stated separately and directly.
 
 ---
 
 ## Commitment
 
-I intend to build this full-time after the Contest Period. The concrete plan, with dates and
-thresholds, is in [`GTM.md`](GTM.md) §6 and [`TRACTION.md`](TRACTION.md) §4:
+The next-stage plan, with dates and thresholds, is in [`GTM.md`](GTM.md) §6 and
+[`TRACTION.md`](TRACTION.md) §4. I have not committed to working on CommitOnce full-time after
+the Contest Period. The concrete near-term steps are:
 
 1. **Make it installable** — publish the SDK to npm (not published yet).
 2. **Ten conversations** with the archetypes in [`GTM.md`](GTM.md) §3, documented, with a

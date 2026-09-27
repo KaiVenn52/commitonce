@@ -176,7 +176,7 @@ self-authored, strategically-prioritised work inside the Contest Period.
 | --- | --- | --- |
 | Grand Champion | $30,000 | in Phantom CASH stablecoin |
 | Public Goods Award | $5,000 | |
-| **University Award** | **$5,000** | the founder is a university engineering student — directly eligible |
+| **University Award** | **$5,000** | the founder is a university engineering student; award eligibility remains subject to organizer verification |
 | Next 20 standout teams | $15,000 each | $300,000 total |
 | **Solana track** | **$100,000 across 10 projects** | $10,000 each — CommitOnce's primary track |
 | Other tracks | $25k–$100k each | Tempo, Hyperliquid, Zcash, Ethereum L1, Base, Arbitrum, Robinhood Chain |

@@ -135,13 +135,13 @@ verified).
 
 | | |
 | --- | --- |
-| Program ID (identical on all clusters) | `CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB` |
-| Devnet deployment | **live and executable**, deploy slot `503174994` |
+| Current devnet program ID | `CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB` |
+| Devnet deployment | Last verified live at deploy slot `503174994`; the 2026-09-27 public-RPC recheck was inconclusive and must pass again before recording. |
 | Rust tests | **60 passing, exit 0**, executing the real compiled SBF artifact in LiteSVM |
 | Rent-exemption rule, checked against a real runtime | **Verified** on `solana-test-validator` 4.2.2: a one-lamport pre-fund of a receipt PDA is refused by the cluster with `InsufficientFundsForRent`, so that griefing vector cannot be set up. |
 | Composability, executed | System Program, SPL Token + Associated Token, **Token-2022**, an arbitrary Anchor program, a CPI from another program, and a **PDA authority via `invoke_signed`** |
 | SDK tests | **79 passing**, golden vectors cross-checked by an independent implementation |
-| Measured overhead | +404 bytes, +4 accounts (usually +3); `claim` ~14,000 CU on devnet |
+| Measured overhead | +404 bytes, +4 accounts (usually +3); `claim` 9,292 CU on devnet |
 | Receipt | 202 bytes, 1,676,400 lamports rent, fully refundable on cleanup |
 | Build | SBPFv3, `readelf -h` reports `Flags: 0x3` |
 

@@ -4,7 +4,7 @@ Practical capture plan for both required videos. Two deliverables:
 
 | # | Video | Length | Purpose | Script |
 | --- | --- | --- | --- | --- |
-| 1 | **Presentation (pitch)** | 2:00–2:59, target ~2:42 | team, problem, product, market, plan | [`PITCH_SCRIPT.md`](PITCH_SCRIPT.md) |
+| 1 | **Presentation (pitch)** | 2:00–2:59, target ~2:46 | team, problem, product, market, plan | [`PITCH_SCRIPT.md`](PITCH_SCRIPT.md) |
 | 2 | **Product demo** | ≤3:00, target ~2:52 | how the product works, live on devnet | [`DEMO_SCRIPT.md`](DEMO_SCRIPT.md) |
 
 The Colosseum FAQ and both workshop posts agree the pitch video is *"the most important element
@@ -62,18 +62,18 @@ Nothing here is optional. Every item on this list has cost someone a retake.
 
 ## 1. Presentation video — shot list
 
-Target **2:42** (see [`PITCH_SCRIPT.md`](PITCH_SCRIPT.md) for the timing map and word counts).
+Target **2:46** (see [`PITCH_SCRIPT.md`](PITCH_SCRIPT.md) for the timing map and word counts).
 
 | # | Time | Shot | On screen | Spoken (section) | Notes |
 | --- | --- | --- | --- | --- | --- |
-| 1 | 0:00–0:23 | Talking head, medium, no slide | You, plain background | §1 the USDC withdrawal story | This is the hook. Do not open with a logo or a title card. Look at the lens. |
-| 2 | 0:23–0:49 | Screen + diagram | The one-transaction diagram, or a two-column "runtime dedup: message hash" / "your retry: new bytes" | §2 the problem | Keep the diagram on screen the whole 26s; do not cut away. |
-| 3 | 0:49–1:26 | Screen + diagram | `claim` first, business instructions after, "receipt present → ERROR → reverts" | §3 what it is, and the guarantee | Pause one beat after "retention window". That sentence is the credibility line. |
-| 4 | 1:26–2:04 | Terminal capture | The A/B run, or the 40-test summary line | §4 what is built and verified | The only shot where the product is visibly working. Let the screen carry it; keep narration slow. |
-| 5 | 2:04–2:23 | Slide | Five archetypes as plain text: payments processor, trading bot, game backend, relayer, agent framework | §5 who it is for | Text only. No logos. |
-| 6 | 2:23–2:43 | Talking head | You | §6 honest status and next three steps | Say the absences calmly. Do not apologise, and do not add a closing slogan. |
+| 1 | 0:00–0:25 | Talking head, medium, no slide | You, plain background | §1 the ambiguous-retry problem | This is the hook. Do not open with a logo or a title card. Look at the lens. |
+| 2 | 0:25–0:51 | Screen + diagram | The one-transaction diagram, or a two-column "runtime dedup: message hash" / "your retry: new bytes" | §2 the problem | Keep the diagram on screen the whole 26s; do not cut away. |
+| 3 | 0:51–1:28 | Screen + diagram | `claim` first, business instructions after, "receipt present → ERROR → reverts" | §3 what it is, and the guarantee | Pause one beat after "retention window". That sentence is the credibility line. |
+| 4 | 1:28–2:06 | Terminal capture | The A/B run, or the 60-test summary line | §4 what is built and verified | The only shot where the product is visibly working. Let the screen carry it; keep narration slow. |
+| 5 | 2:06–2:25 | Slide | Five archetypes as plain text: payments processor, trading bot, game backend, relayer, agent framework | §5 who it is for | Text only. No logos. |
+| 6 | 2:25–2:46 | Talking head | You | §6 honest status and next three steps | Say the absences calmly. Do not apologise, and do not add a closing slogan. |
 
-**Total: 6 shots, ~2:42.** One continuous take is fine and preferred; there is no need to edit.
+**Total: 6 shots, ~2:46.** One continuous take is fine and preferred; there is no need to edit.
 
 **Do not** put the program ID on screen as a spoken item. If you want it visible, show it as a
 lower-third or a slide footnote, spelled correctly:

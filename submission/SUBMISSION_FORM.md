@@ -13,8 +13,12 @@ supply and must not invent:
 | `<YOUR LOCATION>` | you | A fact about a person. |
 | `<PRESENTATION VIDEO URL>` / `<DEMO VIDEO URL>` | you | The videos do not exist yet; recording them is an owner action. |
 
-Everything else below is verified and reproducible. The authority on what is and is not verified
-is [`../EVIDENCE.md`](../EVIDENCE.md).
+**Live-demo gate:** the 2026-09-27 public devnet RPC check could not read the program accounts.
+Do not paste the "live on devnet" claim or record the video until
+`bash scripts/verify-deployment.sh` and the A/B demo pass again.
+
+The technical claims below have recorded evidence; current live status remains conditional.
+The authority on what is and is not verified is [`../EVIDENCE.md`](../EVIDENCE.md).
 
 ---
 
@@ -104,28 +108,20 @@ One founder, no team. Stated plainly, because judges verify and the rules requir
 ```
 Solo founder: <YOUR NAME>
 
-Background: university engineering student. I am actively learning and building on Solana,
-which is an accurate description of my experience rather than a euphemism for something more
-impressive.
+Background: university engineering student and solo founder. I have built other Solana
+prototypes, but I do not claim production infrastructure experience.
 
-Previous experience, stated negatively because that is the honest form: no infrastructure
-background, no previous work at an RPC provider, validator operator or protocol team, no
-previous exit, no professional trading experience, no cofounder, no advisor, no funding, and no
-prior Solana project.
-
-Every line of code and every document in this submission was written by me during the Contest
-Period. There is no pre-existing code from me in this repository, and no third party wrote any
-part of it. Commit history and a dated work log are in the repository:
+I led CommitOnce's development with AI coding assistance during the Contest Period. The
+repository's commit history and dated work log show the development and verification work;
+I am responsible for the claims in this submission. There is no pre-existing CommitOnce code
+from me in this repository. The work log is here:
 https://github.com/KaiVenn52/commitonce/blob/main/submission/WORK_LOG.md
 
-Why this is the right person to build it: I hit the problem myself. I was withdrawing USDC from
-a Solana wallet, the transaction failed, and I could not tell what had failed — whether the
-problem was my wallet, my account setup, or the chain. So I retried. And then I realised that
-if the first attempt had actually gone through, I had just sent it twice, and nothing in the
-interface or the error could tell me whether that had happened.
-
-The question that came out of that is the one this project is built on: after a transaction
-error, what is safe to do next?
+Why this problem: a client can time out after submitting a Solana transaction without knowing
+whether it landed. Rebuilding and retrying creates new signed bytes, so runtime message-hash
+deduplication cannot protect the underlying action. The project turns that failure mode into
+a reproducible A/B test and an onchain guard. The question is: after an ambiguous outcome,
+what can an application safely retry?
 ```
 
 ## 5. Where the team is located
@@ -216,9 +212,9 @@ The rules require disclosure of all relevant past development work. This is the 
 paste where the form asks:
 
 ```
-There is no pre-existing code from me in this submission. Every file in the repository was
-written during the Contest Period, which the dated work log and the commit history both
-demonstrate: https://github.com/KaiVenn52/commitonce/blob/main/submission/WORK_LOG.md
+There is no pre-existing CommitOnce code from me in this submission. I led the project with
+AI coding assistance during the Contest Period. The dated work log and commit history record
+that development: https://github.com/KaiVenn52/commitonce/blob/main/submission/WORK_LOG.md
 
 Third-party open-source dependencies are used and are inventoried with their licences and
 provenance in the technical overview. None of them is a Solana idempotency primitive; the

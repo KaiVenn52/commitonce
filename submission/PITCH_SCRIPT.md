@@ -3,11 +3,11 @@
 **Hard constraint.** Every Colosseum source agrees the pitch video must be short of three
 minutes: the FAQ says *"a two-to-three-minute presentation video"*, the 2024 guide says
 *"presentations are required to be under 3 minutes"*, and the 2025 workshop guide says
-*"no more than three minutes"*. **Target 2:00–2:59.** This script is written for **2:32–2:48**
+*"no more than three minutes"*. **Target 2:00–2:59.** This script is written for **2:35–2:51**
 depending on pace.
 
-**Timing basis.** 405 words of spoken script. At 150 words per minute that is **2:42**; at
-145 wpm **2:48**; at 160 wpm **2:32**. Word counts below were counted mechanically from the
+**Timing basis.** 414 words of spoken script. At 150 words per minute that is **2:46**; at
+145 wpm **2:51**; at 160 wpm **2:35**. Word counts below were counted mechanically from the
 script text, not estimated. Before recording, read the whole script aloud once with a timer and
 adjust the pace rather than the words.
 
@@ -21,16 +21,16 @@ flat voice; the numbers are the argument.
 
 | § | Content | Words | Time | Cumulative |
 | --- | --- | --- | --- | --- |
-| 1 | The story: a USDC withdrawal that failed, and the question it left | 58 | 23s | 0:00 – 0:23 |
-| 2 | The problem in the protocol: message-hash dedup is not intent dedup | 64 | 26s | 0:23 – 0:49 |
-| 3 | What CommitOnce is, and the guarantee stated precisely | 92 | 37s | 0:49 – 1:26 |
-| 4 | What is built and verified today | 95 | 38s | 1:26 – 2:04 |
-| 5 | Who it is for and why the market is every application that retries | 47 | 19s | 2:04 – 2:23 |
-| 6 | Honest status and the next three steps | 49 | 20s | 2:23 – 2:43 |
-| | **Total** | **405** | **~2:43** | |
+| 1 | The problem: an ambiguous transaction outcome and an unsafe retry | 63 | 25s | 0:00 – 0:25 |
+| 2 | The problem in the protocol: message-hash dedup is not intent dedup | 64 | 26s | 0:25 – 0:51 |
+| 3 | What CommitOnce is, and the guarantee stated precisely | 92 | 37s | 0:51 – 1:28 |
+| 4 | What is built and verified today | 95 | 38s | 1:28 – 2:06 |
+| 5 | Who it is for and why the market is every application that retries | 47 | 19s | 2:06 – 2:25 |
+| 6 | Honest status and the next three steps | 53 | 21s | 2:25 – 2:46 |
+| | **Total** | **414** | **~2:46** | |
 
-*The total is 405 words ÷ 150 wpm = 2:42; the cumulative column reads 2:43 because each section's
-seconds are rounded individually. Both are inside the 2:00–2:59 window.*
+*The total is 414 words ÷ 150 wpm = 2:46. Rehearse aloud before recording; the actual pace,
+not the word-count estimate, determines whether the video meets the 2:00–2:59 window.*
 
 ---
 
@@ -39,16 +39,16 @@ seconds are rounded individually. Both are inside the 2:00–2:59 window.*
 > Read the script text verbatim. The bracketed lines are camera and screen directions, not
 > spoken words, and are excluded from the word counts above.
 
-### §1 — The story (0:00 – 0:23, 58 words)
+### §1 — The problem (0:00 – 0:25, 63 words)
 
 *[On camera, medium shot, no slides. This is the hook; do not open with a logo.]*
 
-> I was withdrawing USDC from a Solana wallet and the transaction failed. I did what everyone
-> does: I hit retry. Then I realised I had no idea whether the first attempt had landed, or
-> whether my retry had just sent it twice. That question, after a transaction error, what is
-> safe to do next, is why CommitOnce exists.
+> A Solana app sends a transaction and gets no clear answer. The client times out, so it
+> rebuilds and retries with a fresh blockhash. The runtime sees new bytes; both attempts can
+> land. That is a normal retry path, not a rare edge case. The question is: how can an app
+> retry without executing the same intent twice? That is why CommitOnce exists.
 
-### §2 — The problem (0:23 – 0:49, 64 words)
+### §2 — The problem (0:25 – 0:51, 64 words)
 
 *[Screen: the transaction diagram from `README.md`, or a two-column slide — "runtime dedup:
 message hash" / "your retry: new bytes".]*
@@ -59,7 +59,7 @@ message hash" / "your retry: new bytes".]*
 > transaction. Both can land. Solana's production-readiness guide names this and tells
 > developers to preserve application-level idempotency before sending.
 
-### §3 — What it is, and the guarantee (0:49 – 1:26, 92 words)
+### §3 — What it is, and the guarantee (0:51 – 1:28, 92 words)
 
 *[Screen: the one-transaction diagram — `claim` first, business instructions after, "receipt
 present → ERROR → whole transaction reverts".]*
@@ -75,20 +75,20 @@ present → ERROR → whole transaction reverts".]*
 *[Pause for one beat after "retention window." The next sentence is the credibility line. Do
 not rush it, and do not say "exactly once".]*
 
-### §4 — What is built and verified (1:26 – 2:04, 95 words)
+### §4 — What is built and verified (1:28 – 2:06, 95 words)
 
 *[Screen: switch to the terminal and run the A/B demo, or show the test summary. This is the
 only section where a judge can see the product working, so let the screen carry the weight.]*
 
-> The program is deployed and live on devnet. Forty Rust tests pass with exit code zero,
+> The program is deployed and live on devnet. Sixty Rust tests pass with exit code zero,
 > executing the real compiled SBF artifact through LiteSVM. Two of them are the whole story.
 > Without the guard, two rebuilt transactions both land and the counter reads two. With the
-> guard, the second is blocked and the counter reads one. Forty-eight SDK tests pass, with
+> guard, the second is blocked and the counter reads one. Seventy-nine SDK tests pass, with
 > golden vectors cross-checked by an independent implementation. Measured cost: under ten
 > thousand compute units, four hundred bytes, usually three extra accounts. The receipt is two
 > hundred and two bytes, and the rent is refundable.
 
-### §5 — Who it is for (2:04 – 2:23, 47 words)
+### §5 — Who it is for (2:06 – 2:25, 47 words)
 
 *[Screen: a simple list of five archetypes. No logos — none of these are customers.]*
 
@@ -97,14 +97,14 @@ only section where a judge can see the product working, so let the screen carry 
 > is most applications that retry. It is infrastructure: one prepended instruction, no changes
 > to your program, Apache-2.0, no RPC dependency.
 
-### §6 — Honest status and next steps (2:23 – 2:43, 49 words)
+### §6 — Honest status and next steps (2:25 – 2:46, 53 words)
 
 *[On camera. Say the absences calmly and without apology; they are disclosed, not concealed.]*
 
 > What I will not claim: no mainnet deployment, no audit, no npm release, no users, no revenue.
-> I am one founder, a university engineering student, and this is what I built during the
-> contest period. Next: publish the SDK, land ten design partners, and audit before anything
-> holds value.
+> I am one founder, a university engineering student. I led this build with AI coding
+> assistance during the contest period. Next: publish the SDK, speak with ten potential design
+> partners, and audit before anything holds value.
 
 *[Stop. Do not add a closing slogan. The last sentence is the ask.]*
 
@@ -118,7 +118,7 @@ The required contents are the union of the two Colosseum blog posts and the hack
 | --- | --- |
 | Team background | §6 (one founder, university engineering student, solo) |
 | Product description | §3 |
-| Why you started building it | §1 |
+| Why the project was started | §1 |
 | Who the product is for | §5 |
 | The problem being solved | §1 and §2 |
 | The potential market opportunity | §5, expanded in [`GTM.md`](GTM.md) and [`FAQ.md`](FAQ.md) |

@@ -15,7 +15,7 @@
  *   3. no claim that was previously found to be false has survived anywhere
  *   4. every evidence log is UTF-8 without a BOM (one was once written as UTF-16LE by a
  *      Windows redirect, which made it unreadable on Linux and binary to git)
- *   5. the test counts quoted in the documents are the counts the suites actually produce
+ *   5. reviewer-facing test counts and compute figures match the measured evidence
  *   6. no orphaned row in a markdown table (a row whose neighbours were reflowed away)
  *   7. every test `docs/SECURITY_MODEL.md` cites as a guard actually exists
  *   8. the website's numbers are the numbers `EVIDENCE.md` records
@@ -125,6 +125,21 @@ const RETIRED_CLAIMS = [
     { pattern: /48 passed \(48\)/, why: 'the SDK suite is larger than 48' },
     { pattern: /Tests {2}48/, why: 'the SDK suite is larger than 48' },
     { pattern: /40 passing/, why: 'the Rust suite is larger than 40' },
+    {
+        pattern: /I was withdrawing USDC from a Solana wallet/i,
+        why: 'the founder confirmed this personal incident did not occur',
+        only: ['submission/'],
+    },
+    {
+        pattern: /Every line of code[^.]{0,160}written by me/i,
+        why: 'the founder confirmed AI coding assistance was used',
+        only: ['submission/'],
+    },
+    {
+        pattern: /no prior Solana project/i,
+        why: 'the founder has built other Solana prototypes',
+        only: ['submission/'],
+    },
     { pattern: /11 exports, 6 constants/, why: 'the SDK exports more than 11' },
     {
         pattern: /has not been executed against a live cluster/,
@@ -263,6 +278,47 @@ for (const file of files.filter((f) => extname(f) === '.md')) {
     }
 }
 console.log(`test counts:    ${counts} quoted (outside ${HISTORY_FILE})`);
+
+// The generic count scan above catches "60 Rust tests" but misses spelled-out counts in
+// the pitch script ("Forty Rust tests"). Check the actual spoken claims, not every
+// number-word in prose or historical work-log entries.
+const SPOKEN_COUNTS = new Map([
+    ['forty', 40],
+    ['forty-eight', 48],
+    ['sixty', 60],
+    ['seventy-nine', 79],
+]);
+const pitchPath = join(ROOT, 'submission', 'PITCH_SCRIPT.md');
+const pitchBody = readFileSync(pitchPath, 'utf8');
+let spokenCounts = 0;
+for (const match of pitchBody.matchAll(/\b([a-z]+(?:-[a-z]+)?|\d+)\s+(Rust|SDK)\s+tests pass\b/gi)) {
+    spokenCounts += 1;
+    const actual = /^\d+$/.test(match[1]) ? Number(match[1]) : SPOKEN_COUNTS.get(match[1].toLowerCase());
+    const expected = match[2].toLowerCase() === 'rust' ? 60 : 79;
+    if (actual !== expected) {
+        problems.push(`submission/PITCH_SCRIPT.md quotes ${match[0]}, but the ${match[2]} suite has ${expected} tests`);
+    }
+}
+if (spokenCounts !== 2) {
+    problems.push(`submission/PITCH_SCRIPT.md has ${spokenCounts} spoken test counts; expected one Rust and one SDK count`);
+}
+
+// Only current summary rows are checked. Historical figures in EVIDENCE.md and WORK_LOG.md
+// are deliberately retained to explain why the old measurement was retired.
+let overheadRows = 0;
+for (const file of files.filter((f) => extname(f) === '.md')) {
+    if (rel(file) === HISTORY_FILE) continue;
+    const body = readFileSync(file, 'utf8');
+    for (const line of body.split('\n')) {
+        if (!/^\| Measured overhead \|/.test(line)) continue;
+        overheadRows += 1;
+        if (!/\bclaim\b[^|]*\b9,292 CU\b/.test(line)) {
+            problems.push(`${rel(file)} has a current measured-overhead row without the verified 9,292 CU claim figure`);
+        }
+    }
+}
+if (overheadRows === 0) problems.push('no current measured-overhead rows were checked');
+console.log(`review figures: ${spokenCounts} spoken counts, ${overheadRows} overhead rows checked`);
 
 // ---------------------------------------------------------------------------------------
 // 6. Orphaned markdown table rows.
