@@ -23,7 +23,8 @@ that a retry landed twice. That moment is the entire go-to-market:
 1. It is a **bug they already have**, not a capability they have to want.
 2. It is **diagnosable** — a duplicated payment, a double mint, a doubled position.
 3. The fix is **one instruction**, and requires **no change to their program**, which is the
-   single strongest argument for adoption: no redeploy, no migration, no audit of their own code.
+   adoption argument: no downstream-program redeploy or state migration. The team still needs
+   to review the guard, its transaction composition and its retry policy before deployment.
 
 So the motion is not "advertise a primitive". It is: find the teams that have this bug, show them
 it is theirs, and hand them a 20-minute fix.
@@ -127,11 +128,11 @@ exists.** These are target profiles and the places they are actually reachable.
 
 **How to find them without guessing.** Three concrete sourcing methods, in order of yield:
 
-1. **Read the retry code that is already public.** Open-source Solana applications that rebuild a
-   transaction on timeout have the bug in their repository, in the open. A team that can be shown
-   the exact line where their retry changes the message hash has no argument to make. This is
-   research, not outreach — it produces a specific, checkable claim about *their* code.
-2. **The hackathon's own builder pool.** The Crypto World's Fair page reports **4,585 builders**,
+1. **Read the retry code that is already public.** Rebuilding after a timeout is a reason to
+   investigate, not proof of a duplicate bug: the downstream program may already enforce
+   idempotency. Trace both layers and reproduce the duplicate before making a claim about a
+   team's code. Record a safe existing retry path as disconfirming evidence.
+2. **The hackathon's own builder pool.** Crypto World's Fair provides a cohort of builders,
    and the contest rules scope submissions to one per team, so this cohort is a bounded,
    reachable, already-motivated set of teams — most of them running transaction code written in
    the last four weeks, which is exactly when a duplicate bug gets written.

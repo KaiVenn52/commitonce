@@ -27,7 +27,6 @@ mod common;
 
 use common::*;
 use solana_instruction::{AccountMeta, Instruction};
-use solana_signer::Signer;
 
 /// Instruction data for the native program: the `claim` body **without** the discriminator.
 ///

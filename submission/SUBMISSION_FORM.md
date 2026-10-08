@@ -13,11 +13,13 @@ supply and must not invent:
 | `<YOUR LOCATION>` | you | A fact about a person. |
 | `<PRESENTATION VIDEO URL>` / `<DEMO VIDEO URL>` | you | The videos do not exist yet; recording them is an owner action. |
 
-**Live-demo gate:** the 2026-09-27 public devnet RPC check could not read the program accounts.
-Do not paste the "live on devnet" claim or record the video until
-`bash scripts/verify-deployment.sh` and the A/B demo pass again.
+**Live-demo gate passed on 2026-10-08:** the deployment verifier matched both programs to
+the local artifacts, including zero-only loader padding. The live A/B ended at 2 without
+the guard and 1 with it; the guarded retry failed with `AlreadyCommitted`.
+The evidence and transaction links are in [`PRE_SUBMIT_REVIEW.md`](PRE_SUBMIT_REVIEW.md).
+Rehearse again immediately before recording; this dated result is not a permanent uptime claim.
 
-The technical claims below have recorded evidence; current live status remains conditional.
+The technical claims below have recorded evidence.
 The authority on what is and is not verified is [`../EVIDENCE.md`](../EVIDENCE.md).
 
 ---
@@ -35,28 +37,17 @@ does rather than how it works.
 
 ```
 CommitOnce is an onchain idempotency layer for Solana. Prepend one instruction to the
-transaction you already build, and a rebuilt retry can no longer execute the same logical
-intent a second time.
+transaction you already build to prevent a rebuilt retry from executing the same guarded
+intent twice within its retention window.
 
-Solana's runtime deduplicates transactions by message hash, not by intent. When a client
-times out and retries, it rebuilds the transaction — fresh blockhash, different priority fee,
-re-signed — which produces a different message hash. The runtime sees a brand new transaction
-and both attempts can land. Solana's own production-readiness guide names this and hands the
-remedy back to the application: "A rebuilt transaction has a new signature, so preserve
-application-level idempotency before sending it."
-
-CommitOnce is that layer. A single `claim` instruction is prepended to the caller's existing
-transaction, so it commits atomically with the business instructions. The first attempt
-creates a receipt account whose address is derived from (authority, namespace, idempotency
-key). A retry of the same intent finds that receipt and the whole transaction reverts before
-any business instruction runs, returning a specific, actionable error: AlreadyCommitted.
+The first target is Solana payments teams: after an ambiguous timeout, rebuilding a payment
+changes its message hash and both attempts can land. CommitOnce records the intent in the
+same atomic transaction as the payment. A duplicate aborts; a failed payment leaves no receipt.
 
 The guarantee is at-most-once successful execution of a guarded logical intent within the
-configured retention window. It is not a universal "exactly once" claim, and the repository
-does not describe it as one.
-
-It is live on devnet and unaudited. 60 Rust tests and 79 SDK tests pass, and the tests execute
-the real compiled SBF artifact rather than a mock.
+configured retention window. The open-source program and SDK have 60 Rust tests and 79 SDK
+tests. Devnet deployment is verified separately; there is no mainnet deployment, audit or
+external adoption yet.
 ```
 
 ## 3. Which blockchains and tools are being integrated
@@ -172,20 +163,22 @@ links; the pre-flight gates in §1 of that script must pass before recording.
 
 ```
 WHO IT IS FOR
-Anyone who retries a Solana transaction: payments processors, trading bots, game and mint
-backends, relayers, subscription and payroll flows, and agent frameworks that pay autonomously.
-The integration cost is one prepended instruction, with no change to the downstream program.
+The first target is Solana payments, checkout and recurring-billing teams whose retry paths
+lack application-level idempotency. Validate those paths before proposing an integration.
+Trading, gaming, relayers and agent payments are later expansion opportunities. The integration
+adds one instruction, with no change to the downstream program.
 
 WHY THEY ADOPT IT
 The pitch is not "add reliability" in the abstract. It is: you have a retry path, that retry
 path can currently double-charge, and here is a test that shows it happening on chain plus a
-one-instruction fix. The proof is checkable in the repository in under a minute, with no
-cluster and no funds required.
+one-instruction guard. The paired regression tests reproduce the unguarded and guarded
+outcomes locally, with no cluster or funds required; building the toolchain takes longer.
 
 DISTRIBUTION
-The SDK is zero-dependency and Apache-2.0, so adoption has no supply-chain cost and no licence
-negotiation. Distribution is through the npm package, the integration playbook, and direct
-outreach to teams with a visible retry path.
+The SDK declares no runtime dependencies and one peer dependency, @solana/kit. Apache-2.0
+permits integration under its licence terms; adopters still need to review the code and its
+toolchain. Today it is installed from source. npm publication is planned, alongside the
+integration playbook and outreach to teams with a visible retry path.
 
 LEVERAGE, WHICH IS THE REAL ARGUMENT
 Each integration guards every transaction on that path. One relayer or payments integration

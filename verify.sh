@@ -371,8 +371,8 @@ run_step "declare_id! matches deploy-keys (independent check)" verify_program_id
 # ran the other path to notice.
 # ---------------------------------------------------------------------------------------
 
-run_step "script environment block, both branches (bash scripts/check-script-env.sh)" \
-    bash scripts/check-script-env.sh
+run_step "script environment and deployment verifier regressions" \
+    bash -c 'bash scripts/check-script-env.sh && bash scripts/test-deployment-check.sh'
 
 run_step "formatting (cargo fmt --all --check)" bash -c \
     'cargo fmt --all --check && cargo fmt --manifest-path programs-native/native-guard/Cargo.toml --check'

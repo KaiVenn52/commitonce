@@ -25,7 +25,7 @@ flat voice; the numbers are the argument.
 | 2 | The problem in the protocol: message-hash dedup is not intent dedup | 64 | 26s | 0:25 – 0:51 |
 | 3 | What CommitOnce is, and the guarantee stated precisely | 92 | 37s | 0:51 – 1:28 |
 | 4 | What is built and verified today | 95 | 38s | 1:28 – 2:06 |
-| 5 | Who it is for and why the market is every application that retries | 47 | 19s | 2:06 – 2:25 |
+| 5 | The first market: payments teams with unsafe retries | 47 | 19s | 2:06 – 2:25 |
 | 6 | Honest status and the next three steps | 53 | 21s | 2:25 – 2:46 |
 | | **Total** | **414** | **~2:46** | |
 
@@ -56,8 +56,8 @@ message hash" / "your retry: new bytes".]*
 > Solana deduplicates transactions by message hash. That is in Agave's own runtime source. It
 > protects signed bytes, not intent. When your client times out and rebuilds, with a fresh
 > blockhash and a higher priority fee, the message hash changes and the runtime sees a brand new
-> transaction. Both can land. Solana's production-readiness guide names this and tells
-> developers to preserve application-level idempotency before sending.
+> transaction. Both can land. The guide explains rebroadcast; our A/B demonstrates why
+> rebuilt transactions still need intent protection.
 
 ### §3 — What it is, and the guarantee (0:51 – 1:28, 92 words)
 
@@ -84,18 +84,18 @@ only section where a judge can see the product working, so let the screen carry 
 > executing the real compiled SBF artifact through LiteSVM. Two of them are the whole story.
 > Without the guard, two rebuilt transactions both land and the counter reads two. With the
 > guard, the second is blocked and the counter reads one. Seventy-nine SDK tests pass, with
-> golden vectors cross-checked by an independent implementation. Measured cost: under ten
+> golden vectors cross-checked by an independent implementation. Measured cost: about ten
 > thousand compute units, four hundred bytes, usually three extra accounts. The receipt is two
 > hundred and two bytes, and the rent is refundable.
 
 ### §5 — Who it is for (2:06 – 2:25, 47 words)
 
-*[Screen: a simple list of five archetypes. No logos — none of these are customers.]*
+*[Screen: the payments wedge and validation plan. No customer logos.]*
 
-> The people who need this already have the bug: payments processors, trading bots, game
-> backends, relayers. Anyone whose code rebuilds a transaction after an ambiguous failure. That
-> is most applications that retry. It is infrastructure: one prepended instruction, no changes
-> to your program, Apache-2.0, no RPC dependency.
+> We start with Solana payments teams whose retry paths lack application-level idempotency.
+> A timeout can leave settlement uncertain; rebuilding may pay the same invoice twice.
+> The first validation step is to inspect those paths with ten potential design partners,
+> then measure the guard on their transaction shapes.
 
 ### §6 — Honest status and next steps (2:25 – 2:46, 53 words)
 
@@ -146,13 +146,12 @@ The required contents are the union of the two Colosseum blog posts and the hack
 The hard ceiling is 3:00 and the target is 2:00–2:59. If a read-through lands over 2:55, cut in
 this order, and re-time after each cut:
 
-1. §5 — drop the final sentence ("It is infrastructure: one prepended instruction, no changes to
-   your program, Apache-2.0, no RPC dependency"). **−16 words, −6s.**
+1. §5 — shorten the final sentence to "First, inspect retry paths with ten potential design
+   partners." **−13 words, −5s.**
 2. §4 — drop "Two of them are the whole story." and start directly at "Without the guard…".
    **−7 words, −3s.**
-3. §2 — drop "Solana's production-readiness guide names this and tells developers to preserve
-   application-level idempotency before sending." **−16 words, −6s.** (Do this last: it is the
-   strongest external corroboration in the script.)
+3. §2 — drop the final sentence about the guide and the A/B. Retain the runtime explanation
+   and the A/B demonstration in §4; this cut removes **14 words, about 6s**.
 
 Do **not** cut §1, the guarantee sentence in §3, the A/B result in §4, or §6. Those four are the
 submission.

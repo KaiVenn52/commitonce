@@ -1,0 +1,66 @@
+CommitOnce verification record — 2026-10-08 UTC
+Command: node apps/demo/commitonce-demo.ts --rpc https://api.devnet.solana.com
+PAYER_KEYPAIR: local pre-existing devnet test payer (contents not recorded)
+Exit code: 0
+The excerpt below is captured terminal output; setup and per-attempt logs are omitted.
+
+Summary — the difference, side by side
+============================================================================================
+  scenario          counter onchain  expected  result  attempts that executed
+  ----------------  ---------------  --------  ------  ----------------------
+  A  without-guard  2                2         PASS    2 of 2
+  B  with-guard     1                1         PASS    1 of 2
+
+  Same logical intent. Same rebuild pattern: a new blockhash and a 50x priority fee on
+  attempt 2. The only difference is whether commit_once::claim is prepended to the same
+  atomic transaction.
+
+  #   attempt                        outcome                    onchain    signature
+  --  -----------------------------  -------------------------  ---------  ----------------------------------------------------------------------------------------
+  A1  first send                     success                    counter 1  4qmgrW61LT6MCuwn1TP4GKxRFuDGxEe44SBG2TBcUT1FV1oXU5rJeSY4Fnp2A6dEwJaeaeFwuRJVojvDRsGfAeU9
+  A2  rebuilt (new blockhash + fee)  success                    counter 2  mPRqpgoHD33ijNpQNCTc17GTqW4PamUx1wg7okj2ad9MfdxgviiBQKtp9ZTum3RZsjYRcjddRJ5xyzKnpTwNqU5
+  B1  first send                     success                    counter 1  2yeC8G6k8dMY5LPLyiBNzNcQc5xZQyfYCqKT3mGSQsS7jWifkeJUcVgXFkTpYotRkAo2NsJmpt6HfDFWi59MDif9
+  B2  rebuilt (new blockhash + fee)  FAILED: already-committed  counter 1  3aVfhi7nJxU6zVRem8j9jG3fhjAkk3aL7PsRrtkPcbU22aWg7j3JghMXbccoeDbZrke2Ewnrh34CWo2fBJHWnAxz
+
+  Every signature above is a real transaction submitted to devnet and confirmed by the
+  cluster. The failing ones are onchain too: they were submitted with skipPreflight enabled,
+  so they were included in a block and rejected by the runtime rather than being turned away
+  during simulation.
+
+
+--------------------------------------------------------------------------------------------
+Explorer links
+--------------------------------------------------------------------------------------------
+  A1    SUCCESS https://explorer.solana.com/tx/4qmgrW61LT6MCuwn1TP4GKxRFuDGxEe44SBG2TBcUT1FV1oXU5rJeSY4Fnp2A6dEwJaeaeFwuRJVojvDRsGfAeU9?cluster=devnet
+  A2    SUCCESS https://explorer.solana.com/tx/mPRqpgoHD33ijNpQNCTc17GTqW4PamUx1wg7okj2ad9MfdxgviiBQKtp9ZTum3RZsjYRcjddRJ5xyzKnpTwNqU5?cluster=devnet
+  B1    SUCCESS https://explorer.solana.com/tx/2yeC8G6k8dMY5LPLyiBNzNcQc5xZQyfYCqKT3mGSQsS7jWifkeJUcVgXFkTpYotRkAo2NsJmpt6HfDFWi59MDif9?cluster=devnet
+  B2    FAILED  https://explorer.solana.com/tx/3aVfhi7nJxU6zVRem8j9jG3fhjAkk3aL7PsRrtkPcbU22aWg7j3JghMXbccoeDbZrke2Ewnrh34CWo2fBJHWnAxz?cluster=devnet
+
+
+--------------------------------------------------------------------------------------------
+What this does and does not prove
+--------------------------------------------------------------------------------------------
+  Proves: at-most-once successful execution of a guarded logical intent within the
+  configured retention window. Scenario B reached 1, not 2, and the second attempt failed
+  with AlreadyCommitted, so the guarded increment never ran.
+
+  Does not prove: universal exactly-once execution. Once a receipt expires it can be closed
+  by anyone, and closing it frees the key for a new claim. Choose retention: "permanent"
+  when the key must never be reusable. Retention is per-claim, not per-namespace.
+
+  Also worth knowing: the two scenarios use different authorities, so their counters, their
+  receipts and their fingerprints differ. That is the authority-scoped PDA working as
+  designed — a third party who learns your namespace and key derives a different receipt and
+  cannot consume or block your intent. Within each scenario, the two attempts share one
+  fingerprint.
+
+  Devnet only. The commit_once and demo_counter programs are UNAUDITED and are not deployed
+  to mainnet-beta. Do not treat this as production-ready.
+
+CommitOnce demo: both scenarios behaved exactly as claimed.
+--------------------------------------------------------------------------------------------
+  without the guard the counter reached 2; with the guard it reached 1.
+  The guard did not make the retry fail for an unrelated reason: the retry failed
+  with AlreadyCommitted, and the guarded increment never ran a second time.
+--------------------------------------------------------------------------------------------
+

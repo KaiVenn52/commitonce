@@ -733,8 +733,10 @@ Never throws. Walks the object graph for the two shapes RPC clients produce —
 `{ InstructionError: [index, { Custom: 6000 }] }`, possibly nested under `context.err` or
 `err` — and also parses error *messages* such as `custom program error: 0x1770` or
 `custom program error: 6000`, because clients routinely surface the program error only in a
-message string. An unrecognised error is reported as `{ kind: 'other', code: null }` rather
-than guessed at.
+message string. The `Custom` field accepts an integer number, bigint (Kit's decoded RPC
+representation), or decimal string, bounded to u32. Unrelated numeric fields such as a
+slot, fee or instruction index are not custom errors. An unrecognised error is reported
+as `{ kind: 'other', code: null }`; an unknown custom error preserves its numeric code.
 
 ```ts
 type CommitOnceErrorKind =
@@ -763,7 +765,7 @@ means a bug or a genuinely different action sharing a key.
 
 #### `COMMIT_ONCE_ERROR_CODES`
 
-`Record<CommitOnceErrorName, number>` — `AlreadyCommitted: 6000` … `ReceiptIsPermanent: 6010`
+`Record<CommitOnceErrorName, number>` — `AlreadyCommitted: 6000` … `InstructionScanInconclusive: 6011`
 (see §7).
 
 #### `COMMIT_ONCE_ERROR_MESSAGES`

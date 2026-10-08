@@ -563,18 +563,14 @@ const ANCHOR_CUSTOM_ERROR_CEILING = 6100;
 /**
  * Find a program's custom error code in whatever the cluster returned.
  *
- * This exists because the SDK's `classifyError` cannot see the shape @solana/kit 8.3.0
- * actually produces. The wire value is
- * `{"InstructionError":[1,{"Custom":6000}]}`, but kit's transformers decode numeric fields
- * as **bigint**, so it arrives as `{InstructionError:[1n,{Custom:6000n}]}`. `classifyError`
- * walks the object graph looking for a `number` in the Anchor custom range
- * (`packages/sdk/src/errors.ts`, `findCustomCode`), so a bigint does not match and it
- * reports `{ kind: 'other' }`.
+ * Kit's transformers decode numeric RPC fields as bigint, so the wire value
+ * `{"InstructionError":[1,{"Custom":6000}]}` arrives as
+ * `{InstructionError:[1n,{Custom:6000n}]}`. The SDK now accepts this representation
+ * without logs. The demo keeps its independent reader so it can cross-check the
+ * SDK rather than taking its own error interpretation on trust.
  *
- * So the demo reads the code itself — accepting number, bigint and numeric string, and also
- * the `custom program error: 0x1770` form that the runtime writes into the logs. It then
- * cross-checks against the SDK's own `classifyError`, and reports a disagreement rather than
- * picking a winner silently. See apps/demo/README.md, "Known rough edges".
+ * Both readers accept number, bigint and numeric string, and the runtime's
+ * `custom program error: 0x1770` log form. A disagreement fails the demonstration.
  */
 export function customProgramErrorCode(value: unknown): number | null {
     const seen = new Set<unknown>();

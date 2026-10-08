@@ -576,17 +576,24 @@ describe('error classification', () => {
         expect(COMMIT_ONCE_ERROR_CODES.UnsupportedReceiptVersion).toBe(6008);
         expect(COMMIT_ONCE_ERROR_CODES.ReceiptNotExpired).toBe(6009);
         expect(COMMIT_ONCE_ERROR_CODES.ReceiptIsPermanent).toBe(6010);
+        expect(COMMIT_ONCE_ERROR_CODES.InstructionScanInconclusive).toBe(6011);
     });
 
     it('classifies a nested InstructionError payload', () => {
-        const error = {
-            context: { err: { InstructionError: [0, { Custom: 6000 }] } },
-        };
-        const classified = classifyError(error);
-        expect(classified.kind).toBe('commit-once');
-        expect(classified.kind === 'commit-once' && classified.name).toBe('AlreadyCommitted');
-        expect(isAlreadyCommitted(error)).toBe(true);
-        expect(isIdempotencyConflict(error)).toBe(false);
+        // Kit transforms RPC numeric fields into bigint. No logs are supplied here:
+        // a retry client must be able to recognise the status payload on its own.
+        for (const [name, code] of Object.entries(COMMIT_ONCE_ERROR_CODES)) {
+            for (const wireCode of [code, BigInt(code), String(code)]) {
+                const error = {
+                    context: { err: { InstructionError: [0n, { Custom: wireCode }] } },
+                };
+                const classified = classifyError(error);
+                expect(classified.kind).toBe('commit-once');
+                expect(classified.kind === 'commit-once' && classified.name).toBe(name);
+                expect(isAlreadyCommitted(error)).toBe(name === 'AlreadyCommitted');
+                expect(isIdempotencyConflict(error)).toBe(name === 'IdempotencyConflict');
+            }
+        }
     });
 
     it('classifies a hex custom-program-error message', () => {
@@ -598,6 +605,22 @@ describe('error classification', () => {
         const classified = classifyError(new Error('blockhash not found'));
         expect(classified).toEqual({ kind: 'other', code: null });
         expect(isAlreadyCommitted(new Error('blockhash not found'))).toBe(false);
+        // An unrelated slot, fee, instruction index or SDK error code is not a
+        // program error. Misclassifying it as a duplicate would hide a failed action.
+        for (const error of [
+            { slot: 6000 },
+            { fee: 6001n },
+            { code: 6000, message: 'transport failure' },
+            { InstructionError: [6000, 'InvalidArgument'] },
+            { Custom: 6000.5 },
+            { Custom: '6000oops' },
+            { Custom: 4_294_967_296n },
+        ]) {
+            expect(classifyError(error)).toEqual({ kind: 'other', code: null });
+        }
+        expect(classifyError({ InstructionError: [1n, { Custom: 6012n }] })).toEqual({
+            kind: 'other', code: 6012,
+        });
     });
 });
 

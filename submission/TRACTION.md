@@ -70,20 +70,16 @@ numbered and gated.
 One finding from the prior-art survey is worth stating precisely, because it is evidence about the
 market rather than about CommitOnce, and it is checkable:
 
-**The market is empty of products, not of mechanisms.** Registry searches found no shipped Solana
-onchain idempotency primitive on crates.io or npm; GitHub repository searches for
-`solana+nonce+manager`, `solana+guard+instruction+program`, `solana+idempotency+program+anchor`,
-`solana+at-most-once` and `solana+exactly+once+execution` returned zero relevant results;
-`solana.com/docs` never mentions idempotency; and none of roughly 130 SIMDs proposes it. The
-closest deployed artifact, Light Protocol's `nullifier-program`, has **71 crate downloads** and an
-npm package last published **2026-02-05** — roughly seven months live on mainnet with negligible
-adoption and no product surface.
+**A deployed alternative already exists:** Light Protocol's `nullifier-program`. The
+September research snapshot recorded 71 crate downloads and an npm publication dated
+2026-02-05. Those observations measure neither chain usage nor demand, and a repository
+search is not an exhaustive market inventory. Solana's production-readiness guide also
+mentions idempotency, so the earlier claim that its docs never discuss it was incorrect.
 
-That cuts both ways, and the honest reading is the pessimistic one: **a category with a live
-incumbent and near-zero adoption is evidence that adoption is hard, not that the opportunity is
-large.** It may mean the problem is under-appreciated; it may mean developers do not care enough
-to add a dependency. §4 is designed to distinguish those two cases, and §5 says what happens if it
-turns out to be the second.
+**Demand for CommitOnce remains unknown.** The failure mode and the implementation's
+technical differences are demonstrated; willingness to integrate another guard is not.
+§4 is designed to test whether developers need the added protection, already solve it
+downstream, or reject its integration and storage costs. §5 states the disconfirming outcomes.
 
 ---
 

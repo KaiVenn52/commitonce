@@ -96,11 +96,9 @@ Read that carefully, because it is precise about what it protects: it stops the 
 message* from being re-processed under a *different signature*. The protection is
 **content-addressed**. It protects *signed bytes*.
 
-Solana's official production-readiness guidance states the gap and hands the problem back
-to the application:
-
-> *"A rebuilt transaction has a new signature, so preserve application-level idempotency
-> before sending it."*
+Solana's production-readiness guide describes safe resubmission of the same signed
+transaction. Rebuilding changes that transaction, and the paired tests and live A/B
+demonstrate why semantic intent needs its own protection.
 
 So the layers look like this:
 

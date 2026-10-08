@@ -1,0 +1,28 @@
+Verification date: 2026-10-08 UTC
+Command: bash verify.sh
+Exit code: 0
+Captured terminal summary; build and per-test output omitted.
+
+=== summary ===
+  prerequisites                                        PASS     
+  program build (bash scripts/build.sh)                PASS     
+  declare_id! matches deploy-keys (independent check)  PASS     
+  script environment and deployment verifier regressions PASS     
+  formatting (cargo fmt --all --check)                 PASS     
+  Rust suite (bash scripts/test.sh, LiteSVM on the compiled SBF) PASS     
+  benchmarks, output visible (cargo test -p commit-once --test benchmarks) PASS     
+  SDK typecheck (pnpm --filter @commitonce/solana typecheck) PASS     
+  SDK build (pnpm --filter @commitonce/solana build)   PASS     
+  consumers typecheck (pnpm -r typecheck: demo and all four examples) PASS     
+  SDK tests (pnpm --filter @commitonce/solana test)    PASS     
+  SDK resolves under both ESM and CJS (pnpm --filter @commitonce/solana check:dual) PASS     
+  brand assets consistent (node scripts/check-brand.mjs) PASS     
+  SDK constants agree with the program (node scripts/check-constants.mjs) PASS     
+  quickstart script runs and its claims hold (node packages/sdk/quickstart.mjs) PASS     
+  documentation consistent (node scripts/check-docs.mjs) PASS     
+  text files are valid UTF-8 (node scripts/check-encoding.mjs) PASS     
+
+Not verified by this run: deployment of any kind, any Solana cluster, and the
+security of the code. CommitOnce is unaudited; see SECURITY.md.
+RESULT: PASS (17 steps ran and passed)
+exit code: 0

@@ -32,8 +32,8 @@ atomicity do the work" developer experience is also already deployed (`solana-as
 | Retention | none | explicit, bounded, with dual expiry gates and permissionless refund |
 | Assurance | README: *"unaudited, use at your own risk"* | also unaudited — stated everywhere, not hidden |
 
-Adoption of the Light program is negligible (71 crate downloads; its npm package last published
-2026-02-05), but that is a market observation and not a technical argument. The technical
+The September snapshot recorded 71 crate downloads and an npm publication dated 2026-02-05.
+These do not measure onchain adoption or establish current maintenance. The technical
 differences above are the reason this project was not stopped by its own kill condition. Full
 survey with primary sources: [`docs/PRIOR_ART.md`](../docs/PRIOR_ART.md).
 
@@ -50,15 +50,11 @@ The protection is **content-addressed**: it protects *signed bytes*. It does not
 route, re-signed — is different bytes, therefore a different message hash, therefore a new
 object to the runtime. Both can land.
 
-Solana documents the gap and assigns the remedy to the application:
-
-> *"A rebuilt transaction has a new signature, so preserve application-level idempotency before
-> sending it."* — <https://solana.com/docs/tools/production-readiness>
-
-The same page adds that *"a `null` result from the recent signature-status cache is
-inconclusive"* — so even *asking* whether the first attempt landed is not reliable. The
-official guidance names both halves of the problem and then hands it to the caller. That
-assignment is the gap CommitOnce fills.
+Solana's [production-readiness guide](https://solana.com/docs/tools/production-readiness)
+explains safe rebroadcast of the same signed transaction. Rechecked on 2026-10-08, it no
+longer contains the rebuilt-transaction quotation used in an earlier version of this document.
+The rebuild failure mode is demonstrated directly by the paired tests and live A/B in this
+repository: new message bytes can execute the same unguarded action twice.
 
 | Layer | Keys on | Protects against | Does not protect against |
 | --- | --- | --- | --- |

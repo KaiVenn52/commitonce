@@ -46,22 +46,20 @@ transaction landed. So it rebuilds — fresh blockhash, a higher priority fee be
 first attempt was slow, maybe a different route, re-signed. **The message hash is now
 different, so the runtime sees a brand new transaction. Both can land.**
 
-This is not a corner case. Solana's official production-readiness guidance names it and then
-hands the problem back to the application:
+Solana's [production-readiness guide](https://solana.com/docs/tools/production-readiness),
+rechecked on 2026-10-08, explains that rebroadcasting the same signed transaction is safe
+because it preserves its signature. Rebuilding is a different operation: the live A/B below
+shows two distinct messages executing the same unguarded intent. Application-level intent
+deduplication is needed for that case.
 
-> *"A rebuilt transaction has a new signature, so preserve application-level idempotency
-> before sending it."*
-> — <https://solana.com/docs/tools/production-readiness>
-
-The same page warns that *"a `null` result from the recent signature-status cache is
-inconclusive"* — so even checking whether the first attempt landed is not reliable. Every
-transaction-delivery vendor repeats the handoff. Helius documents that `sendTransaction`
+Transaction-delivery vendors also document retry boundaries. Helius documents that `sendTransaction`
 *"does not alter the transaction in any way"* and warns that re-signing *"can lead to
 duplicate transactions being confirmed"*. Triton tells clients to *"handle retries in your
 own code."*
 
-The layer that would let the chain itself answer *"has this intent already happened?"* does
-not exist as a product. **CommitOnce is that layer.**
+CommitOnce lets the chain answer *"has this guarded intent already happened?"* using
+authority-scoped keys, explicit retention and an atomic receipt. Closely related deployed
+prior art is compared below.
 
 ---
 
@@ -353,8 +351,9 @@ proves contention on a live cluster — the **same-slot** case is proven in-proc
 This section exists because the honest answer matters more than a clean story, and because a
 judge or investor will find these anyway.
 
-**The problem is officially acknowledged.** Solana's production-readiness guide tells
-developers to preserve application-level idempotency across rebuilds. Squads' `nonce-guard`
+**The retry boundary matters.** Solana's production-readiness guide explains safe rebroadcast
+of the same signed transaction; the live A/B demonstrates the additional rebuild case.
+Squads' `nonce-guard`
 program inspects the Instructions sysvar to detect durable-nonce transactions — the same
 introspection technique used here. Anchor's `init` idiom (create-or-fail on an existing
 account) is the same primitive at a smaller scale, and `p-never-nonce` and
@@ -380,10 +379,10 @@ equivalent**, for five concrete reasons:
 | Namespaces | none | first-class |
 | Status | README: *"unaudited, use at your own risk"* | also unaudited — see below |
 
-Adoption of the Light program is negligible (71 crate downloads; its npm package last
-published 2026-02-05; Light has since announced it is "joining Helius"), but that is a
-market observation, not a technical argument — the technical differences above are the
-reason this project was not stopped.
+The September research snapshot recorded 71 crate downloads and an npm publication dated
+2026-02-05. Package downloads do not measure onchain adoption, and neither figure establishes
+current usage or maintenance. The technical differences above, rather than an adoption claim,
+are the basis for continuing this project.
 
 The full landscape survey, with sources and raw notes, is in
 [`docs/PRIOR_ART.md`](docs/PRIOR_ART.md).

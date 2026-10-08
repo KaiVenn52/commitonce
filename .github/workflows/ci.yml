@@ -1,9 +1,7 @@
 # CI for CommitOnce.
 #
-# NOT EXECUTED. This workflow has never been run. It is written from the documented install
-# paths for the pinned toolchain versions and from the commands in scripts/. Treat the first
-# run as a debugging exercise, not as evidence that the project builds in CI. Nothing in this
-# repository claims a CI result.
+# This workflow has passed on main; historical runs are available in GitHub Actions.
+# A result applies to its head SHA, not automatically to later local changes.
 #
 # What it does:
 #   * program job — installs the pinned Solana and Anchor toolchains, builds both programs for
@@ -171,15 +169,9 @@ jobs:
       # Build and verify
       # ---------------------------------------------------------------------------------
 
-      # scripts/build.sh is NOT called here, deliberately. It force-exports
-      # HOME=/home/dell2u and prepends a WSL-specific PATH, because that is where the
-      # maintainer's toolchains live. On a GitHub runner that home directory does not exist,
-      # so cargo and anchor would look in the wrong places and fail confusingly. The steps
-      # below replicate what it does — force-copy the committed keypairs, build for SBPFv3,
-      # verify declare_id! — using the runner's own environment.
-      #
-      # If you change scripts/build.sh, change these steps in the same commit, or better:
-      # make the script take HOME from the environment so the two cannot diverge.
+      # CI spells out the build stages so failures are visible as separate job steps.
+      # scripts/build.sh has a portable environment branch; keep the build flags and
+      # native-program build in sync with it.
       - name: Stage program keypairs
         run: |
           set -euo pipefail
@@ -223,6 +215,10 @@ jobs:
       # job on a change that was locally complete and not repository-complete.
       - name: Build the non-Anchor test program
         run: cargo-build-sbf --manifest-path programs-native/native-guard/Cargo.toml --arch "$SBPF_ARCH"
+
+      # Synthetic CLI dumps exercise padding/corruption checks without RPC or funds.
+      - name: Deployment verifier regressions (offline)
+        run: bash scripts/test-deployment-check.sh
 
       - name: Verify declare_id! against deploy-keys
         run: |

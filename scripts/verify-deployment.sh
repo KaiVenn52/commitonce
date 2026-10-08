@@ -92,7 +92,15 @@ for name in commit_once demo_counter; do
 
     if cmp -s -n "$local_size" "$local_so" "$TMP/$name.so"; then
         ok "$name: the first $local_size bytes are byte-identical to the committed artifact"
-        ok "$name: the loader appended $padding zero bytes of padding (ignored)"
+        # A matching prefix alone is insufficient: only zero-filled loader capacity
+        # may be ignored. Arbitrary extra bytes must not be reported as zero padding.
+        if ! nonzero="$(tail -c +$((local_size + 1)) "$TMP/$name.so" | LC_ALL=C tr -d '\000' | wc -c)"; then
+            bad "$name: could not verify the trailing bytes"
+        elif [ "$nonzero" -eq 0 ]; then
+            ok "$name: the loader appended $padding zero bytes of padding (verified)"
+        else
+            bad "$name: the dump contains $nonzero non-zero trailing bytes, not loader padding"
+        fi
     else
         bad "$name: the deployed bytes differ from the committed artifact"
         cmp "$local_so" "$TMP/$name.so" 2>&1 | head -1 | sed 's/^/            /'

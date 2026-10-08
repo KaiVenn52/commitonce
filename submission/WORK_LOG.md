@@ -388,3 +388,39 @@ The founder story is in [`FOUNDER_STORY.md`](FOUNDER_STORY.md).
   language were revised accordingly; no full-time promise should be inferred from the roadmap.
 - After these copy and checker corrections, `bash verify.sh` passed 17/17 again. That is an
   offline engineering check, not a substitute for the still-inconclusive live devnet read.
+
+## 9. 2026-10-08 pre-submit review
+
+- Began with clean public `main` at `eb7c2d8`. Its latest CI run was green; that CI result
+  does not apply to the local changes below. The detailed review is in
+  [`PRE_SUBMIT_REVIEW.md`](PRE_SUBMIT_REVIEW.md).
+- Expanded two existing SDK regression tests. They failed before the fix: Kit bigint custom
+  codes were missed without logs, while unrelated numeric fields could be misclassified as
+  `AlreadyCommitted`. The fixed reader accepts number, bigint and decimal-string `Custom`
+  fields, validates the u32 range and preserves unknown codes. All four classification
+  tests pass; the total SDK suite remains 79 tests, with more cases inside existing tests.
+- Added an offline deployment-verifier regression with synthetic CLI output. A matching
+  artifact prefix plus a non-zero suffix was incorrectly accepted before the fix. The
+  corrected verifier accepts zero-only loader padding and rejects non-zero suffixes,
+  truncated dumps and changed prefixes. Added this regression to local verification and
+  the CI program job. Removed stale CI comments and one compiler-reported unused test import.
+- Rechecked both deployed programs against the built artifacts and verified the loader's
+  trailing bytes are zero. Then executed the live devnet A/B again: counter 2 without the
+  guard, counter 1 with the guard, retry rejected onchain as `AlreadyCommitted` (6000).
+  New deployment output and A/B transaction links are preserved in the review. The older
+  2026-09-27 RPC failure remains an inconclusive historical check, not today's status.
+- Shortened the submission introduction and focused the first market on payments teams
+  lacking downstream idempotency. Corrected claims of zero supply-chain cost, guaranteed
+  bugs in other teams' code and exemption from integration review. Kept the confirmed
+  founder facts and zero-traction disclosure.
+- Rechecked the live Solana guide. It explains safe rebroadcast but no longer contains the
+  rebuilt-retry quotation formerly attributed to it. Updated current summaries to use the
+  runtime mechanism and direct A/B evidence. Removed inference of negligible protocol use
+  from package downloads and of an empty market from repository-search results. Kept the
+  raw September research with an editorial note separating it from current claims.
+- The final code state passed `bash verify.sh`: **17/17 PASS**, exit 0, **60 Rust tests** and
+  **79 SDK tests**. The deployment check and live A/B passed separately; neither is implied
+  by the offline suite. Final documentation records are checked after insertion.
+- Both videos, legal name/location fields, final authenticated Colosseum submission, demand
+  validation and publication of these local changes remain outstanding. No mainnet deployment,
+  npm publication, audit, customer adoption or outreach is claimed.

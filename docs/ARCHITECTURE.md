@@ -24,18 +24,17 @@ rebuilds: fresh blockhash, a higher priority fee because the first attempt was s
 different route, a re-signed transaction. The message hash is different, so the runtime
 sees a brand new transaction. **Both can land.**
 
-Solana's official production-readiness guidance says this outright and then hands the
-problem back to the application:
-
-> *"A rebuilt transaction has a new signature, so preserve application-level idempotency
-> before sending it."*
+Solana's production-readiness guide explains safe resubmission of the same signed
+transaction. The paired tests and live A/B in this repository demonstrate the separate
+rebuild case, which requires application-level intent protection.
 
 Every transaction-delivery vendor repeats the same handoff. Helius documents that
 `sendTransaction` *"does not alter the transaction in any way; it relays the transaction
 created by clients to the node as-is"*, and warns that re-signing *"can lead to duplicate
 transactions being confirmed."* Triton tells clients to *"handle retries in your own
-code… set `maxRetries: 0`."* The layer that would make "did my intent already happen?" a
-question the chain can answer does not exist as a product.
+code… set `maxRetries: 0`."* CommitOnce makes "did my guarded intent already happen?" a
+question the chain can answer using an authority-scoped receipt; related deployed
+primitives are compared in [`PRIOR_ART.md`](PRIOR_ART.md).
 
 **CommitOnce is that layer.**
 

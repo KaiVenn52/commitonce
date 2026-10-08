@@ -51,12 +51,11 @@ rebuilds. Fresh blockhash, a higher priority fee because the first attempt was s
 different route, re-signed. New bytes, new message hash, and the runtime sees a brand new
 transaction. **Both can land.**
 
-Solana's own production-readiness guide names this and hands the problem back to the application —
-*"A rebuilt transaction has a new signature, so preserve application-level idempotency before
-sending it."* The same page adds that a `null` result from the recent signature-status cache is
-inconclusive, so even *asking* whether the first attempt landed is not reliable.
+Solana's production-readiness guide explains why resubmitting the same signed transaction is
+safe. A rebuilt transaction is different. The project's paired tests and live A/B show both
+rebuilt attempts executing the same unguarded action.
 
-The chain tells you to solve it yourself, at the application layer, with the tools you have. The
+An application needs its own intent protection across those rebuilds. The
 tool that would let the chain answer the question directly did not exist as a product.
 
 CommitOnce addresses it with one instruction, prepended to the transaction you were already building, that makes

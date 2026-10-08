@@ -127,10 +127,10 @@ The other differences are state model (a plain PDA visible to any standard index
 compressed state in Light's trees), namespaces, and lifecycle (no retention, no refund, permanent
 state).
 
-**A fair caveat about market reality.** Light's program has **71 crate downloads** and its npm
-package was last published 2026-02-05 — roughly seven months on mainnet with negligible adoption.
-CommitOnce has **zero** users. A judge is entitled to read that as evidence that this category is
-hard to sell, and [`TRACTION.md`](TRACTION.md) §3 says exactly that rather than spinning it.
+**A fair caveat about market reality.** The September snapshot recorded 71 Light crate
+downloads and an npm publication dated 2026-02-05. Package downloads do not establish onchain
+adoption. CommitOnce has **zero** external users, and demand is unknown;
+[`TRACTION.md`](TRACTION.md) §3 distinguishes the technical case from market validation.
 
 ---
 
@@ -246,10 +246,10 @@ productize it. That is covered as risk 3 in question 9.
 **That the problem is real but does not hurt enough for developers to add a dependency.**
 
 It is the honest one, and it is uncomfortable because the evidence cuts both ways. In favour of
-the thesis: Solana documents the gap itself, every transaction-delivery vendor tells clients to
-handle retries in their own code, and the failure mode is silent double execution of a money
-movement. Against it: the closest deployed primitive has been live on mainnet for about seven
-months with 71 crate downloads and effectively no adoption.
+the thesis: the paired tests and live A/B demonstrate duplicated unguarded execution, and
+delivery vendors document retry responsibilities. Against it: teams may already enforce
+idempotency downstream or consider a shared guard too costly. CommitOnce has no customer
+validation yet, and package download counts cannot resolve that uncertainty.
 
 Adoption cost is the mechanism by which that risk would materialise. Integrating CommitOnce
 requires one dependency and one discipline — *put semantic fields in the fingerprint, never

@@ -12,9 +12,9 @@ take a claim on trust.
 Solana's runtime deduplicates transactions by **message hash**, so it protects *signed bytes* — not
 a *logical intent*. When a client's send times out and it retries, it rebuilds: fresh blockhash, a
 higher priority fee, a re-signed transaction. New bytes, new message hash, and the runtime sees a
-brand new transaction. **Both can land.** Solana's own production-readiness guide names this and
-hands the remedy to the application: *"A rebuilt transaction has a new signature, so preserve
-application-level idempotency before sending it."*
+brand new transaction. **Both can land.** The live A/B below demonstrates this directly.
+Solana's production-readiness guide explains safe rebroadcast of the same signed transaction;
+a rebuild changes the bytes and needs its own application-level intent protection.
 
 CommitOnce is that layer. One instruction, `commit_once::claim`, is prepended to the **same atomic
 transaction** as your business instructions. It creates a receipt PDA keyed by
@@ -136,7 +136,7 @@ verified).
 | | |
 | --- | --- |
 | Current devnet program ID | `CiiKHnzF1u9Nr5CuD7FgouN5oHs7pNeCUFuRgBCJrLnB` |
-| Devnet deployment | Last verified live at deploy slot `503174994`; the 2026-09-27 public-RPC recheck was inconclusive and must pass again before recording. |
+| Devnet deployment | Reverified 2026-10-08: both program artifacts match, including zero-only loader padding; live A/B passes (2 without guard, 1 with guard). See [pre-submit review](PRE_SUBMIT_REVIEW.md). |
 | Rust tests | **60 passing, exit 0**, executing the real compiled SBF artifact in LiteSVM |
 | Rent-exemption rule, checked against a real runtime | **Verified** on `solana-test-validator` 4.2.2: a one-lamport pre-fund of a receipt PDA is refused by the cluster with `InsufficientFundsForRent`, so that griefing vector cannot be set up. |
 | Composability, executed | System Program, SPL Token + Associated Token, **Token-2022**, an arbitrary Anchor program, a CPI from another program, and a **PDA authority via `invoke_signed`** |
@@ -212,4 +212,5 @@ were previously unreachable from it, which for a reviewer is the same as not exi
 
 If it is ever made private, read access is granted to **`hackathon@colosseum.com`**. Two
 videos — a 2:00–2:59 presentation and a ≤3:00 product demo — are linked from the submission
-form; the scripts and shot lists for both are in this directory.
+form once recorded and uploaded; both video URLs are still owner placeholders. The scripts
+and shot lists for both are in this directory.

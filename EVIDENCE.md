@@ -79,6 +79,12 @@ deploy-keys/demo_counter-keypair.json    EnMnEKVFXFCTTMJYs7C6HhYhsS8MqLrhNVbx11L
 
 ## 3. Devnet deployment — verified live
 
+**Rechecked 2026-10-08:** both deployed artifacts matched, including zero-only trailing
+loader padding, and the live A/B passed again. See the
+[pre-submit review](submission/PRE_SUBMIT_REVIEW.md) and the
+[captured A/B terminal excerpt](submission/evidence/devnet-demo-2026-10-08.log).
+Earlier runs below remain historical evidence rather than permanent uptime guarantees.
+
 **Both programs are deployed and executable on devnet.** Read back with
 `solana program show <id> --url devnet`:
 

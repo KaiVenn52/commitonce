@@ -1,6 +1,12 @@
 # CommitOnce — Competitive & Prior-Art Landscape
 
 **Research date:** September 2026
+
+**Editorial note, 2026-10-08:** this is the historical research record, including original
+interpretations. Package-download counts below do not establish onchain adoption, repository
+searches do not establish an empty market, and the rebuilt-retry quotation previously attributed
+to Solana's guide is absent from the current page. Use the corrected synthesis in
+[`../PRIOR_ART.md`](../PRIOR_ART.md) and the direct A/B evidence for current submission claims.
 **Subject:** Does a generic, permissionless, composable **onchain idempotency-key primitive** already exist for Solana?
 
 **Method / evidence policy.** Primary sources only: official documentation sites, official GitHub repositories (READMEs *and* actual program source, read from clones rather than summaries), official package registries (crates.io, npm), and live Solana JSON-RPC `getAccountInfo` calls to confirm real onchain deployment. No marketing listicles or AI-generated blog content was used for any claim. Anything not confirmable from a primary source is marked **UNVERIFIED**.

@@ -27,11 +27,9 @@ This is documented, not hypothetical:
 - Agave's runtime source, `runtime/src/bank.rs`: the message hash is added to the status cache
   *"to ensure that this message won't be processed again with a different signature."* That
   protects *signed bytes*. It does not protect a *logical intent*.
-- Solana's official production-readiness guide states the consequence and hands the remedy
-  back to the application: *"A rebuilt transaction has a new signature, so preserve
-  application-level idempotency before sending it."* The same page warns that a `null` result
-  from the recent signature-status cache is inconclusive — so even asking whether the first
-  attempt landed is not reliable.
+- Solana's official production-readiness guide describes safe resubmission of the same signed
+  transaction. The live A/B in this repository demonstrates the rebuild case: distinct
+  messages can execute the same unguarded intent twice.
 - Transaction-delivery vendors repeat the handoff. Helius documents that `sendTransaction`
   *"does not alter the transaction in any way"* and warns that re-signing *"can lead to
   duplicate transactions being confirmed."* Triton tells clients to *"handle retries in your

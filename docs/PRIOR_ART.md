@@ -58,20 +58,13 @@ different priority fee, different route, different account order, different comp
 is different bytes, has a different message hash, and is a completely different object to
 the runtime. Both can land. That is the failure this project addresses.
 
-### Solana documents this gap itself
+### Solana documents safe rebroadcast
 
-This is the single most important primary source for the project, because it establishes
-that the problem is officially acknowledged rather than invented by us. From
-<https://solana.com/docs/tools/production-readiness>:
-
-> *"A rebuilt transaction has a new signature, so preserve application-level idempotency
-> before sending it."*
-
-The same page adds that *"a `null` result from the recent signature-status cache is
-inconclusive"* — so even *asking* whether the first attempt landed is not reliable. The
-official guidance therefore names both halves of the problem (the duplicate risk and the
-inconclusive check) and then assigns the remedy to the application. That assignment is the
-gap CommitOnce fills.
+The [production-readiness guide](https://solana.com/docs/tools/production-readiness),
+rechecked 2026-10-08, describes safe resubmission of the same signed transaction because
+the signature remains the same. It no longer contains the rebuilt-transaction quotation
+previously attributed to it here. The rebuilt-retry failure mode is supported directly
+by Agave's message-hash deduplication and this repository's paired tests and live A/B.
 
 The scope and lifetime of the status-cache protection beyond this are **UNVERIFIED in exact
 detail** from primary sources — the precise retention window and its behaviour across ledger
@@ -226,7 +219,7 @@ These are the actual competitive surface. Each is a concrete, checkable property
 | 3 | **Compressed-account dependency.** ~15,000 lamports of Light state-tree-backed compressed state requiring `ValidityProof`, `address_tree_info`, `output_state_tree_index` and remaining accounts for a Light System Program CPI — not a plain rent-exempt program-owned PDA visible to any standard indexer. | Primary doc |
 | 4 | **No namespace.** A single opaque 32-byte `id`; multi-tenancy and per-app key spaces are entirely the caller's responsibility, so two applications cannot safely use the same textual key. | Primary doc |
 | 5 | **Explicitly unaudited.** README verbatim: *"The nullifier program code is unaudited, use at your own risk."* | Repo README |
-| 6 | **Negligible adoption and continuity risk.** 71 crate downloads; npm `0.1.3` last published 2026-02-05; live on mainnet roughly seven months with effectively no traction, no product surface, no retention policy. Light's own docs carry a *"Light is joining Helius"* banner. | Registry data; docs banner |
+| 6 | **Historical package snapshot, not usage evidence.** September research recorded 71 crate downloads and npm `0.1.3` dated 2026-02-05, plus a "Light is joining Helius" docs banner. Downloads and a banner establish neither onchain adoption nor maintenance status. | Dated registry and documentation observations |
 
 **A note on #1, because it is the difference we lean on hardest.** We are not claiming
 Light's design is *wrong* — a caller can hash their own pubkey into `id` and recover the
@@ -283,12 +276,11 @@ This distinction governs every public claim we make.
 
 ### Market reality
 
-The market is empty of **products**, not of **mechanisms**. Registry searches found no
-shipped Solana onchain idempotency primitive on crates.io or npm; GitHub repository search
-for `solana+nonce+manager`, `solana+guard+instruction+program`,
-`solana+idempotency+program+anchor`, `solana+at-most-once`, and
-`solana+exactly+once+execution` all return **zero** relevant results. `solana.com/docs` and
-`/developers` never mention idempotency, and none of roughly 130 SIMDs proposes it.
+The September searches were discovery snapshots, not an exhaustive inventory. Light's
+deployed nullifier primitive is real prior art, and Solana's production-readiness guide
+does mention idempotency. A low repository-search result count cannot establish an empty
+market; package downloads cannot establish protocol usage. CommitOnce's demand is still
+unvalidated, and its differences must be evaluated against identified alternatives.
 
 ---
 
@@ -299,9 +291,9 @@ materially identical generic functionality."*
 
 **Assessment: not triggered.** The overlap is real but not materially equivalent:
 
-1. Light's primitive is explicitly *"a reference implementation"*, explicitly *"unaudited"*,
-   and has ~71 crate downloads and no product surface. It is not a *maintained production
-   product*.
+1. The inspected September README describes Light's primitive as a *"reference
+   implementation"* and *"unaudited"*. Those are dated assurance statements, not proof
+   of its current maintenance status or lack of adoption.
 2. It differs materially in security model (#1 — protocol-enforced authority scoping),
    architecture (#2 — RPC proof dependency), state model (#3), multi-tenancy (#4), and
    assurance (#5).

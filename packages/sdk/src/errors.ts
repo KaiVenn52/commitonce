@@ -82,6 +82,18 @@ export type CommitOnceErrorKind =
     | { readonly kind: 'commit-once'; readonly name: CommitOnceErrorName; readonly code: number; readonly message: string }
     | { readonly kind: 'other'; readonly code: number | null };
 
+/** Decode a custom program error's u32, including Kit's bigint representation. */
+function customCode(value: unknown): number | null {
+    if (typeof value === 'bigint') {
+        return value >= 0n && value <= 0xffff_ffffn ? Number(value) : null;
+    }
+    if (typeof value === 'string' && /^\d+$/.test(value)) {
+        value = Number(value);
+    }
+    return typeof value === 'number' && Number.isInteger(value)
+        && value >= 0 && value <= 0xffff_ffff ? value : null;
+}
+
 function findCustomCode(error: unknown): number | null {
     // Kit errors expose a `context`; RPC errors carry a JSON `data` payload. Rather than
     // depend on either shape, walk the object graph for the two forms the runtime uses:
@@ -97,27 +109,27 @@ function findCustomCode(error: unknown): number | null {
         }
         seen.add(current);
 
-        if (typeof current === 'number' && Number.isInteger(current) && current >= 6000 && current < 6100) {
-            return current;
-        }
-
         if (typeof current === 'string') {
             // Errors serialized into a message string, e.g. 'custom program error: 0x1770'.
             const hex = /custom program error: 0x([0-9a-f]+)/i.exec(current);
             if (hex?.[1]) {
                 const code = Number.parseInt(hex[1], 16);
-                if (Number.isInteger(code)) {
-                    return code;
-                }
+                return customCode(code);
             }
             const dec = /custom program error: (\d+)/i.exec(current);
             if (dec?.[1]) {
-                return Number.parseInt(dec[1], 10);
+                return customCode(dec[1]);
             }
             continue;
         }
 
         if (typeof current === 'object') {
+            // Only a Custom field denotes a program error. An arbitrary numeric
+            // slot, fee or instruction index must never be treated as a duplicate.
+            if (Object.prototype.hasOwnProperty.call(current, 'Custom')) {
+                const code = customCode((current as { Custom: unknown }).Custom);
+                if (code !== null) return code;
+            }
             // `Object.values` on an Error returns `[]`, because `message` and `stack` are
             // non-enumerable. RPC clients routinely surface the program error only inside
             // the message string, so it has to be read explicitly.

@@ -17,13 +17,13 @@ reading the actual failure. Where an attempt succeeded, the item is not listed h
 
 | # | Blocker | Blocks | Cost | Time |
 | --- | --- | --- | --- | --- |
-| 1 | Colosseum account + submission form | the submission itself | free | ~1 hour |
-| 2 | Presentation + demo videos | the highest-weighted judging input | free | ~4 hours |
-| 3 | npm publish token | SDK distribution | free | ~15 min |
-| 4 | Mainnet SOL + deployment decision | mainnet launch | ~2–3 SOL + rent | ~1 hour |
-| 5 | Domain | product website | ~$12/year | ~20 min |
-| 6 | Security audit | production trust | $15k–$60k | weeks |
-| 7 | Legal / entity | pre-seed, token, or paid contracts | varies | — |
+| 1 | Authenticated Colosseum submission form | required final submission; founder reports already registered | free | ~1 hour |
+| 2 | Presentation + demo videos | required materials; presentation is reviewed early | free | ~4 hours |
+| 3 | npm publish token | optional SDK distribution work | free | ~15 min |
+| 4 | Mainnet SOL + deployment decision | later mainnet launch, not a stated hackathon entry requirement | ~2–3 SOL + rent | ~1 hour |
+| 5 | Optional website hosting | GitHub Pages can host the existing site without a domain | free; custom domain optional | ~20 min |
+| 6 | Security audit | later production trust | $15k–$60k | weeks |
+| 7 | Legal / entity | later pre-seed or paid contracts | varies | — |
 
 **Done, and no longer blocked:** the repository is published. It is public at
 **<https://github.com/KaiVenn52/commitonce>**, default branch `main`, Apache-2.0, with CI
