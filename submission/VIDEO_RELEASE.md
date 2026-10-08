@@ -17,6 +17,11 @@ The local payer-file path is the only redaction in the public capture copies.
 Release assets include both MP4s, SRT captions, timestamped capture JSON, complete captured
 terminal output, four devnet transaction links, video scene data, preview frames and SHA-256
 manifest. Caption phrase timing is proportionally estimated from each spoken section.
+The release also includes `commitonce-submission.zip`, containing both videos, captions,
+public capture, logo and prepared form answers. Anonymous remote probing decoded both MP4
+headers and confirmed durations of 164.0 and 152.8 seconds; local full-file decoding passed.
+Representative opening, proof and closing frames were visually inspected. These checks do
+not imply that the founder personally recorded or reviewed the narration.
 
 Without the guard, two genuinely rebuilt transactions succeed and the counter reaches **2**.
 With the guard, attempt one succeeds, attempt two fails onchain with **AlreadyCommitted**,
@@ -27,6 +32,7 @@ The guarantee is at-most-once successful execution of a guarded logical intent w
 configured retention window. The project has no mainnet deployment, external audit,
 published npm package, external users or revenue. Public CI run 37793107667 passed for the
 engineering corrections at `199aaf6`; that is distinct from this video production.
+Public CI run 37797304119 also passed for the production-source and website commit `138b6d9`.
 
 These assets are submission materials. Publishing them is **not** evidence that Colosseum
 has received a final project submission.

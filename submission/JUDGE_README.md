@@ -203,6 +203,7 @@ were previously unreachable from it, which for a reviewer is the same as not exi
 | [PITCH_SCRIPT](PITCH_SCRIPT.md) | the presentation script |
 | [VIDEO_SHOTLIST](VIDEO_SHOTLIST.md) | original shot lists and the production update |
 | [VIDEO_RELEASE](VIDEO_RELEASE.md) | both public video players, production disclosures and release assets |
+| [SUBMISSION_STATUS](SUBMISSION_STATUS.md) | verified publication and the remaining portal-access blocker |
 | [COLOSSEUM_GUIDES_BRIEF](COLOSSEUM_GUIDES_BRIEF.md) | the official sources, retrieved and quoted |
 | [evidence/](evidence/) | raw output from every live run referenced in `EVIDENCE.md` |
 

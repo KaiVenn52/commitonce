@@ -240,7 +240,7 @@ mistake, so fill these rather than skipping them.
 ## Pre-submit checklist
 
 - [x] Public founder name and country filled in; no city or legal identity invented
-- [ ] Both videos recorded, uploaded, and their URLs pasted
+- [x] Both videos produced, uploaded, and linked; synthetic narration and terminal-replay editing disclosed
 - [ ] Logo uploaded from `assets/brand/`
 - [ ] Repository link opens in a **private browser window** (proves it is readable by someone
       who is not you)
