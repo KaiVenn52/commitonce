@@ -21,4 +21,7 @@ manifest and public capture copies with the local payer path redacted. `pace.mjs
 capture requests by 700ms to avoid shared-RPC bursts; it changes no transaction contents.
 Inspect the preview frames and listen to the actual MP4s. Captions follow the written
 narration with proportionally estimated phrase timing, not a separate speech transcription.
+After the release is uploaded, `node verify-public.mjs` anonymously retrieves both MP4s
+and public capture copies and checks their exact SHA-256 against the local manifest, then
+checks the public website and player page.
 Do not label a rendering success as final Colosseum submission.

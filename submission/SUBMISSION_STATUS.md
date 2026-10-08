@@ -15,6 +15,8 @@
   count and an unrelated rejection. Both complete MP4s decode successfully locally. Anonymous
   remote media probing confirms 164.0 seconds and 152.8 seconds, with H.264/AAC video/audio.
 - The public capture redacts the local payer-file path; no private key was captured or uploaded.
+- Anonymous retrieval of both published MP4s and the public capture JSON/log matched the
+  local manifest byte lengths and SHA-256 exactly (`video/verify-public.mjs`).
 - The form has prepared product, team, country, repository, video, website and GTM answers.
   Public founder name is Kai Venn, country Malaysia. No city or legal name is invented.
 

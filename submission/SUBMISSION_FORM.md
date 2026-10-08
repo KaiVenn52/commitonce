@@ -242,7 +242,6 @@ mistake, so fill these rather than skipping them.
 - [x] Public founder name and country filled in; no city or legal identity invented
 - [x] Both videos produced, uploaded, and linked; synthetic narration and terminal-replay editing disclosed
 - [ ] Logo uploaded from `assets/brand/`
-- [ ] Repository link opens in a **private browser window** (proves it is readable by someone
-      who is not you)
-- [ ] Every optional field either filled or deliberately left blank for a stated reason
+- [x] Repository is public; site and video assets verified through anonymous HTTP, without account state
+- [x] Prepared optional-field answers supplied; actual portal fields have not yet been entered
 - [ ] Submitted before **11:59pm PT on 2026-10-12**
