@@ -2,9 +2,9 @@
 
 The program remains an onchain idempotency guard. Its guarantee is **at-most-once
 successful execution of a guarded logical intent within the configured retention window**.
-This review starts from public `main` at `eb7c2d8`; local changes described here need to be
-committed and pushed before judges can see them. CI for that base SHA is green; a previous
-CI result does not validate later local changes.
+This review started from public `main` at `eb7c2d8`. The reviewed corrections were committed
+and pushed as `199aaf6`; [CI run 37793107667](https://github.com/KaiVenn52/commitonce/actions/runs/37793107667)
+passed both program and SDK jobs. A result validates that SHA, not subsequent edits.
 
 ## What was corrected
 
@@ -93,5 +93,5 @@ the tracked-file encoding check cannot cover them until they are added to Git.
 
 The pitch still contains 414 spoken words (about 2:46 at 150 words/minute); actual delivery
 must be timed when recording. Documentation checks are rerun after adding this final record.
-The new CI step has been exercised locally, but no CI run for these uncommitted changes
-exists. Public `main` and its green CI still refer to the base SHA until the changes are pushed.
+The new CI step also passed publicly in run 37793107667 for `199aaf6`. Video production and
+hosting are subsequent submission work, tracked separately from the engineering verification.

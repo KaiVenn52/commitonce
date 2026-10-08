@@ -201,7 +201,8 @@ were previously unreachable from it, which for a reviewer is the same as not exi
 | [WORK_LOG](WORK_LOG.md) | what was built during the Contest Period, including the bugs |
 | [DEMO_SCRIPT](DEMO_SCRIPT.md) | the product-demo script |
 | [PITCH_SCRIPT](PITCH_SCRIPT.md) | the presentation script |
-| [VIDEO_SHOTLIST](VIDEO_SHOTLIST.md) | shot lists for both videos |
+| [VIDEO_SHOTLIST](VIDEO_SHOTLIST.md) | original shot lists and the production update |
+| [VIDEO_RELEASE](VIDEO_RELEASE.md) | both public video players, production disclosures and release assets |
 | [COLOSSEUM_GUIDES_BRIEF](COLOSSEUM_GUIDES_BRIEF.md) | the official sources, retrieved and quoted |
 | [evidence/](evidence/) | raw output from every live run referenced in `EVIDENCE.md` |
 
@@ -211,6 +212,7 @@ were previously unreachable from it, which for a reviewer is the same as not exi
 `main`, readable without an account. Nothing needs to be granted for a judge to read it.
 
 If it is ever made private, read access is granted to **`hackathon@colosseum.com`**. Two
-videos — a 2:00–2:59 presentation and a ≤3:00 product demo — are linked from the submission
-form once recorded and uploaded; both video URLs are still owner placeholders. The scripts
-and shot lists for both are in this directory.
+videos — a 2:44 presentation and a 2:32.8 product demo — are linked from
+[VIDEO_RELEASE](VIDEO_RELEASE.md) and the submission form. They use disclosed synthetic
+English narration and an edited replay of the real passing devnet capture. Production sources,
+scripts and the original shot list are included. Final portal submission is separately tracked.

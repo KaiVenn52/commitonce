@@ -1,0 +1,1 @@
+{"name":"commitonce-submission-video","private":true,"type":"module","scripts":{"capture":"node capture.mjs","prepare-media":"node prepare.mjs","render":"node render.mjs"},"dependencies":{"@remotion/bundler":"4.0.484","@remotion/renderer":"4.0.484","remotion":"4.0.484","react":"19.2.7","react-dom":"19.2.7","typescript":"5.9.3"}}

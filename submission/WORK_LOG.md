@@ -424,3 +424,19 @@ The founder story is in [`FOUNDER_STORY.md`](FOUNDER_STORY.md).
 - Both videos, legal name/location fields, final authenticated Colosseum submission, demand
   validation and publication of these local changes remain outstanding. No mainnet deployment,
   npm publication, audit, customer adoption or outreach is claimed.
+
+## 10. Delegated submission production — 2026-10-08
+
+- Published the engineering corrections as `199aaf6`. Public CI run 37793107667 completed
+  successfully, including the new deployment-verifier regression and both test suites.
+- Enabled free GitHub Pages for the existing site. No domain purchase or mainnet spend.
+- Captured a new full passing devnet A/B with timestamps. An earlier recording attempt hit
+  public-RPC 429 and was rejected, not published as success. Capture-only request pacing
+  resolved the burst; requests and transaction contents are otherwise unchanged.
+- Produced a 2:44 presentation and 2:32.8 product-demo video with synthetic English narration,
+  captions and an explicitly labelled edited terminal replay. No founder face or personal
+  voice is fabricated. Source, raw capture copies and publication checksums accompany them.
+- The prepared form uses the supplied public founder name Kai Venn and country Malaysia;
+  no city or legal name is guessed. Any legal-identity field must use the confirmed account
+  profile. Final Colosseum submission needs authenticated portal access and is not inferred
+  from repository, hosting or video publication. There is still no demand validation.

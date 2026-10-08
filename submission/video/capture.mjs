@@ -1,0 +1,15 @@
+import {spawn} from 'node:child_process';
+import {mkdir,writeFile} from 'node:fs/promises';
+import {fileURLToPath} from 'node:url';
+const root=fileURLToPath(new URL('../../',import.meta.url));
+const dir=fileURLToPath(new URL('./public/',import.meta.url));
+await mkdir(dir,{recursive:true});
+if(!process.env.PAYER_KEYPAIR) throw new Error('Provide an existing devnet payer path through PAYER_KEYPAIR; never commit it.');
+const start=Date.now(), chunks=[];
+const child=spawn(process.execPath,['--import',new URL('./pace.mjs',import.meta.url).href,'apps/demo/commitonce-demo.ts','--rpc','https://api.devnet.solana.com'],{cwd:root,env:process.env,stdio:['ignore','pipe','pipe']});
+for(const name of ['stdout','stderr']) child[name].on('data',bytes=>{const text=bytes.toString('utf8');chunks.push({ms:Date.now()-start,stream:name,text});process[name].write(text);});
+const code=await new Promise((resolve,reject)=>{child.on('error',reject);child.on('close',resolve);});
+const output=chunks.map(c=>c.text).join('');
+await writeFile(dir+'session.json',JSON.stringify({date:new Date(start).toISOString(),rpc:'https://api.devnet.solana.com',exitCode:code,durationMs:Date.now()-start,chunks},null,2));
+await writeFile(dir+'session.log',output);
+if(code!==0||!output.includes('both scenarios behaved exactly as claimed')) throw new Error('Live recording did not pass; do not render it as a successful demo.');

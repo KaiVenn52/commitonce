@@ -4,14 +4,11 @@ The Colosseum portal asks for a specific set of fields. Everything needed to ans
 already in this repository, but it is spread across eleven documents. This file collects it into
 the exact text for each field, so filling the form is transcription rather than composition.
 
-**Three things are deliberately left blank**, because they are facts this repository cannot
-supply and must not invent:
-
-| Placeholder | Who fills it | Why |
-| --- | --- | --- |
-| `<YOUR NAME>` | you | A fact about a person. |
-| `<YOUR LOCATION>` | you | A fact about a person. |
-| `<PRESENTATION VIDEO URL>` / `<DEMO VIDEO URL>` | you | The videos do not exist yet; recording them is an owner action. |
+Founder display name uses the owner's supplied public name, **Kai Venn**; location is
+**Malaysia**, without inventing a city. If the portal separately requires a legal name,
+use the authenticated profile's confirmed value rather than treating the display name as legal identity.
+The video links below point to the presentation and demo page, with individual player anchors.
+Final portal submission is a separate action, not implied by this prepared document.
 
 **Live-demo gate passed on 2026-10-08:** the deployment verifier matched both programs to
 the local artifacts, including zero-only loader padding. The live A/B ended at 2 without
@@ -97,7 +94,7 @@ Licence: Apache-2.0.
 One founder, no team. Stated plainly, because judges verify and the rules require disclosure.
 
 ```
-Solo founder: <YOUR NAME>
+Solo founder: Kai Venn (public founder name)
 
 Background: university engineering student and solo founder. I have built other Solana
 prototypes, but I do not claim production infrastructure experience.
@@ -118,7 +115,7 @@ what can an application safely retry?
 ## 5. Where the team is located
 
 ```
-<YOUR LOCATION>
+Malaysia
 ```
 
 ## 6. Product logo or graphic
@@ -142,7 +139,7 @@ granted for review. CI runs on every push and is green.
 ## 8. Presentation video (two to three minutes)
 
 ```
-<PRESENTATION VIDEO URL>
+https://kaivenn52.github.io/commitonce/apps/web/videos.html#presentation
 ```
 
 Script and shot list: [`PITCH_SCRIPT.md`](PITCH_SCRIPT.md),
@@ -153,7 +150,7 @@ three minutes") and 2:00–2:59 satisfies all of them.
 ## 9. Product-demo video (no more than three minutes)
 
 ```
-<DEMO VIDEO URL>
+https://kaivenn52.github.io/commitonce/apps/web/videos.html#demo
 ```
 
 Script: [`DEMO_SCRIPT.md`](DEMO_SCRIPT.md). The demo runs against devnet and prints real explorer
@@ -233,7 +230,7 @@ mistake, so fill these rather than skipping them.
 | --- | --- |
 | Track | `Solana` |
 | Stage | `Working product on devnet, unaudited, no users yet` |
-| Website | leave blank if the form requires a URL — there is no deployed site, and a placeholder would be worse than an empty field |
+| Website | `https://kaivenn52.github.io/commitonce/` |
 | Metrics | `60 Rust tests, 79 SDK tests, both suites green; CI green on a clean runner; both programs live on devnet` |
 | Anything about traction | `None. No users, integrations, revenue or waitlist. Stated rather than implied away.` |
 | Anything about funding raised | `None.` |
@@ -242,7 +239,7 @@ mistake, so fill these rather than skipping them.
 
 ## Pre-submit checklist
 
-- [ ] `<YOUR NAME>` and `<YOUR LOCATION>` filled in
+- [x] Public founder name and country filled in; no city or legal identity invented
 - [ ] Both videos recorded, uploaded, and their URLs pasted
 - [ ] Logo uploaded from `assets/brand/`
 - [ ] Repository link opens in a **private browser window** (proves it is readable by someone

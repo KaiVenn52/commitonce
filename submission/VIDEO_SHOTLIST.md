@@ -1,5 +1,11 @@
 # CommitOnce — video shot list
 
+**Production update, 2026-10-08:** the original founder-recording plan below is retained for
+reference. Under the owner's subsequent instruction to handle the work, screen-based versions
+use synthetic English narration and an explicitly labelled edited replay of a passing real
+devnet capture. No founder face or voice is fabricated. See [video production](video/README.md)
+and the [public players](https://kaivenn52.github.io/commitonce/apps/web/videos.html).
+
 Practical capture plan for both required videos. Two deliverables:
 
 | # | Video | Length | Purpose | Script |

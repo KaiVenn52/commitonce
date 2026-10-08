@@ -1,15 +1,15 @@
 # Needs owner action
 
-Everything in this file is blocked on something **outside** this repository: a credential, a
-payment, an account, or a decision that only the owner can make. Everything else — the
-program, the SDK, the tests, the docs, the devnet deployment, the benchmarks — is already
-done and verified (see [`EVIDENCE.md`](EVIDENCE.md)).
+This file separates the remaining account-gated submission and optional release actions
+from work completed under the owner's delegated submission workflow. Engineering evidence
+is recorded in [`EVIDENCE.md`](EVIDENCE.md); video assets and disclosures are in
+[`submission/VIDEO_RELEASE.md`](submission/VIDEO_RELEASE.md).
 
 Each item states exactly what is blocked, why it cannot be done from here, and the precise
 command or action required.
 
-**Nothing in this file is a guess.** Each blocker was confirmed by attempting the action and
-reading the actual failure. Where an attempt succeeded, the item is not listed here.
+Historical instructions below remain as reference. The dated status summary takes precedence
+over older recording and hosting instructions; planning estimates are not vendor quotations.
 
 ---
 
@@ -18,11 +18,11 @@ reading the actual failure. Where an attempt succeeded, the item is not listed h
 | # | Blocker | Blocks | Cost | Time |
 | --- | --- | --- | --- | --- |
 | 1 | Authenticated Colosseum submission form | required final submission; founder reports already registered | free | ~1 hour |
-| 2 | Presentation + demo videos | required materials; presentation is reviewed early | free | ~4 hours |
+| 2 | Presentation + demo videos — completed | 2:44 pitch and 2:32.8 demo; see video release | free | done |
 | 3 | npm publish token | optional SDK distribution work | free | ~15 min |
-| 4 | Mainnet SOL + deployment decision | later mainnet launch, not a stated hackathon entry requirement | ~2–3 SOL + rent | ~1 hour |
-| 5 | Optional website hosting | GitHub Pages can host the existing site without a domain | free; custom domain optional | ~20 min |
-| 6 | Security audit | later production trust | $15k–$60k | weeks |
+| 4 | Mainnet SOL + deployment decision | later mainnet launch, not a stated hackathon entry requirement | depends on program size and rent | later |
+| 5 | Website hosting — completed | existing site hosted on GitHub Pages | free; no domain purchased | done |
+| 6 | Security audit | later production trust | requires a scope and quotation | later |
 | 7 | Legal / entity | later pre-seed or paid contracts | varies | — |
 
 **Done, and no longer blocked:** the repository is published. It is public at
