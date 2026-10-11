@@ -11,7 +11,8 @@ await mkdir(here+'out/frames',{recursive:true});
 const url=await bundle({entryPoint:here+'index.tsx',publicDir:here+'public'});
 const browser=await openBrowser('chrome');
 try{
- for(const id of ['Pitch','Demo']){
+ for(const id of (process.argv.length>2?process.argv.slice(2):['Pitch','Demo'])){
+  if(!data.videos[id])throw new Error(`Unknown composition ${id}`);
   const composition=await selectComposition({serveUrl:url,id,puppeteerInstance:browser});
   let concat='',n=0;
   for(const scene of data.videos[id].scenes){

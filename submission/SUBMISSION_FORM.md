@@ -1,5 +1,11 @@
 # Submission form — answers, ready to paste
 
+> Actual portal checked 2026-10-11: draft 16838 exists, but is not submitted.
+> Use [PORTAL_CHECK_2026-10-11.md](PORTAL_CHECK_2026-10-11.md) for operative
+> field limits: pitch up to 2 minutes, demo up to 3 minutes; YouTube/Loom/Vimeo
+> links only. The older video-player links and prepared field layout below are
+> reference material, not verified final portal answers.
+
 The Colosseum portal asks for a specific set of fields. Everything needed to answer them is
 already in this repository, but it is spread across eleven documents. This file collects it into
 the exact text for each field, so filling the form is transcription rather than composition.

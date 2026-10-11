@@ -1,5 +1,12 @@
 # Submission status — 2026-10-08
 
+> Superseded operational status, 2026-10-11: supported browser connection was
+> repaired through the official plugin installation. Authenticated CommitOnce
+> draft **16838** now exists; project details, logo, code links and confirmed
+> founder background were saved. Final submission has **not** occurred.
+> [Current portal check](PORTAL_CHECK_2026-10-11.md) records the remaining fields
+> and the actual video limits. The browser-blocker narrative below is historical.
+
 ## Completed
 
 - Engineering fixes published at `199aaf6`; CI run 37793107667 passed.

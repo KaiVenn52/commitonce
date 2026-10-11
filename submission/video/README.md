@@ -1,5 +1,15 @@
 # Submission video production
 
+Actual portal correction (2026-10-11): `node prepare-portal.mjs`, then
+`node render-efficient.mjs PortalPitch` creates a pitch below the portal's
+two-minute cap. `node prepare-portal-demo.mjs`, then
+`node render-efficient.mjs PortalDemo` creates the terminal-only demo below
+three minutes, reusing the recorded devnet evidence and existing narration.
+Run these after the original preparation; they preserve the historical media.
+Only YouTube, Loom or Vimeo links are accepted by the actual video fields.
+`node test.mjs` checks limits with negative controls and rejects invented
+terminal lines. These checks are not a final submission receipt.
+
 Two English, screen-based videos using the existing pitch and a real devnet terminal session.
 The narrator is synthetic, not the founder's recorded voice. No generated face, invented
 customer, mainnet claim or fabricated transaction is used. Demo output is an **edited terminal

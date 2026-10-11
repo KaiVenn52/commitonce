@@ -1,0 +1,22 @@
+// Preserve the historical Demo; replace explanatory cards with genuine CLI output.
+import {readFile,writeFile,copyFile} from 'node:fs/promises';
+import {validateCapture,validateTerminalLines,validatePortalDuration} from './validation.mjs';
+const base=new URL('./',import.meta.url);
+const data=JSON.parse(await readFile(new URL('public/data.json',base),'utf8'));
+const session=JSON.parse(await readFile(new URL('public/session.json',base),'utf8'));
+const log=validateCapture(session);
+const a=log.indexOf('Scenario A —'),b=log.indexOf('Scenario B —');
+const proof=log.indexOf('What this does and does not prove');
+if(proof<=b)throw new Error('Missing chronological proof section');
+const clean=text=>text.split(/\r?\n/).map(x=>x.trim()).filter(x=>x&&!/^[-=]{10,}$/.test(x)&&!x.startsWith('payer source'));
+const env=clean(log.slice(log.indexOf('Environment'),a));
+const final=clean(log.slice(proof));
+const original=data.videos.Demo;
+const visuals=[env,clean(log.slice(a,log.indexOf('attempt 1 of 2',a))),clean(log.slice(a,b)),clean(log.slice(b,proof)),clean(log.slice(0,log.indexOf('Environment'))),final,clean(log.slice(log.indexOf('CommitOnce demo: both scenarios behaved exactly as claimed.')))];
+const scenes=original.scenes.map((s,i)=>({...s,terminal:true,visual:visuals[i],captureDate:session.date}));
+validateTerminalLines(log,scenes);
+validatePortalDuration('PortalDemo',original.duration);
+data.videos.PortalDemo={duration:original.duration,scenes};
+await writeFile(new URL('public/data.json',base),JSON.stringify(data,null,2));
+await copyFile(new URL('out/demo.srt',base),new URL('out/portaldemo.srt',base));
+console.log(`PortalDemo: ${original.duration}s; every terminal line verified against captured output.`);
