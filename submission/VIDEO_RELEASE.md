@@ -3,7 +3,8 @@
 > Historical release. The actual portal checked on 2026-10-11 caps the pitch at
 > two minutes and accepts YouTube/Loom/Vimeo video links only. This 164-second
 > presentation and its Pages player are not eligible final portal answers.
-> Separately named PortalPitch and terminal-only PortalDemo are being prepared;
+> Separately named PortalPitch (101.933333s) and terminal-only PortalDemo (152.8s)
+> were uploaded as unlisted YouTube videos and submitted with project 16838;
 > see [PORTAL_CHECK_2026-10-11.md](PORTAL_CHECK_2026-10-11.md).
 
 Presentation: **2:44**. Product demo: **2:32.8**. Both are 1920×1080 English videos with

@@ -1,5 +1,13 @@
 # Submission status — 2026-10-08
 
+> **FINAL UPDATE — 2026-10-11: SUBMITTED.** CommitOnce project **16838** was
+> entered for judging at **03:49 AM PDT / 18:49 Malaysia**. The official receipt
+> was re-opened and still displayed `Submitted` and `Your project is entered for judging.`
+> [Official receipt](https://colosseum.com/arena/projects/16838/submission) ·
+> [Final portal record](PORTAL_CHECK_2026-10-11.md) ·
+> [Pitch](https://youtu.be/F4FF48-f_RM) · [Demo](https://youtu.be/m-rIjDHJmC0).
+> Earlier incomplete/draft states below are historical, not the current status.
+
 > Superseded operational status, 2026-10-11: supported browser connection was
 > repaired through the official plugin installation. Authenticated CommitOnce
 > draft **16838** now exists; project details, logo, code links and confirmed

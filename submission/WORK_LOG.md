@@ -440,3 +440,21 @@ The founder story is in [`FOUNDER_STORY.md`](FOUNDER_STORY.md).
   no city or legal name is guessed. Any legal-identity field must use the confirmed account
   profile. Final Colosseum submission needs authenticated portal access and is not inferred
   from repository, hosting or video publication. There is still no demand validation.
+
+## 11. Authenticated final submission — 2026-10-11
+
+- Repaired the supported browser connection through the official plugin installation.
+  Created CommitOnce project 16838 and filled the actual portal, not an inferred form.
+- Actual video fields require pitch up to two minutes, demo up to three minutes and
+  YouTube/Loom/Vimeo links. Preserved the historical media and produced separately
+  named 101.933333-second PortalPitch and 152.8-second terminal-only PortalDemo.
+- Every displayed demo terminal line is checked against the real October 8 capture.
+  Both MP4s decode fully; excessive/invalid duration and invented-output controls fail.
+- Uploaded both videos as unlisted on the existing channel after the owner's specific
+  upload-terms approval. Copyright checks found no issues. Official anonymous oEmbed
+  metadata returns HTTP 200 for both, not a claim of guest full-playback verification.
+- Owner confirmed name/city/contact and specifically approved Hackathon Rules and
+  final field locking. Accelerator application remains off; no full-time promise.
+- Official receipt showed Submitted at October 11, 2026, 03:49 AM PDT (18:49 Malaysia),
+  and Your project is entered for judging. Re-opening the receipt preserved that state.
+  No prize, investment, demand validation, mainnet or audit is implied by submission.
